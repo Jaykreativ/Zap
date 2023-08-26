@@ -1,20 +1,34 @@
-// Zap.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include <iostream>
+
+#include "VulkanRenderer.h"
+#include "glm.hpp"
+
+namespace renderer {
+    GLFWwindow* window;
+
+    uint32_t width = 1000;
+    uint32_t height = 600;
+    const char* TITLE = "Zap";
+
+    std::vector<glm::vec3> vertexArray = {
+        glm::vec3(0, 1, 2)
+    };
+}
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    vkRenderer::Buffer vertexBuffer = vkRenderer::Buffer(renderer::vertexArray.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
+    if (!glfwInit()) std::runtime_error("Can't Init GLFW");
+
+    glfwCreateWindow(renderer::width, renderer::height, renderer::TITLE, nullptr, renderer::window);
+    
+    initVulkan(renderer::window, renderer::width, renderer::height, renderer::TITLE);
+
+    vertexBuffer.init(); vertexBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* rawData; vertexBuffer.map(&rawData);
+    memcpy(rawData, renderer::vertexArray.data(), renderer::vertexArray.size() * sizeof(glm::vec3));
+    vertexBuffer.unmap();
+
+    system("pause");
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
