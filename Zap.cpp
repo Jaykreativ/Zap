@@ -21,7 +21,12 @@ int main()
 
     if (!glfwInit()) std::runtime_error("Can't Init GLFW");
 
-    glfwCreateWindow(renderer::width, renderer::height, renderer::TITLE, nullptr, renderer::window);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
+    renderer::window = glfwCreateWindow(renderer::width, renderer::height, renderer::TITLE, nullptr, nullptr);
+
+    glfwShowWindow(renderer::window);
     
     initVulkan(renderer::window, renderer::width, renderer::height, renderer::TITLE);
 
