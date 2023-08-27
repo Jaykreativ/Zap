@@ -110,15 +110,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\GLM\glm;C:\GLFW\3.3.8\include;C:\VulkanSDK\1.3.243.0\Include;C:\Users\Jan\source\repos\Jaykreativ\Vulkan-Renderer\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\GLM\glm;C:\GLFW\3.3.8\include;C:\VulkanSDK\1.3.243.0\Include;C:\Users\Jan\source\repos\Jaykreativ\Vulkan-Framework\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <Version>
       </Version>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;Vulkan-Renderer.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\GLFW\3.3.8\lib-vc2022;C:\VulkanSDK\1.3.243.0\Lib;C:\Users\Jan\source\repos\Jaykreativ\Vulkan-Renderer\x64\Debug;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;Vulkan-Framework.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\GLFW\3.3.8\lib-vc2022;C:\VulkanSDK\1.3.243.0\Lib;C:\Users\Jan\source\repos\Jaykreativ\Vulkan-Framework\x64\Debug</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -129,7 +129,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\GLM\glm;C:\GLFW\3.3.8\include;C:\VulkanSDK\1.3.243.0\Include;C:\Users\Jan\source\repos\Jaykreativ\Vulkan-Renderer\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\GLM\glm;C:\GLFW\3.3.8\include;C:\VulkanSDK\1.3.243.0\Include;C:\Users\Jan\source\repos\Jaykreativ\Vulkan-Framework\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -138,12 +138,20 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <Version>
       </Version>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;Vulkan-Renderer.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\GLFW\3.3.8\lib-vc2022;C:\VulkanSDK\1.3.243.0\Lib;C:\Users\Jan\source\repos\Jaykreativ\Vulkan-Renderer\x64\Debug;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;Vulkan-Framework.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\GLFW\3.3.8\lib-vc2022;C:\VulkanSDK\1.3.243.0\Lib;C:\Users\Jan\source\repos\Jaykreativ\Vulkan-Framework\x64\Debug</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="App.cpp" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="Window.cpp" />
     <ClCompile Include="Zap.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Renderer.h" />
+    <ClInclude Include="Window.h" />
+    <ClInclude Include="Zap.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
