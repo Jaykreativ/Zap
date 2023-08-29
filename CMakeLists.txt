@@ -9,5 +9,5 @@ target_include_directories(
     Zap PUBLIC
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}/Dependencies/glfw/include"
-    "${PROJECT_SOURCE_DIR}/Dependencies/Vulkan-Renderer"
+    "${PROJECT_SOURCE_DIR}/Dependencies/Vulkan-Framework"
     )
