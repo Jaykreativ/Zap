@@ -4,10 +4,11 @@ add_executable(Zap App.cpp Zap.cpp Window.cpp)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Zap)
 add_subdirectory(Dependencies/glfw)
 add_subdirectory(Dependencies/Vulkan-Framework)
-target_link_libraries(Zap PUBLIC VulkanFramework glfw)
+target_link_libraries(Zap PUBLIC VulkanFramework glfw $ENV{VULKAN_SDK}/Lib/vulkan-1.lib)
 target_include_directories(
     Zap PUBLIC
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}/Dependencies/glfw/include"
     "${PROJECT_SOURCE_DIR}/Dependencies/Vulkan-Framework"
-    )
+    "$ENV{VULKAN_SDK}/Include"
+)
