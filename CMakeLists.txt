@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(Zap)
-add_executable(Zap App.cpp Zap.cpp Window.cpp)
+file(GLOB Zap_SRC
+    "*.cpp"
+    "*.h"
+)
+add_executable(Zap ${Zap_SRC})
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Zap)
 add_subdirectory(Dependencies/glfw)
 add_subdirectory(Dependencies/Vulkan-Framework)
