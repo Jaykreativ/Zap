@@ -26,6 +26,7 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {
 			posAttributeDescription
 		};
+		return attributeDescriptions;
 	}
 
 	static VkVertexInputBindingDescription getVertexInputBindingDescription() {
@@ -33,6 +34,7 @@ public:
 		bindingDescription.binding = 0;
 		bindingDescription.stride = sizeof(Vertex);
 		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		return bindingDescription;
 	}
 };
 

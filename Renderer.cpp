@@ -10,6 +10,9 @@ namespace Zap {
 		m_swapchain.~Swapchain();
 		m_surface.~Surface();
 		m_renderPass.~RenderPass();
+		m_vertexShader.~Shader();
+		m_fragmentShader.~Shader();
+		m_pipeline.~Pipeline();
 	}
 
 	void Renderer::init() {
@@ -97,16 +100,19 @@ namespace Zap {
 		}
 		m_renderPass.init();
 
-		vk::Shader vertexShader = vk::Shader();
-		vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
-		vertexShader.setPath();
+		/*Shader*/ {
+		m_vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
+		m_vertexShader.setPath("shader.vert.spv");
 
-		vk::Shader fragmentShader = vk::Shader();
-		fragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
-		fragmentShader.setPath();
+		m_fragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
+		m_fragmentShader.setPath("shader.frag.spv");
+		}
+		m_vertexShader.init();
+		m_fragmentShader.init();
 
-		m_pipeline.addShader(vertexShader);
-		m_pipeline.addShader(fragmentShader);
+		/*Pipeline*/ {
+		m_pipeline.addShader(m_vertexShader.getShaderStage());
+		m_pipeline.addShader(m_fragmentShader.getShaderStage());
 
 		m_pipeline.addDescriptorSetLayout(m_descriptorPool.getDescriptorSetLayout(0));
 		for (auto attributeDescription : Vertex::getVertexInputAttributeDescriptions()) {
@@ -115,6 +121,8 @@ namespace Zap {
 		m_pipeline.addVertexInputBindingDescription(Vertex::getVertexInputBindingDescription());
 		m_pipeline.addViewport(m_viewport);
 		m_pipeline.addScissor(m_scissor);
+		}
+		m_pipeline.init();
 	}
 
 	void Renderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {

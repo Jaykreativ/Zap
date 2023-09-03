@@ -22,6 +22,8 @@ namespace Zap {
 		vk::Swapchain m_swapchain = vk::Swapchain();
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 		vk::RenderPass m_renderPass = vk::RenderPass();
+		vk::Shader m_vertexShader = vk::Shader();
+		vk::Shader m_fragmentShader = vk::Shader();
 		vk::Pipeline m_pipeline = vk::Pipeline();
 
 		//Buffers
