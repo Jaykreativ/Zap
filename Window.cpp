@@ -31,6 +31,18 @@ namespace Zap {
 		glfwShowWindow(m_window);
 	}
 
+	uint32_t Window::getWidth() {
+		return m_width;
+	}
+
+	uint32_t Window::getHeight() {
+		return m_height;
+	}
+
+	GLFWwindow* Window::getGLFWwindow() {
+		return m_window;
+	}
+
 	void Window::pollEvents() {
 		glfwPollEvents();
 	}

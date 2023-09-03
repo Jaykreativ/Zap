@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Zap.h"
-#include "VulkanFramework.h";
 
 namespace Zap
 {
@@ -16,6 +15,12 @@ namespace Zap
         bool shouldClose();
 
         void show();
+
+        uint32_t getWidth();
+
+        uint32_t getHeight();
+
+        GLFWwindow* getGLFWwindow();
 
         static void pollEvents();
 
