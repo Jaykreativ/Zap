@@ -20,6 +20,7 @@ namespace Zap {
 
 		vk::Surface m_surface = vk::Surface();
 		vk::Swapchain m_swapchain = vk::Swapchain();
+		std::vector<vk::Framebuffer> m_framebuffers;
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 		vk::RenderPass m_renderPass = vk::RenderPass();
 		vk::Shader m_vertexShader = vk::Shader();
@@ -35,6 +36,8 @@ namespace Zap {
 			m_ubo.color = {0, 1, 0}
 		};
 		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniforbuffer
+
+		void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t index);
 	};
 }
 

@@ -15,6 +15,26 @@ namespace Zap {
 		m_pipeline.~Pipeline();
 	}
 
+	void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t index) {
+
+		VkRenderPassBeginInfo renderPassBeginInfo;
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.pNext = nullptr;
+		renderPassBeginInfo.renderPass = m_renderPass.getVkRenderPass();
+		renderPassBeginInfo.framebuffer = m_framebuffers[index].getVkFramebuffer();
+		renderPassBeginInfo.renderArea = m_scissor;
+		std::vector<VkClearValue> clearValues{
+			{ 0.1, 0.1, 0.1, 1 }
+		};
+		renderPassBeginInfo.clearValueCount = clearValues.size();
+		renderPassBeginInfo.pClearValues = clearValues.data();
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+
+
+		vkCmdEndRenderPass(commandBuffer);
+	}
+
 	void Renderer::init() {
 		/*Surface*/ {
 			m_surface.setGLFWwindow(m_window.getGLFWwindow());
@@ -28,6 +48,17 @@ namespace Zap {
 			m_swapchain.setSurface(m_surface);
 		}
 		m_swapchain.init();
+
+		/*Framebuffer*/ {
+		m_framebuffers.resize(m_swapchain.getImageCount());
+		for (int i = 0; i < m_swapchain.getImageCount(); i++) {
+			m_framebuffers[i].setWidth(m_viewport.width);
+			m_framebuffers[i].setHeight(m_viewport.height);
+			m_framebuffers[i].addAttachment(m_swapchain.getImageView(i));
+			m_framebuffers[i].setRenderPass(m_renderPass);
+			m_framebuffers[i].init();
+		}
+		}
 
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
