@@ -9,10 +9,17 @@ namespace Zap {
 	}
 }
 
-void Zap::init()
+void Zap::init(const char* applicationName)
 {
 	GlobalSettings::colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
 
 	if (!glfwInit())
 		std::runtime_error("Can't initialize GLFW");
+
+	initVulkan(applicationName);
+}
+
+void Zap::terminate() {
+	terminateVulkan();
+	glfwTerminate();
 }

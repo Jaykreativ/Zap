@@ -1,13 +1,13 @@
 #pragma once
 
 #include "VulkanFramework.h"
-#include "Window.h"
-#include "glm.hpp"
 
 namespace Zap {
     namespace GlobalSettings {
         VkFormat getColorFormat();
     }
 
-    void init();
+    void init(const char* applicationName);
+
+    void terminate();
 }

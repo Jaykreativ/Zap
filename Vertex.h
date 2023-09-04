@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap.h"
+#include "glm.hpp"
 
 class Vertex
 {

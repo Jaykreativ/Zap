@@ -1,18 +1,29 @@
 #include "Zap.h"
+#include "Window.h"
+#include "Renderer.h"
 
 int main() {
-    Zap::init();
+	Zap::init("Zap Application");
 
-    Zap::Window window = Zap::Window(1000, 600, "Zap Application");
-    window.init();
-    window.show();
+	Zap::Window window = Zap::Window(1000, 600, "Zap Application");
+	window.init();
+	window.show();
 
-    while (!window.shouldClose()) {
-        Zap::Window::pollEvents();
-    }
+	Zap::Renderer renderer = Zap::Renderer(window);
+	renderer.setViewport(1000, 600, 0, 0);
+	renderer.init();
 
-    window.~Window();
+	while (!window.shouldClose()) {
+		renderer.render();
 
-    system("pause");
-    return 0;
+		Zap::Window::pollEvents();
+	}
+
+	renderer.~Renderer();
+	window.~Window();
+
+	Zap::terminate();
+
+	system("pause");
+	return 0;
 }
