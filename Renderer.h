@@ -30,7 +30,9 @@ namespace Zap {
 		};
 
 	private:
-		Window m_window;
+		bool m_isInit = false;
+
+		GLFWwindow* m_window;
 		VkViewport m_viewport;
 		VkRect2D m_scissor;
 

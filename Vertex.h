@@ -21,7 +21,7 @@ public:
 		VkVertexInputAttributeDescription posAttributeDescription;
 		posAttributeDescription.location = 0;
 		posAttributeDescription.binding = 0;
-		posAttributeDescription.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		posAttributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
 		posAttributeDescription.offset = offsetof(Vertex, m_pos);
 
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {

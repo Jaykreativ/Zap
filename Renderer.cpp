@@ -4,19 +4,30 @@
 
 namespace Zap {
 	Renderer::Renderer(Window& window)
-		: m_window(window)
+		: m_window(window.getGLFWwindow())
 	{}
 
 	Renderer::~Renderer() {
-		m_swapchain.~Swapchain();
-		m_surface.~Surface();
-		for (vk::Framebuffer framebuffer : m_framebuffers) framebuffer.~Framebuffer();
-		m_renderPass.~RenderPass();
-		m_vertexShader.~Shader();
-		m_fragmentShader.~Shader();
-		m_pipeline.~Pipeline();
+		if (!m_isInit) return;
+		m_isInit = false;
+
+		vk::allQueuesWaitIdle();
 
 		vk::destroySemaphore(m_semaphoreImageAvailable);
+
+		delete[] m_commandBuffers;
+		m_vertexBuffer.~Buffer();
+		m_indexBuffer.~Buffer();
+		m_pipeline.~Pipeline();
+		m_fragmentShader.~Shader();
+		m_vertexShader.~Shader();
+		for (int i = 0; i < m_framebuffers.size(); i++) m_framebuffers[i].~Framebuffer();
+		m_renderPass.~RenderPass();
+		m_descriptorPool.~DescriptorPool();
+		m_uniformBuffer.~Buffer();
+		m_swapchain.~Swapchain();
+		m_surface.~Surface();
+
 	}
 
 	void Renderer::recordCommandBuffer(vk::CommandBuffer& commandBuffer, uint32_t index) {
@@ -28,8 +39,8 @@ namespace Zap {
 		renderPassBeginInfo.renderPass = m_renderPass.getVkRenderPass();
 		renderPassBeginInfo.framebuffer = m_framebuffers[index].getVkFramebuffer();
 		renderPassBeginInfo.renderArea = m_scissor;
-		std::vector<VkClearValue> clearValues{
-			{ 0.1, 0.1, 0.1, 1 }
+		std::vector<VkClearValue> clearValues {
+			{ 0.1, 0.1, 0.1, 0.1 }
 		};
 		renderPassBeginInfo.clearValueCount = clearValues.size();
 		renderPassBeginInfo.pClearValues = clearValues.data();
@@ -41,7 +52,9 @@ namespace Zap {
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_vertexBuffer.getVkBuffer(), offsets);
 		vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdDrawIndexed(commandBuffer, indexArray.size(), 0, 0, 0, 0);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getPipelineLayout(), 0, 1, &m_descriptorPool.getDescriptorSet(0), 0, nullptr);
+
+		vkCmdDrawIndexed(commandBuffer, indexArray.size(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 
@@ -49,14 +62,17 @@ namespace Zap {
 	}
 
 	void Renderer::init() {
+		if (m_isInit) return;
+		m_isInit = true;
+
 		/*Surface*/ {
-			m_surface.setGLFWwindow(m_window.getGLFWwindow());
+			m_surface.setGLFWwindow(m_window);
 		}
 		m_surface.init();
 
 		/*Swapchain*/ {
-			m_swapchain.setWidth(m_window.getWidth());
-			m_swapchain.setHeight(m_window.getHeight());
+			m_swapchain.setWidth(/*m_viewport.width*/1000);
+			m_swapchain.setHeight(/*m_viewport.height*/600);
 			m_swapchain.setPresentMode(VK_PRESENT_MODE_MAILBOX_KHR);
 			m_swapchain.setSurface(m_surface);
 		}
@@ -73,7 +89,7 @@ namespace Zap {
 
 		vk::Descriptor uniformBufferDescriptor{};
 		uniformBufferDescriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uniformBufferDescriptor.stages = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+		uniformBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT;
 		uniformBufferDescriptor.binding = 0;
 		uniformBufferDescriptor.pBufferInfo = &uniformBufferInfo;
 
@@ -136,8 +152,8 @@ namespace Zap {
 		/*Framebuffer*/ {
 		m_framebuffers.resize(m_swapchain.getImageCount());
 		for (int i = 0; i < m_swapchain.getImageCount(); i++) {
-			m_framebuffers[i].setWidth(m_viewport.width);
-			m_framebuffers[i].setHeight(m_viewport.height);
+			m_framebuffers[i].setWidth(1000);
+			m_framebuffers[i].setHeight(600);
 			m_framebuffers[i].addAttachment(m_swapchain.getImageView(i));
 			m_framebuffers[i].setRenderPass(m_renderPass);
 			m_framebuffers[i].init();
@@ -169,9 +185,9 @@ namespace Zap {
 		}
 		m_pipeline.init();
 
-		m_vertexBuffer.resize(vertexArray.size() * sizeof(Vertex)); m_vertexBuffer.setUsage(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		m_vertexBuffer = vk::Buffer((vertexArray.size() + 0) * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_vertexBuffer.init(); m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_vertexBuffer.uploadData(m_vertexBuffer.getSize(), vertexArray.data());
+		m_vertexBuffer.uploadData((vertexArray.size() + 0) * sizeof(Vertex), vertexArray.data());
 
 		m_indexBuffer.resize(indexArray.size() * sizeof(uint32_t)); m_indexBuffer.setUsage(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_indexBuffer.init(); m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -188,7 +204,13 @@ namespace Zap {
 		}
 	}
 
-	void Renderer::render() {
+	void Renderer::render(){
+		m_ubo.color = { 1, 1, 1 };
+
+		void* rawData; m_uniformBuffer.map(&rawData);
+		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
+		m_uniformBuffer.unmap();
+
 		uint32_t imageIndex = 0;
 		vk::acquireNextImage(m_swapchain, m_semaphoreImageAvailable, VK_NULL_HANDLE, &imageIndex);
 
