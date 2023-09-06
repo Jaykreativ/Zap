@@ -7,6 +7,12 @@ namespace Zap {
 			return colorFormat;
 		}
 	}
+
+	vk::DescriptorPool descriptorPool = vk::DescriptorPool();
+}
+
+vk::DescriptorPool& Zap::getDescriptorPool() {
+	return descriptorPool;
 }
 
 void Zap::init(const char* applicationName)
@@ -20,6 +26,8 @@ void Zap::init(const char* applicationName)
 }
 
 void Zap::terminate() {
+	descriptorPool.~DescriptorPool();
+
 	terminateVulkan();
 	glfwTerminate();
 }

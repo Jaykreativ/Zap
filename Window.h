@@ -22,6 +22,15 @@ namespace Zap
 
         GLFWwindow* getGLFWwindow();
 
+        vk::Surface* getSurface();
+
+        vk::Swapchain* getSwapchain();
+
+        vk::RenderPass* getRenderPass();
+
+        vk::Framebuffer* getFramebuffer(uint32_t index);
+        std::vector<vk::Framebuffer> getFramebuffers();
+
         static void pollEvents();
 
     private:
@@ -32,5 +41,10 @@ namespace Zap
         std::string m_title;
 
         GLFWwindow *m_window;
+
+        vk::Surface m_surface = vk::Surface();
+        vk::Swapchain m_swapchain = vk::Swapchain();
+        vk::RenderPass m_renderPass = vk::RenderPass();
+        std::vector<vk::Framebuffer> m_framebuffers;
     };
 }

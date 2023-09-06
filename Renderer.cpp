@@ -3,8 +3,8 @@
 #include "Window.h"
 
 namespace Zap {
-	Renderer::Renderer(Window& window)
-		: m_window(window.getGLFWwindow())
+	Renderer::Renderer(Window* window)
+		: m_window(window)
 	{}
 
 	Renderer::~Renderer() {
@@ -21,62 +21,47 @@ namespace Zap {
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
-		for (int i = 0; i < m_framebuffers.size(); i++) m_framebuffers[i].~Framebuffer();
-		m_renderPass.~RenderPass();
-		m_descriptorPool.~DescriptorPool();
 		m_uniformBuffer.~Buffer();
-		m_swapchain.~Swapchain();
-		m_surface.~Surface();
 
 	}
 
-	void Renderer::recordCommandBuffer(vk::CommandBuffer& commandBuffer, uint32_t index) {
-		commandBuffer.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+	void Renderer::recordCommandBuffers() {
+		for (int i = 0; i < m_commandBufferCount; i++) {
+			vk::CommandBuffer& commandBuffer = m_commandBuffers[i];
+			commandBuffer.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
-		VkRenderPassBeginInfo renderPassBeginInfo;
-		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.pNext = nullptr;
-		renderPassBeginInfo.renderPass = m_renderPass.getVkRenderPass();
-		renderPassBeginInfo.framebuffer = m_framebuffers[index].getVkFramebuffer();
-		renderPassBeginInfo.renderArea = m_scissor;
-		std::vector<VkClearValue> clearValues {
-			{ 0.1, 0.1, 0.1, 0.1 }
-		};
-		renderPassBeginInfo.clearValueCount = clearValues.size();
-		renderPassBeginInfo.pClearValues = clearValues.data();
-		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			VkRenderPassBeginInfo renderPassBeginInfo;
+			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassBeginInfo.pNext = nullptr;
+			renderPassBeginInfo.renderPass = m_window->getRenderPass()->getVkRenderPass();
+			renderPassBeginInfo.framebuffer = m_window->getFramebuffer(i)->getVkFramebuffer();
+			renderPassBeginInfo.renderArea = m_scissor;
+			std::vector<VkClearValue> clearValues {
+				{ 0.1, 0.1, 0.1, 1 }
+			};
+			renderPassBeginInfo.clearValueCount = clearValues.size();
+			renderPassBeginInfo.pClearValues = clearValues.data();
+			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipeline());
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipeline());
 
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_vertexBuffer.getVkBuffer(), offsets);
-		vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_vertexBuffer.getVkBuffer(), offsets);
+			vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getPipelineLayout(), 0, 1, &m_descriptorPool.getDescriptorSet(0), 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getPipelineLayout(), 0, 1, &Zap::getDescriptorPool().getDescriptorSet(m_descriptorSetIndex), 0, nullptr);
 
-		vkCmdDrawIndexed(commandBuffer, indexArray.size(), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffer, indexArray.size(), 1, 0, 0, 0);
 
-		vkCmdEndRenderPass(commandBuffer);
+			vkCmdEndRenderPass(commandBuffer);
 
-		commandBuffer.end();
+			commandBuffer.end();
+		}
 	}
 
 	void Renderer::init() {
 		if (m_isInit) return;
 		m_isInit = true;
-
-		/*Surface*/ {
-			m_surface.setGLFWwindow(m_window);
-		}
-		m_surface.init();
-
-		/*Swapchain*/ {
-			m_swapchain.setWidth(/*m_viewport.width*/1000);
-			m_swapchain.setHeight(/*m_viewport.height*/600);
-			m_swapchain.setPresentMode(VK_PRESENT_MODE_MAILBOX_KHR);
-			m_swapchain.setSurface(m_surface);
-		}
-		m_swapchain.init();
 
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -93,72 +78,11 @@ namespace Zap {
 		uniformBufferDescriptor.binding = 0;
 		uniformBufferDescriptor.pBufferInfo = &uniformBufferInfo;
 
-		m_descriptorPool.addDescriptorSet();
-		m_descriptorPool.addDescriptor(uniformBufferDescriptor, 0);
+		Zap::getDescriptorPool().addDescriptorSet();
+		m_descriptorSetIndex = Zap::getDescriptorPool().getDescriptorSetCount() - 1;
+		Zap::getDescriptorPool().addDescriptor(uniformBufferDescriptor, m_descriptorSetIndex);
 		}
-		m_descriptorPool.init();
-
-		/*RenderPass*/ {
-			VkAttachmentDescription colorAttachment;
-			colorAttachment.flags = 0;
-			colorAttachment.format = Zap::GlobalSettings::getColorFormat();
-			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-			m_renderPass.addAttachmentDescription(colorAttachment);
-
-			VkAttachmentReference* pColorAttachmentReference;
-			{
-				VkAttachmentReference tmp;
-				tmp.attachment = 0;
-				tmp.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				pColorAttachmentReference = &tmp;
-
-				m_renderPass.addAttachmentReference(&pColorAttachmentReference);
-			}
-
-			VkSubpassDescription subpassDescription;
-			subpassDescription.flags = 0;
-			subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-			subpassDescription.inputAttachmentCount = 0;
-			subpassDescription.pInputAttachments = nullptr;
-			subpassDescription.colorAttachmentCount = 1;
-			subpassDescription.pColorAttachments = pColorAttachmentReference;
-			subpassDescription.pResolveAttachments = nullptr;
-			subpassDescription.pDepthStencilAttachment = nullptr;
-			subpassDescription.preserveAttachmentCount = 0;
-			subpassDescription.pPreserveAttachments = nullptr;
-
-			m_renderPass.addSubpassDescription(subpassDescription);
-
-			VkSubpassDependency subpassDependency;
-			subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-			subpassDependency.dstSubpass = 0;
-			subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			subpassDependency.srcAccessMask = 0;
-			subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			subpassDependency.dependencyFlags = 0;
-
-			m_renderPass.addSubpassDependency(subpassDependency);
-		}
-		m_renderPass.init();
-
-		/*Framebuffer*/ {
-		m_framebuffers.resize(m_swapchain.getImageCount());
-		for (int i = 0; i < m_swapchain.getImageCount(); i++) {
-			m_framebuffers[i].setWidth(1000);
-			m_framebuffers[i].setHeight(600);
-			m_framebuffers[i].addAttachment(m_swapchain.getImageView(i));
-			m_framebuffers[i].setRenderPass(m_renderPass);
-			m_framebuffers[i].init();
-		}
-		}
+		Zap::getDescriptorPool().update();
 
 		/*Shader*/ {
 		m_vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
@@ -174,14 +98,14 @@ namespace Zap {
 		m_pipeline.addShader(m_vertexShader.getShaderStage());
 		m_pipeline.addShader(m_fragmentShader.getShaderStage());
 
-		m_pipeline.addDescriptorSetLayout(m_descriptorPool.getDescriptorSetLayout(0));
+		m_pipeline.addDescriptorSetLayout(Zap::getDescriptorPool().getDescriptorSetLayout(m_descriptorSetIndex));
 		for (auto attributeDescription : Vertex::getVertexInputAttributeDescriptions()) {
 			m_pipeline.addVertexInputAttrubuteDescription(attributeDescription);
 		}
 		m_pipeline.addVertexInputBindingDescription(Vertex::getVertexInputBindingDescription());
 		m_pipeline.addViewport(m_viewport);
 		m_pipeline.addScissor(m_scissor);
-		m_pipeline.setRenderPass(m_renderPass);
+		m_pipeline.setRenderPass(*m_window->getRenderPass());
 		}
 		m_pipeline.init();
 
@@ -195,12 +119,12 @@ namespace Zap {
 
 		vk::createSemaphore(&m_semaphoreImageAvailable);
 
-		m_commandBufferCount = m_swapchain.getImageCount();
+		m_commandBufferCount = m_window->getSwapchain()->getImageCount();
 		m_commandBuffers = new vk::CommandBuffer[m_commandBufferCount];
-		for (int i = 0; i < m_swapchain.getImageCount(); i++) {
+		for (int i = 0; i < m_commandBufferCount; i++) {
 			m_commandBuffers[i].allocate();
 			m_commandBuffers[i].addWaitSemaphore(m_semaphoreImageAvailable, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-			recordCommandBuffer(m_commandBuffers[i], i);
+			recordCommandBuffers();
 		}
 	}
 
@@ -212,12 +136,12 @@ namespace Zap {
 		m_uniformBuffer.unmap();
 
 		uint32_t imageIndex = 0;
-		vk::acquireNextImage(m_swapchain, m_semaphoreImageAvailable, VK_NULL_HANDLE, &imageIndex);
+		vk::acquireNextImage(*m_window->getSwapchain(), m_semaphoreImageAvailable, VK_NULL_HANDLE, &imageIndex);
 
 		VkQueue queue;
 		m_commandBuffers[imageIndex].submit(&queue);
 
-		vk::queuePresent(queue, m_swapchain, imageIndex);
+		vk::queuePresent(queue, *m_window->getSwapchain(), imageIndex);
 	}
 
 	void Renderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
