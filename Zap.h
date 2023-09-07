@@ -7,8 +7,6 @@ namespace Zap {
         VkFormat getColorFormat();
     }
 
-    vk::DescriptorPool& getDescriptorPool();
-
     void init(const char* applicationName);
 
     void terminate();

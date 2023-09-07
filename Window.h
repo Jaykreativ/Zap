@@ -12,6 +12,8 @@ namespace Zap
 
         void init();
 
+        void swapBuffers();
+
         bool shouldClose();
 
         void show();
@@ -31,6 +33,10 @@ namespace Zap
         vk::Framebuffer* getFramebuffer(uint32_t index);
         std::vector<vk::Framebuffer> getFramebuffers();
 
+        uint32_t getCurrentImageIndex();
+
+        VkFence getImageAvailableFence();
+
         static void pollEvents();
 
     private:
@@ -46,5 +52,7 @@ namespace Zap
         vk::Swapchain m_swapchain = vk::Swapchain();
         vk::RenderPass m_renderPass = vk::RenderPass();
         std::vector<vk::Framebuffer> m_framebuffers;
+        uint32_t m_currentImageIndex;
+        VkFence m_imageAvailable = VK_NULL_HANDLE;
     };
 }

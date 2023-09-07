@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "VulkanUtils.h"
 
 namespace Zap {
 	Window::Window(uint32_t width, uint32_t height, std::string title) {
@@ -11,6 +12,7 @@ namespace Zap {
 		if (!m_isInit) return;
 		m_isInit = false;
 
+		vk::destroyFence(m_imageAvailable);
 		for (int i = 0; i < m_framebuffers.size(); i++) m_framebuffers[i].~Framebuffer();
 		m_renderPass.~RenderPass();
 		m_swapchain.~Swapchain();
@@ -102,6 +104,17 @@ namespace Zap {
 			}
 		}
 
+		vk::createFence(&m_imageAvailable);
+
+		vk::acquireNextImage(m_swapchain,VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
+		vk::waitForFence(m_imageAvailable);
+	}
+
+	void Window::swapBuffers() {
+		vk::queuePresent(vkUtils::queueHandler::getQueue(), m_swapchain, m_currentImageIndex);
+
+		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
+		vk::waitForFence(m_imageAvailable);
 	}
 
 	bool Window::shouldClose() {
@@ -141,6 +154,14 @@ namespace Zap {
 	}
 	std::vector<vk::Framebuffer> Window::getFramebuffers() {
 		return m_framebuffers;
+	}
+
+	uint32_t Window::getCurrentImageIndex() {
+		return m_currentImageIndex;
+	}
+
+	VkFence Window::getImageAvailableFence() {
+		return m_imageAvailable;
 	}
 
 	void Window::pollEvents() {

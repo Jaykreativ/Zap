@@ -9,12 +9,10 @@ namespace Zap {
 	class Renderer
 	{
 	public:
-		Renderer(Window* window);
+		Renderer(Window& window);
 		~Renderer();
 	
 		void init();
-
-		void recordCommandBuffers();
 
 		void render();
 
@@ -34,11 +32,11 @@ namespace Zap {
 	private:
 		bool m_isInit = false;
 
-		Window* m_window;
+		Window& m_window;
 		VkViewport m_viewport;
 		VkRect2D m_scissor;
 
-		uint32_t m_descriptorSetIndex;
+		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 
 		vk::Shader m_vertexShader = vk::Shader();
 		vk::Shader m_fragmentShader = vk::Shader();
@@ -47,8 +45,8 @@ namespace Zap {
 		uint32_t m_commandBufferCount;
 		vk::CommandBuffer* m_commandBuffers;
 
-		//Semaphores
-		VkSemaphore m_semaphoreImageAvailable;
+		//Fences
+		VkFence m_renderComplete;
 
 		//Buffers
 		struct UniformBufferObject {// definition of the uniform buffer layout

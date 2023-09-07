@@ -5,15 +5,8 @@
 namespace app {
 	Zap::Window window = Zap::Window(1000, 600, "Zap Application");
 
-	Zap::Renderer renderer = Zap::Renderer(&window);
-	Zap::Renderer renderer2 = Zap::Renderer(&window);
-}
-
-void callback() {
-	app::renderer.recordCommandBuffers();
-}
-void callback2() {
-	app::renderer2.recordCommandBuffers();
+	Zap::Renderer renderer = Zap::Renderer(window);
+	Zap::Renderer renderer2 = Zap::Renderer(window);
 }
 
 int main() {
@@ -24,20 +17,17 @@ int main() {
 	app::window.show();
 
 
-	app::renderer.setViewport(500, 600, 0, 0);
+	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
 
-	Zap::getDescriptorPool().addDescriptorSetUpdateCallback(&callback);
-
-	app::renderer2.setViewport(500, 600, 500, 0);
+	app::renderer2.setViewport(500, 300, 500, 0);
 	app::renderer2.init();
-
-	Zap::getDescriptorPool().addDescriptorSetUpdateCallback(&callback2);
 
 	while (!app::window.shouldClose()) {
 		app::renderer.render();
 		app::renderer2.render();
 
+		app::window.swapBuffers();
 		Zap::Window::pollEvents();
 	}
 

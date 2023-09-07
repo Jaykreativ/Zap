@@ -2,8 +2,39 @@
 #include "Vertex.h"
 #include "Window.h"
 
+void recordCommandBuffer(vk::CommandBuffer& commandBuffer, uint32_t index, Zap::Window& window, VkRect2D scissor, vk::Pipeline& pipeline, vk::Buffer& vertexBuffer, vk::Buffer& indexBuffer, uint32_t indexCount, vk::DescriptorPool& descriptorPool) {
+	commandBuffer.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+
+	VkRenderPassBeginInfo renderPassBeginInfo;
+	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassBeginInfo.pNext = nullptr;
+	renderPassBeginInfo.renderPass = window.getRenderPass()->getVkRenderPass();
+	renderPassBeginInfo.framebuffer = window.getFramebuffer(index)->getVkFramebuffer();
+	renderPassBeginInfo.renderArea = scissor;
+	std::vector<VkClearValue> clearValues{
+		{ 0.1, 0.1, 0.1, 1 }
+	};
+	renderPassBeginInfo.clearValueCount = clearValues.size();
+	renderPassBeginInfo.pClearValues = clearValues.data();
+	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getVkPipeline());
+
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.getVkBuffer(), offsets);
+	vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getPipelineLayout(), 0, 1, &descriptorPool.getDescriptorSet(0), 0, nullptr);
+
+	vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
+
+	vkCmdEndRenderPass(commandBuffer);
+
+	commandBuffer.end();
+}
+
 namespace Zap {
-	Renderer::Renderer(Window* window)
+	Renderer::Renderer(Window& window)
 		: m_window(window)
 	{}
 
@@ -13,7 +44,7 @@ namespace Zap {
 
 		vk::allQueuesWaitIdle();
 
-		vk::destroySemaphore(m_semaphoreImageAvailable);
+		vk::destroyFence(m_renderComplete);
 
 		delete[] m_commandBuffers;
 		m_vertexBuffer.~Buffer();
@@ -23,40 +54,6 @@ namespace Zap {
 		m_vertexShader.~Shader();
 		m_uniformBuffer.~Buffer();
 
-	}
-
-	void Renderer::recordCommandBuffers() {
-		for (int i = 0; i < m_commandBufferCount; i++) {
-			vk::CommandBuffer& commandBuffer = m_commandBuffers[i];
-			commandBuffer.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-
-			VkRenderPassBeginInfo renderPassBeginInfo;
-			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassBeginInfo.pNext = nullptr;
-			renderPassBeginInfo.renderPass = m_window->getRenderPass()->getVkRenderPass();
-			renderPassBeginInfo.framebuffer = m_window->getFramebuffer(i)->getVkFramebuffer();
-			renderPassBeginInfo.renderArea = m_scissor;
-			std::vector<VkClearValue> clearValues {
-				{ 0.1, 0.1, 0.1, 1 }
-			};
-			renderPassBeginInfo.clearValueCount = clearValues.size();
-			renderPassBeginInfo.pClearValues = clearValues.data();
-			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipeline());
-
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_vertexBuffer.getVkBuffer(), offsets);
-			vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getPipelineLayout(), 0, 1, &Zap::getDescriptorPool().getDescriptorSet(m_descriptorSetIndex), 0, nullptr);
-
-			vkCmdDrawIndexed(commandBuffer, indexArray.size(), 1, 0, 0, 0);
-
-			vkCmdEndRenderPass(commandBuffer);
-
-			commandBuffer.end();
-		}
 	}
 
 	void Renderer::init() {
@@ -78,11 +75,10 @@ namespace Zap {
 		uniformBufferDescriptor.binding = 0;
 		uniformBufferDescriptor.pBufferInfo = &uniformBufferInfo;
 
-		Zap::getDescriptorPool().addDescriptorSet();
-		m_descriptorSetIndex = Zap::getDescriptorPool().getDescriptorSetCount() - 1;
-		Zap::getDescriptorPool().addDescriptor(uniformBufferDescriptor, m_descriptorSetIndex);
+		m_descriptorPool.addDescriptorSet();
+		m_descriptorPool.addDescriptor(uniformBufferDescriptor, 0);//TODO fix 0
 		}
-		Zap::getDescriptorPool().update();
+		m_descriptorPool.update();
 
 		/*Shader*/ {
 		m_vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
@@ -98,14 +94,14 @@ namespace Zap {
 		m_pipeline.addShader(m_vertexShader.getShaderStage());
 		m_pipeline.addShader(m_fragmentShader.getShaderStage());
 
-		m_pipeline.addDescriptorSetLayout(Zap::getDescriptorPool().getDescriptorSetLayout(m_descriptorSetIndex));
+		m_pipeline.addDescriptorSetLayout(m_descriptorPool.getDescriptorSetLayout(0));
 		for (auto attributeDescription : Vertex::getVertexInputAttributeDescriptions()) {
 			m_pipeline.addVertexInputAttrubuteDescription(attributeDescription);
 		}
 		m_pipeline.addVertexInputBindingDescription(Vertex::getVertexInputBindingDescription());
 		m_pipeline.addViewport(m_viewport);
 		m_pipeline.addScissor(m_scissor);
-		m_pipeline.setRenderPass(*m_window->getRenderPass());
+		m_pipeline.setRenderPass(*m_window.getRenderPass());
 		}
 		m_pipeline.init();
 
@@ -117,14 +113,14 @@ namespace Zap {
 		m_indexBuffer.init(); m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		m_indexBuffer.uploadData(m_indexBuffer.getSize(), indexArray.data());
 
-		vk::createSemaphore(&m_semaphoreImageAvailable);
+		vk::createFence(&m_renderComplete);
 
-		m_commandBufferCount = m_window->getSwapchain()->getImageCount();
+		m_commandBufferCount = m_window.getSwapchain()->getImageCount();
 		m_commandBuffers = new vk::CommandBuffer[m_commandBufferCount];
 		for (int i = 0; i < m_commandBufferCount; i++) {
 			m_commandBuffers[i].allocate();
-			m_commandBuffers[i].addWaitSemaphore(m_semaphoreImageAvailable, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-			recordCommandBuffers();
+			//m_commandBuffers[i].addSignalSemaphore(m_semaphoreRenderComplete);
+			recordCommandBuffer(m_commandBuffers[i], i, m_window, m_scissor, m_pipeline, m_vertexBuffer, m_indexBuffer, indexArray.size(), m_descriptorPool);
 		}
 	}
 
@@ -135,13 +131,9 @@ namespace Zap {
 		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
 		m_uniformBuffer.unmap();
 
-		uint32_t imageIndex = 0;
-		vk::acquireNextImage(*m_window->getSwapchain(), m_semaphoreImageAvailable, VK_NULL_HANDLE, &imageIndex);
-
 		VkQueue queue;
-		m_commandBuffers[imageIndex].submit(&queue);
-
-		vk::queuePresent(queue, *m_window->getSwapchain(), imageIndex);
+		m_commandBuffers[m_window.getCurrentImageIndex()].submit(&queue, m_renderComplete);
+		vk::waitForFence(m_renderComplete);
 	}
 
 	void Renderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
