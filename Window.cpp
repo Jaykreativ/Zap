@@ -25,6 +25,7 @@ namespace Zap {
 		m_isInit = true;
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 		m_window = glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
 
@@ -35,8 +36,8 @@ namespace Zap {
 		m_surface.init();
 
 		/*Swapchain*/ {
-			m_swapchain.setWidth(/*m_viewport.width*/1000);
-			m_swapchain.setHeight(/*m_viewport.height*/600);
+			m_swapchain.setWidth(m_width);
+			m_swapchain.setHeight(m_height);
 			m_swapchain.setPresentMode(VK_PRESENT_MODE_MAILBOX_KHR);
 			m_swapchain.setSurface(m_surface);
 		}
@@ -96,8 +97,8 @@ namespace Zap {
 		/*Framebuffer*/ {
 			m_framebuffers.resize(m_swapchain.getImageCount());
 			for (int i = 0; i < m_swapchain.getImageCount(); i++) {
-				m_framebuffers[i].setWidth(1000);
-				m_framebuffers[i].setHeight(600);
+				m_framebuffers[i].setWidth(m_width);
+				m_framebuffers[i].setHeight(m_height);
 				m_framebuffers[i].addAttachment(m_swapchain.getImageView(i));
 				m_framebuffers[i].setRenderPass(m_renderPass);
 				m_framebuffers[i].init();
