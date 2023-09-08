@@ -125,6 +125,8 @@ namespace Zap {
 	}
 
 	void Renderer::render(){
+		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
+
 		m_ubo.color = { 1, 1, 1 };
 
 		void* rawData; m_uniformBuffer.map(&rawData);
