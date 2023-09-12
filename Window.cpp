@@ -112,6 +112,7 @@ namespace Zap {
 	}
 
 	void Window::swapBuffers() {
+		if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED)) return;
 		vk::queuePresent(vkUtils::queueHandler::getQueue(), m_swapchain, m_currentImageIndex);
 
 		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);

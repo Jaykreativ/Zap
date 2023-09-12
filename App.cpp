@@ -20,7 +20,6 @@ int main() {
 	app::window.init();
 	app::window.show();
 
-
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
 
