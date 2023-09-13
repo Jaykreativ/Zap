@@ -55,8 +55,8 @@ namespace Zap {
 
 		std::vector<VisibleActor*> m_actors;
 
-		std::vector<Vertex> vertexArray;
-		std::vector<uint32_t> indexArray;
+		std::vector<Vertex> m_vertexArray;
+		std::vector<uint32_t> m_indexArray;
 
 		vk::Buffer m_vertexBuffer = vk::Buffer();
 		vk::Buffer m_indexBuffer = vk::Buffer();

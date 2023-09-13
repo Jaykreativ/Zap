@@ -20,6 +20,21 @@ int main() {
 	app::window.init();
 	app::window.show();
 
+	std::vector<Vertex> vertices = {
+		Vertex({-0.5, -0.5, 0}),
+		Vertex({0.5, -0.5, 0}),
+		Vertex({0, 0.5, 0})
+	};
+	std::vector<uint32_t> indices = {
+		0, 1, 2
+	};
+
+	Zap::VisibleActor actor;
+	actor.setVertexArray(vertices.data(), vertices.size());
+	actor.setIndexArray(indices.data(), indices.size());
+
+	app::renderer.addActor(actor);
+
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
 

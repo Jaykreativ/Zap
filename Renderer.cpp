@@ -133,9 +133,11 @@ namespace Zap {
 
 	void Renderer::addActor(VisibleActor& actor) {
 		m_actors.push_back(&actor);
+		m_vertexArray.insert(m_vertexArray.end(), actor.getVertexArray().begin(), actor.getVertexArray().end());
+		m_indexArray.insert(m_indexArray.end(), actor.getIndexArray().begin(), actor.getIndexArray().end());
 	}
 
-	void Renderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
+	void Renderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y){
 		m_viewport.x = x;
 		m_viewport.y = y;
 		m_viewport.width = width;
@@ -147,7 +149,7 @@ namespace Zap {
 		m_scissor.offset.y = y;
 		m_scissor.extent.width = width;
 		m_scissor.extent.height = height;
-	}
+		}
 
 	void Renderer::uploadVertexData() {
 		if (m_isInit) {
@@ -155,18 +157,22 @@ namespace Zap {
 			m_indexBuffer.~Buffer();
 		}
 
-		m_vertexBuffer = vk::Buffer(vertexArray.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		m_vertexBuffer = vk::Buffer(m_vertexArray.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_vertexBuffer.init(); m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_vertexBuffer.uploadData(vertexArray.size() * sizeof(Vertex), vertexArray.data());
-
-		m_indexBuffer.resize(indexArray.size() * sizeof(uint32_t)); m_indexBuffer.setUsage(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		m_vertexBuffer.uploadData(m_indexBuffer.getSize(), m_vertexArray.data());
+		
+		m_indexBuffer.resize(m_indexArray.size() * sizeof(uint32_t)); m_indexBuffer.setUsage(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_indexBuffer.init(); m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_indexBuffer.uploadData(m_indexBuffer.getSize(), indexArray.data());
+		m_indexBuffer.uploadData(m_indexBuffer.getSize(), m_indexArray.data());
+
+		if (m_isInit) {
+			recordCommandBuffers();
+		}
 	}
 
 	void Renderer::recordCommandBuffers() {
 		for (int i = 0; i < m_commandBufferCount; i++) {
-			recordCommandBuffer(m_commandBuffers[i], i, m_window, m_scissor, m_pipeline, m_vertexBuffer, m_indexBuffer, indexArray.size(), m_descriptorPool);
+			recordCommandBuffer(m_commandBuffers[i], i, m_window, m_scissor, m_pipeline, m_vertexBuffer, m_indexBuffer, m_indexArray.size(), m_descriptorPool);
 		}
 	}
 }
