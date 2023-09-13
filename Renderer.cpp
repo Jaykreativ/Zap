@@ -105,13 +105,7 @@ namespace Zap {
 		}
 		m_pipeline.init();
 
-		m_vertexBuffer = vk::Buffer((vertexArray.size() + 0) * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-		m_vertexBuffer.init(); m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_vertexBuffer.uploadData((vertexArray.size() + 0) * sizeof(Vertex), vertexArray.data());
-
-		m_indexBuffer.resize(indexArray.size() * sizeof(uint32_t)); m_indexBuffer.setUsage(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-		m_indexBuffer.init(); m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_indexBuffer.uploadData(m_indexBuffer.getSize(), indexArray.data());
+		uploadVertexData();
 
 		vk::createFence(&m_renderComplete);
 
@@ -119,9 +113,8 @@ namespace Zap {
 		m_commandBuffers = new vk::CommandBuffer[m_commandBufferCount];
 		for (int i = 0; i < m_commandBufferCount; i++) {
 			m_commandBuffers[i].allocate();
-			//m_commandBuffers[i].addSignalSemaphore(m_semaphoreRenderComplete);
-			recordCommandBuffer(m_commandBuffers[i], i, m_window, m_scissor, m_pipeline, m_vertexBuffer, m_indexBuffer, indexArray.size(), m_descriptorPool);
 		}
+		recordCommandBuffers();
 	}
 
 	void Renderer::render(){
@@ -138,6 +131,10 @@ namespace Zap {
 		vk::waitForFence(m_renderComplete);
 	}
 
+	void Renderer::addActor(VisibleActor& actor) {
+		m_actors.push_back(&actor);
+	}
+
 	void Renderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
 		m_viewport.x = x;
 		m_viewport.y = y;
@@ -150,5 +147,26 @@ namespace Zap {
 		m_scissor.offset.y = y;
 		m_scissor.extent.width = width;
 		m_scissor.extent.height = height;
+	}
+
+	void Renderer::uploadVertexData() {
+		if (m_isInit) {
+			m_vertexBuffer.~Buffer();
+			m_indexBuffer.~Buffer();
+		}
+
+		m_vertexBuffer = vk::Buffer(vertexArray.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		m_vertexBuffer.init(); m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_vertexBuffer.uploadData(vertexArray.size() * sizeof(Vertex), vertexArray.data());
+
+		m_indexBuffer.resize(indexArray.size() * sizeof(uint32_t)); m_indexBuffer.setUsage(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		m_indexBuffer.init(); m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_indexBuffer.uploadData(m_indexBuffer.getSize(), indexArray.data());
+	}
+
+	void Renderer::recordCommandBuffers() {
+		for (int i = 0; i < m_commandBufferCount; i++) {
+			recordCommandBuffer(m_commandBuffers[i], i, m_window, m_scissor, m_pipeline, m_vertexBuffer, m_indexBuffer, indexArray.size(), m_descriptorPool);
+		}
 	}
 }

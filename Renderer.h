@@ -4,6 +4,7 @@
 #include "Zap.h"
 #include "Window.h"
 #include "Vertex.h"
+#include "VisibleActor.h"
 
 namespace Zap {
 	class Renderer
@@ -16,18 +17,12 @@ namespace Zap {
 
 		void render();
 
+		void addActor(VisibleActor& actor);
+
 		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 
 		//TODO make actor system
-		std::vector<Vertex> vertexArray = {
-			Vertex({-0.5f, 0.5f, 0}),
-			Vertex({0.5f, 0.5f, 0}),
-			Vertex({0, -0.5f, 0})
-		};
-		
-		std::vector<uint32_t> indexArray = {
-			0, 1, 2
-		};
+
 
 	private:
 		bool m_isInit = false;
@@ -58,9 +53,16 @@ namespace Zap {
 		};
 		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer
 
+		std::vector<VisibleActor*> m_actors;
+
+		std::vector<Vertex> vertexArray;
+		std::vector<uint32_t> indexArray;
+
 		vk::Buffer m_vertexBuffer = vk::Buffer();
 		vk::Buffer m_indexBuffer = vk::Buffer();
 
+		void uploadVertexData();
+		void recordCommandBuffers();
 	};
 }
 
