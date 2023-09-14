@@ -157,9 +157,12 @@ namespace Zap {
 			m_indexBuffer.~Buffer();
 		}
 
+		std::cout << m_vertexArray.size() << "\n";
+		std::cout << m_indexArray.size() << "\n";
+
 		m_vertexBuffer = vk::Buffer(m_vertexArray.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_vertexBuffer.init(); m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_vertexBuffer.uploadData(m_indexBuffer.getSize(), m_vertexArray.data());
+		m_vertexBuffer.uploadData(m_vertexBuffer.getSize(), m_vertexArray.data());
 		
 		m_indexBuffer.resize(m_indexArray.size() * sizeof(uint32_t)); m_indexBuffer.setUsage(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_indexBuffer.init(); m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

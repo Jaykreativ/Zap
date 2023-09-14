@@ -21,9 +21,9 @@ int main() {
 	app::window.show();
 
 	std::vector<Vertex> vertices = {
-		Vertex({-0.5, -0.5, 0}),
-		Vertex({0.5, -0.5, 0}),
-		Vertex({0, 0.5, 0})
+		Vertex({-0.5, 0.5, 0}),
+		Vertex({0.5, 0.5, 0}),
+		Vertex({0, -0.5, 0})
 	};
 	std::vector<uint32_t> indices = {
 		0, 1, 2
