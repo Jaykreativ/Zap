@@ -63,10 +63,6 @@ namespace Zap {
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		m_transformCount = m_actors.size();
-		m_tranformBuffer = vk::Buffer(sizeof(glm::mat4) * m_transformCount + sizeof(uint32_t), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-		m_tranformBuffer.init(); m_tranformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
 		/*DescriptorPool*/ {
 		VkDescriptorBufferInfo uniformBufferInfo;
 		uniformBufferInfo.buffer = m_uniformBuffer;
@@ -79,20 +75,8 @@ namespace Zap {
 		uniformBufferDescriptor.binding = 0;
 		uniformBufferDescriptor.pBufferInfo = &uniformBufferInfo;
 
-		VkDescriptorBufferInfo transformBufferInfo;
-		transformBufferInfo.buffer = m_tranformBuffer;
-		transformBufferInfo.offset = 0;
-		transformBufferInfo.range = m_uniformBuffer.getSize();
-
-		vk::Descriptor transformBufferDescriptor{};
-		transformBufferDescriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		transformBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT;
-		transformBufferDescriptor.binding = 1;
-		transformBufferDescriptor.pBufferInfo = &transformBufferInfo;
-
 		m_descriptorPool.addDescriptorSet();
 		m_descriptorPool.addDescriptor(uniformBufferDescriptor, 0);
-		m_descriptorPool.addDescriptor(transformBufferDescriptor, 0);
 		}
 		m_descriptorPool.update();
 
@@ -141,13 +125,6 @@ namespace Zap {
 		void* rawData; m_uniformBuffer.map(&rawData);
 		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
 		m_uniformBuffer.unmap();
-
-		m_tranformBuffer.map(&rawData);
-		memcpy(rawData, &m_transformCount, sizeof(uint32_t));
-		for (int i = 0; i < m_transformCount; i++) {
-			memcpy(rawData, &m_actors[i]->getTransform(), sizeof(glm::mat4));
-		}
-		m_tranformBuffer.unmap();
 
 		VkQueue queue;
 		m_commandBuffers[m_window.getCurrentImageIndex()].submit(&queue, m_renderComplete);
