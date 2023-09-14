@@ -36,21 +36,17 @@ namespace Zap {
 		vk::Shader m_vertexShader = vk::Shader();
 		vk::Shader m_fragmentShader = vk::Shader();
 		vk::Pipeline m_pipeline = vk::Pipeline();
-		
-		uint32_t m_commandBufferCount;
-		vk::CommandBuffer* m_commandBuffers;
 
 		//Fences
 		VkFence m_renderComplete;
 
 		//Buffers
 		struct UniformBufferObject {// definition of the uniform buffer layout
+			glm::mat4 model;
 			glm::vec3 color;
 		};
 
-		UniformBufferObject m_ubo{// the host uniform buffer
-			m_ubo.color = {0, 1, 0}
-		};
+		UniformBufferObject m_ubo{};// the host uniform buffer
 		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer
 
 		std::vector<VisibleActor*> m_actors;
@@ -60,9 +56,6 @@ namespace Zap {
 
 		vk::Buffer m_vertexBuffer = vk::Buffer();
 		vk::Buffer m_indexBuffer = vk::Buffer();
-
-		void uploadVertexData();
-		void recordCommandBuffers();
 	};
 }
 

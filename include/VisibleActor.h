@@ -2,6 +2,7 @@
 
 #include "Actor.h"
 #include "Vertex.h"
+#include "Model.h"
 
 namespace Zap {
     class VisibleActor : public Actor {
@@ -9,15 +10,12 @@ namespace Zap {
         VisibleActor();
         ~VisibleActor();
 
-        void setVertexArray(Vertex* data, uint32_t size);
-        void setIndexArray(uint32_t* data, uint32_t size);
+        void setModel(Model& model);
 
-        const std::vector<Vertex>& getVertexArray();
-        const std::vector<uint32_t>& getIndexArray();
+        Model* getModel();
 
     private:
-        std::vector<Vertex> m_vertexArray;
-        std::vector<uint32_t> m_indexArray;
+        Model* m_model;
     };
 }
 

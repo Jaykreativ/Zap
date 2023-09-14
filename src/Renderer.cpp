@@ -46,9 +46,8 @@ namespace Zap {
 
 		vk::destroyFence(m_renderComplete);
 
-		delete[] m_commandBuffers;
-		m_vertexBuffer.~Buffer();
-		m_indexBuffer.~Buffer();
+		for (VisibleActor* actor : m_actors) actor->getModel()->~Model();
+
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
@@ -105,16 +104,12 @@ namespace Zap {
 		}
 		m_pipeline.init();
 
-		uploadVertexData();
+		for (VisibleActor* actor : m_actors) {
+			actor->getModel()->init(m_window.getSwapchain()->getImageCount());
+			actor->getModel()->recordCommandBuffers(*m_window.getRenderPass(), m_window.getFramebufferPtr(), m_scissor, m_pipeline, m_descriptorPool.getDescriptorSet(0));
+		}
 
 		vk::createFence(&m_renderComplete);
-
-		m_commandBufferCount = m_window.getSwapchain()->getImageCount();
-		m_commandBuffers = new vk::CommandBuffer[m_commandBufferCount];
-		for (int i = 0; i < m_commandBufferCount; i++) {
-			m_commandBuffers[i].allocate();
-		}
-		recordCommandBuffers();
 	}
 
 	void Renderer::render(){
@@ -122,27 +117,21 @@ namespace Zap {
 
 		m_ubo.color = { 1, 1, 1 };
 
-		void* rawData; m_uniformBuffer.map(&rawData);
-		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
-		m_uniformBuffer.unmap();
+		for (VisibleActor* actor : m_actors) {
+			m_ubo.model = *actor->getTransform();
 
-		VkQueue queue;
-		m_commandBuffers[m_window.getCurrentImageIndex()].submit(&queue, m_renderComplete);
-		vk::waitForFence(m_renderComplete);
+			void* rawData; m_uniformBuffer.map(&rawData);
+			memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
+			m_uniformBuffer.unmap();
+
+			actor->getModel()->getCommandBuffer(m_window.getCurrentImageIndex())->submit(m_renderComplete);
+			vk::waitForFence(m_renderComplete);
+		}
 	}
 
 	uint32_t highestIndex = 0;
 	void Renderer::addActor(VisibleActor& actor) {
 		m_actors.push_back(&actor);
-
-		m_vertexArray.insert(m_vertexArray.end(), actor.getVertexArray().begin(), actor.getVertexArray().end());
-
-		uint32_t currentHighestIndex = highestIndex;
-		for (uint32_t index : actor.getIndexArray()) {
-			index += currentHighestIndex;
-			m_indexArray.push_back(index);
-			if (index+1 > highestIndex) highestIndex = index+1;
-		}
 	}
 
 	void Renderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y){
@@ -158,29 +147,4 @@ namespace Zap {
 		m_scissor.extent.width = width;
 		m_scissor.extent.height = height;
 		}
-
-	void Renderer::uploadVertexData() {
-		if (m_isInit) {
-			m_vertexBuffer.~Buffer();
-			m_indexBuffer.~Buffer();
-		}
-
-		m_vertexBuffer = vk::Buffer(m_vertexArray.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-		m_vertexBuffer.init(); m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_vertexBuffer.uploadData(m_vertexBuffer.getSize(), m_vertexArray.data());
-		
-		m_indexBuffer.resize(m_indexArray.size() * sizeof(uint32_t)); m_indexBuffer.setUsage(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-		m_indexBuffer.init(); m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_indexBuffer.uploadData(m_indexBuffer.getSize(), m_indexArray.data());
-
-		if (m_isInit) {
-			recordCommandBuffers();
-		}
-	}
-
-	void Renderer::recordCommandBuffers() {
-		for (int i = 0; i < m_commandBufferCount; i++) {
-			recordCommandBuffer(m_commandBuffers[i], i, m_window, m_scissor, m_pipeline, m_vertexBuffer, m_indexBuffer, m_indexArray.size(), m_descriptorPool);
-		}
-	}
 }

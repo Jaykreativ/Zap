@@ -2,6 +2,8 @@
 #include "Window.h"
 #include "Renderer.h"
 #include "PxPhysicsAPI.h"
+#include "glm.hpp"
+#include "gtc/matrix_transform.hpp"
 
 namespace app {
 	Zap::Window window = Zap::Window(1000, 600, "Zap Application");
@@ -20,6 +22,7 @@ int main() {
 	app::window.init();
 	app::window.show();
 
+
 	std::vector<Vertex> vertices = {
 		Vertex({-0.5, 0.5, 0}),
 		Vertex({0.5, 0.5, 0}),
@@ -29,11 +32,19 @@ int main() {
 		0, 1, 2
 	};
 
+	Zap::Model model = Zap::Model();
+	model.load(vertices, indices);
+
 	Zap::VisibleActor actor;
-	actor.setVertexArray(vertices.data(), vertices.size());
-	actor.setIndexArray(indices.data(), indices.size());
+	actor.setModel(model);
+	actor.setTransform(glm::rotate(*actor.getTransform(), glm::radians<float>(45), glm::vec3{ 0, 0, 1 }));
+
+	Zap::VisibleActor actor2;
+	actor2.setModel(model);
+	actor2.setTransform(glm::rotate(*actor2.getTransform(), glm::radians<float>(0), glm::vec3{ 0, 0, 1 }));
 
 	app::renderer.addActor(actor);
+	app::renderer.addActor(actor2);
 
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();

@@ -11,10 +11,11 @@ layout(location=0) in vec3 pos;
 layout(location=0) out vec3 fragColor;
 
 layout(binding=0) uniform UBO{
+    mat4 model;
     vec3 color;
 } ubo;
 
 void main(){
-    gl_Position = vec4(pos, 1);
+    gl_Position = ubo.model * vec4(pos, 1);
     fragColor = ubo.color;
 }

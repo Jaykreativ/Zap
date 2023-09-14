@@ -10,7 +10,7 @@ namespace Zap {
 
         void setTransform(glm::mat4 transform);
 
-        const glm::mat4& getTransform();
+        glm::mat4* getTransform();
 
     private:
         glm::mat4 m_tranform = glm::mat4(1);

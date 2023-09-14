@@ -130,7 +130,6 @@ namespace Zap {
 	uint32_t Window::getWidth() {
 		return m_width;
 	}
-
 	uint32_t Window::getHeight() {
 		return m_height;
 	}
@@ -156,6 +155,9 @@ namespace Zap {
 	}
 	std::vector<vk::Framebuffer> Window::getFramebuffers() {
 		return m_framebuffers;
+	}
+	vk::Framebuffer* Window::getFramebufferPtr() {
+		return m_framebuffers.data();
 	}
 
 	uint32_t Window::getCurrentImageIndex() {
