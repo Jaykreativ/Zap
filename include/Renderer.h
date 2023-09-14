@@ -53,6 +53,9 @@ namespace Zap {
 		};
 		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer
 
+		uint32_t m_transformCount = 0;
+		vk::Buffer m_tranformBuffer = vk::Buffer();
+
 		std::vector<VisibleActor*> m_actors;
 
 		std::vector<Vertex> m_vertexArray;

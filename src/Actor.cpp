@@ -8,7 +8,7 @@ namespace Zap {
         m_tranform = transform;
     }
 
-    glm::mat4 Actor::getTransform() {
+    const glm::mat4& Actor::getTransform() {
         return m_tranform;
     }
 }
