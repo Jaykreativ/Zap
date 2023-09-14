@@ -131,10 +131,17 @@ namespace Zap {
 		vk::waitForFence(m_renderComplete);
 	}
 
+	uint32_t highestIndex = 0;
 	void Renderer::addActor(VisibleActor& actor) {
 		m_actors.push_back(&actor);
 		m_vertexArray.insert(m_vertexArray.end(), actor.getVertexArray().begin(), actor.getVertexArray().end());
-		m_indexArray.insert(m_indexArray.end(), actor.getIndexArray().begin(), actor.getIndexArray().end());
+
+		uint32_t currentHighestIndex = highestIndex;
+		for (uint32_t index : actor.getIndexArray()) {
+			index += currentHighestIndex;
+			m_indexArray.push_back(index);
+			if (index+1 > highestIndex) highestIndex = index+1;
+		}
 	}
 
 	void Renderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y){
@@ -156,9 +163,6 @@ namespace Zap {
 			m_vertexBuffer.~Buffer();
 			m_indexBuffer.~Buffer();
 		}
-
-		std::cout << m_vertexArray.size() << "\n";
-		std::cout << m_indexArray.size() << "\n";
 
 		m_vertexBuffer = vk::Buffer(m_vertexArray.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_vertexBuffer.init(); m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
