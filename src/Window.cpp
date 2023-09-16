@@ -48,7 +48,7 @@ namespace Zap {
 			colorAttachment.flags = 0;
 			colorAttachment.format = Zap::GlobalSettings::getColorFormat();
 			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -56,6 +56,8 @@ namespace Zap {
 			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 			m_renderPass.addAttachmentDescription(colorAttachment);
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			m_clearRenderPass.addAttachmentDescription(colorAttachment);
 
 			VkAttachmentReference* pColorAttachmentReference;
 			{
@@ -65,6 +67,7 @@ namespace Zap {
 				pColorAttachmentReference = &tmp;
 
 				m_renderPass.addAttachmentReference(&pColorAttachmentReference);
+				m_clearRenderPass.addAttachmentReference(&pColorAttachmentReference);
 			}
 
 			VkSubpassDescription subpassDescription;
@@ -80,6 +83,7 @@ namespace Zap {
 			subpassDescription.pPreserveAttachments = nullptr;
 
 			m_renderPass.addSubpassDescription(subpassDescription);
+			m_clearRenderPass.addSubpassDescription(subpassDescription);
 
 			VkSubpassDependency subpassDependency;
 			subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -91,8 +95,10 @@ namespace Zap {
 			subpassDependency.dependencyFlags = 0;
 
 			m_renderPass.addSubpassDependency(subpassDependency);
+			m_clearRenderPass.addSubpassDependency(subpassDependency);
 		}
 		m_renderPass.init();
+		m_clearRenderPass.init();
 
 		/*Framebuffer*/ {
 			m_framebuffers.resize(m_swapchain.getImageCount());
