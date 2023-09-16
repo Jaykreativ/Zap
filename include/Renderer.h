@@ -17,6 +17,8 @@ namespace Zap {
 
 		void render();
 
+		void clear();
+
 		void addActor(VisibleActor& actor);
 
 		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
@@ -30,12 +32,16 @@ namespace Zap {
 		Window& m_window;
 		VkViewport m_viewport;
 		VkRect2D m_scissor;
+		std::vector<VisibleActor*> m_actors;
 
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 
 		vk::Shader m_vertexShader = vk::Shader();
 		vk::Shader m_fragmentShader = vk::Shader();
 		vk::Pipeline m_pipeline = vk::Pipeline();
+
+		uint32_t m_clearCommandBufferCount;
+		vk::CommandBuffer* m_clearCommandBuffers;
 
 		//Fences
 		VkFence m_renderComplete;
@@ -49,13 +55,7 @@ namespace Zap {
 		UniformBufferObject m_ubo{};// the host uniform buffer
 		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer
 
-		std::vector<VisibleActor*> m_actors;
-
-		std::vector<Vertex> m_vertexArray;
-		std::vector<uint32_t> m_indexArray;
-
-		vk::Buffer m_vertexBuffer = vk::Buffer();
-		vk::Buffer m_indexBuffer = vk::Buffer();
+		void recordClearCommandBuffers();
 	};
 }
 

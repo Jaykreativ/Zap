@@ -37,11 +37,9 @@ int main() {
 
 	Zap::VisibleActor actor;
 	actor.setModel(model);
-	actor.setTransform(glm::rotate(*actor.getTransform(), glm::radians<float>(45), glm::vec3{ 0, 0, 1 }));
 
 	Zap::VisibleActor actor2;
 	actor2.setModel(model);
-	actor2.setTransform(glm::rotate(*actor2.getTransform(), glm::radians<float>(0), glm::vec3{ 0, 0, 1 }));
 
 	app::renderer.addActor(actor);
 	app::renderer.addActor(actor2);
@@ -49,11 +47,15 @@ int main() {
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
 
+	uint64_t currentFrame = 0;
 	while (!app::window.shouldClose()) {
+		actor.setTransform(glm::rotate(*actor.getTransform(), glm::radians<float>(currentFrame), glm::vec3{ 0, 0, 1 }));
+
 		app::renderer.render();
 
 		app::window.swapBuffers();
 		Zap::Window::pollEvents();
+		currentFrame++;
 	}
 
 	app::renderer.~Renderer();

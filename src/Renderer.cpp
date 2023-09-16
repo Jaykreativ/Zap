@@ -2,35 +2,30 @@
 #include "Vertex.h"
 #include "Window.h"
 
-void recordCommandBuffer(vk::CommandBuffer& commandBuffer, uint32_t index, Zap::Window& window, VkRect2D scissor, vk::Pipeline& pipeline, vk::Buffer& vertexBuffer, vk::Buffer& indexBuffer, uint32_t indexCount, vk::DescriptorPool& descriptorPool) {
-	commandBuffer.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+void Zap::Renderer::recordClearCommandBuffers() {
+	for (int i = 0; i < m_clearCommandBufferCount; i++) {
+		vk::CommandBuffer& cmd = m_clearCommandBuffers[i];
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
-	VkRenderPassBeginInfo renderPassBeginInfo;
-	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.pNext = nullptr;
-	renderPassBeginInfo.renderPass = window.getRenderPass()->getVkRenderPass();
-	renderPassBeginInfo.framebuffer = window.getFramebuffer(index)->getVkFramebuffer();
-	renderPassBeginInfo.renderArea = scissor;
-	std::vector<VkClearValue> clearValues{
-		{ 0.1, 0.1, 0.1, 1 }
-	};
-	renderPassBeginInfo.clearValueCount = clearValues.size();
-	renderPassBeginInfo.pClearValues = clearValues.data();
-	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		VkImageMemoryBarrier imageMemoryBarrier;
+		imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imageMemoryBarrier.pNext = nullptr;
+		imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.image = m_window.getSwapchain()->getImage(i);
+		imageMemoryBarrier.subresourceRange = m_window.getSwapchain()->getImageSubresourceRange();
 
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getVkPipeline());
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 
-	VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.getVkBuffer(), offsets);
-	vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		VkClearColorValue clearColor = { 0.1, 0.1, 0.1, 1 };
+		vkCmdClearColorImage(cmd, m_window.getSwapchain()->getImage(i), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &m_window.getSwapchain()->getImageSubresourceRange());
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getPipelineLayout(), 0, 1, &descriptorPool.getDescriptorSet(0), 0, nullptr);
-
-	vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
-
-	vkCmdEndRenderPass(commandBuffer);
-
-	commandBuffer.end();
+		cmd.end();
+	}
 }
 
 namespace Zap {
@@ -104,6 +99,13 @@ namespace Zap {
 		}
 		m_pipeline.init();
 
+		m_clearCommandBufferCount = m_window.getSwapchain()->getImageCount();
+		m_clearCommandBuffers = new vk::CommandBuffer[m_clearCommandBufferCount];
+		for (int i = 0; i < m_clearCommandBufferCount; i++) {
+			m_clearCommandBuffers[i].allocate();
+		}
+		recordClearCommandBuffers();
+
 		for (VisibleActor* actor : m_actors) {
 			actor->getModel()->init(m_window.getSwapchain()->getImageCount());
 			actor->getModel()->recordCommandBuffers(*m_window.getRenderPass(), m_window.getFramebufferPtr(), m_scissor, m_pipeline, m_descriptorPool.getDescriptorSet(0));
@@ -117,6 +119,8 @@ namespace Zap {
 
 		m_ubo.color = { 1, 1, 1 };
 
+		this->clear();
+
 		for (VisibleActor* actor : m_actors) {
 			m_ubo.model = *actor->getTransform();
 
@@ -127,6 +131,49 @@ namespace Zap {
 			actor->getModel()->getCommandBuffer(m_window.getCurrentImageIndex())->submit(m_renderComplete);
 			vk::waitForFence(m_renderComplete);
 		}
+	}
+
+	void Renderer::clear() {
+		vk::CommandBuffer cmd = vk::CommandBuffer();
+		cmd.allocate();
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		VkImageMemoryBarrier imageMemoryBarrier;
+		imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imageMemoryBarrier.pNext = nullptr;
+		imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.image = m_window.getSwapchain()->getImage(m_window.getCurrentImageIndex());
+		imageMemoryBarrier.subresourceRange = m_window.getSwapchain()->getImageSubresourceRange();
+
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+
+		cmd.end();
+		cmd.submit();
+
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		VkClearColorValue clearColor = { 0.1, 0.1, 0.1, 1 };
+		vkCmdClearColorImage(cmd, m_window.getSwapchain()->getImage(m_window.getCurrentImageIndex()), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &m_window.getSwapchain()->getImageSubresourceRange());
+
+		cmd.end();
+		cmd.submit();
+
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+
+		cmd.end();
+		cmd.submit();
 	}
 
 	uint32_t highestIndex = 0;
