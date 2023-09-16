@@ -2,32 +2,6 @@
 #include "Vertex.h"
 #include "Window.h"
 
-void Zap::Renderer::recordClearCommandBuffers() {
-	for (int i = 0; i < m_clearCommandBufferCount; i++) {
-		vk::CommandBuffer& cmd = m_clearCommandBuffers[i];
-		cmd.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-
-		VkImageMemoryBarrier imageMemoryBarrier;
-		imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		imageMemoryBarrier.pNext = nullptr;
-		imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imageMemoryBarrier.image = m_window.getSwapchain()->getImage(i);
-		imageMemoryBarrier.subresourceRange = m_window.getSwapchain()->getImageSubresourceRange();
-
-		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-
-		VkClearColorValue clearColor = { 0.1, 0.1, 0.1, 1 };
-		vkCmdClearColorImage(cmd, m_window.getSwapchain()->getImage(i), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &m_window.getSwapchain()->getImageSubresourceRange());
-
-		cmd.end();
-	}
-}
-
 namespace Zap {
 	Renderer::Renderer(Window& window)
 		: m_window(window)
@@ -98,13 +72,6 @@ namespace Zap {
 		m_pipeline.setRenderPass(*m_window.getRenderPass());
 		}
 		m_pipeline.init();
-
-		m_clearCommandBufferCount = m_window.getSwapchain()->getImageCount();
-		m_clearCommandBuffers = new vk::CommandBuffer[m_clearCommandBufferCount];
-		for (int i = 0; i < m_clearCommandBufferCount; i++) {
-			m_clearCommandBuffers[i].allocate();
-		}
-		recordClearCommandBuffers();
 
 		for (VisibleActor* actor : m_actors) {
 			actor->getModel()->init(m_window.getSwapchain()->getImageCount());

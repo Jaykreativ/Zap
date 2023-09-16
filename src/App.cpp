@@ -49,7 +49,7 @@ int main() {
 
 	uint64_t currentFrame = 0;
 	while (!app::window.shouldClose()) {
-		actor.setTransform(glm::rotate(*actor.getTransform(), glm::radians<float>(currentFrame), glm::vec3{ 0, 0, 1 }));
+		actor.setTransform(glm::rotate(*actor.getTransform(), glm::radians<float>(0.25), glm::vec3{ 0, 0, 1 }));
 
 		app::renderer.render();
 

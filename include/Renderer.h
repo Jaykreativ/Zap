@@ -40,9 +40,6 @@ namespace Zap {
 		vk::Shader m_fragmentShader = vk::Shader();
 		vk::Pipeline m_pipeline = vk::Pipeline();
 
-		uint32_t m_clearCommandBufferCount;
-		vk::CommandBuffer* m_clearCommandBuffers;
-
 		//Fences
 		VkFence m_renderComplete;
 
@@ -54,8 +51,6 @@ namespace Zap {
 
 		UniformBufferObject m_ubo{};// the host uniform buffer
 		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer
-
-		void recordClearCommandBuffers();
 	};
 }
 

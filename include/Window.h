@@ -52,7 +52,6 @@ namespace Zap
         vk::Surface m_surface = vk::Surface();
         vk::Swapchain m_swapchain = vk::Swapchain();
         vk::RenderPass m_renderPass = vk::RenderPass();
-        vk::RenderPass m_clearRenderPass = vk::RenderPass();
         std::vector<vk::Framebuffer> m_framebuffers;
         uint32_t m_currentImageIndex;
         VkFence m_imageAvailable = VK_NULL_HANDLE;
