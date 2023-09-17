@@ -7,6 +7,7 @@
 namespace Zap {
     namespace GlobalSettings {
         VkFormat getColorFormat();
+        VkFormat getDepthStencilFormat();
     }
 
     void init(const char* applicationName);

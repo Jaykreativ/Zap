@@ -56,7 +56,7 @@ namespace Zap {
 		m_vertexShader.init();
 		m_fragmentShader.init();
 
-		/*Pipeline*/ {
+		/*Pipeline*/
 		m_pipeline.addShader(m_vertexShader.getShaderStage());
 		m_pipeline.addShader(m_fragmentShader.getShaderStage());
 
@@ -68,7 +68,7 @@ namespace Zap {
 		m_pipeline.addViewport(m_viewport);
 		m_pipeline.addScissor(m_scissor);
 		m_pipeline.setRenderPass(*m_window.getRenderPass());
-		}
+		m_pipeline.enableDepthTest();
 		m_pipeline.init();
 
 		for (VisibleActor* actor : m_actors) {
@@ -82,7 +82,6 @@ namespace Zap {
 	void Renderer::render(Camera* cam){
 		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
 
-		m_ubo.color = { 1, 1, 1 };
 
 		this->clear();
 
@@ -90,6 +89,7 @@ namespace Zap {
 			m_ubo.model = actor->getTransform();
 			m_ubo.view = cam->getView();
 			m_ubo.perspective = cam->getPerspective(m_viewport.width / m_viewport.height);
+			m_ubo.color = actor->m_color;
 
 			void* rawData; m_uniformBuffer.map(&rawData);
 			memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
@@ -101,6 +101,11 @@ namespace Zap {
 	}
 
 	void Renderer::clear() {
+		clearColor();
+		clearDepthStencil();
+	}
+
+	void Renderer::clearColor() {
 		vk::CommandBuffer cmd = vk::CommandBuffer();
 		cmd.allocate();
 		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -141,6 +146,37 @@ namespace Zap {
 
 		cmd.end();
 		cmd.submit();
+	}
+
+	void Renderer::clearDepthStencil() {
+		vk::CommandBuffer cmd = vk::CommandBuffer();
+		cmd.allocate();
+
+		m_window.getDepthImage(m_window.getCurrentImageIndex())->changeLayout(
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+		);
+
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		VkClearDepthStencilValue clearDepthStencil = { 1, 0 };
+		vkCmdClearDepthStencilImage(
+			cmd, 
+			*m_window.getDepthImage(m_window.getCurrentImageIndex()), 
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+			&clearDepthStencil, 
+			1, &m_window.getDepthImage(m_window.getCurrentImageIndex())->getSubresourceRange()
+		);
+
+		cmd.end();
+		cmd.submit();
+
+		m_window.getDepthImage(m_window.getCurrentImageIndex())->changeLayout(
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+		);
 	}
 
 	uint32_t highestIndex = 0;

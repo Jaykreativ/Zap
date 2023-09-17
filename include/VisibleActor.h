@@ -14,6 +14,8 @@ namespace Zap {
 
         Model* getModel();
 
+        glm::vec3 m_color = { 1, 1, 1 };// TODO Texture
+
     private:
         Model* m_model;
     };

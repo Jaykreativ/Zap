@@ -38,9 +38,11 @@ int main() {
 	Zap::VisibleActor actor;
 	actor.setModel(model);
 	actor.setPos(0, 0, 0.5);
+	actor.m_color = { 0.2, 0.7, 1 };
 
 	Zap::VisibleActor actor2;
 	actor2.setModel(model);
+	actor2.m_color = { 1, 0.7, 0.2 };
 
 	app::renderer.addActor(actor);
 	app::renderer.addActor(actor2);
