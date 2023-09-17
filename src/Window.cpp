@@ -165,10 +165,15 @@ namespace Zap {
 		return glfwWindowShouldClose(m_window);
 	}
 
+	void Window::setKeyCallback(GLFWkeyfun callback) {
+		glfwSetKeyCallback(m_window, callback);
+	}
+
 	void Window::show() {
 		glfwShowWindow(m_window);
 	}
 
+	/*Getter*/
 	uint32_t Window::getWidth() {
 		return m_width;
 	}

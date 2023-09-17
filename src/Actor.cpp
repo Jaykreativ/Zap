@@ -5,11 +5,18 @@ namespace Zap {
 	Actor::Actor(){}
 	Actor::~Actor(){}
 
+	void Actor::translate(glm::vec3 vec) {
+		m_transform = glm::translate(m_transform, vec);
+	}
+	void Actor::translate(float x, float y, float z) {
+		translate({ x, y, z });
+	}
+
 	void Actor::setPos(float x, float y, float z) {
 		setPos(glm::vec3(x, y, z));
 	}
 	void Actor::setPos(glm::vec3 pos) {
-		m_transform = glm::translate(m_transform, pos - glm::vec3(m_transform[3]));
+		translate(pos - glm::vec3(m_transform[3]));
 	}
 
 	void Actor::setTransform(glm::mat4& transform) {

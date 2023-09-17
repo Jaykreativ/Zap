@@ -82,8 +82,7 @@ namespace Zap {
 	void Renderer::render(Camera* cam){
 		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
 
-
-		this->clear();
+		this->clear();//TODO fix memory bug
 
 		for (VisibleActor* actor : m_actors) {
 			m_ubo.model = actor->getTransform();

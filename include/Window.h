@@ -16,8 +16,11 @@ namespace Zap
 
 		bool shouldClose();
 
+		void setKeyCallback(GLFWkeyfun callback);
+
 		void show();
 
+		/*Getter*/
 		uint32_t getWidth();
 
 		uint32_t getHeight();

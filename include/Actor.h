@@ -8,6 +8,9 @@ namespace Zap {
         Actor();
         ~Actor();
 
+        void translate(glm::vec3 pos);
+        void translate(float x, float y, float z);
+
         void setPos(glm::vec3 pos);
         void setPos(float x, float y, float z);
 
