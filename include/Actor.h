@@ -13,7 +13,6 @@ namespace Zap {
 
         void setTransform(glm::mat4& transform);
 
-
         glm::vec3 getPos();
 
         glm::mat4 getTransform();
