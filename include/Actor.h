@@ -8,12 +8,18 @@ namespace Zap {
         Actor();
         ~Actor();
 
-        void setTransform(glm::mat4 transform);
+        void setPos(glm::vec3 pos);
+        void setPos(float x, float y, float z);
 
-        glm::mat4* getTransform();
+        void setTransform(glm::mat4& transform);
 
-    private:
-        glm::mat4 m_tranform = glm::mat4(1);
+
+        glm::vec3 getPos();
+
+        glm::mat4 getTransform();
+
+    protected:
+        glm::mat4 m_transform = glm::mat4(1);
     };
 }
 

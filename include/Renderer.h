@@ -5,6 +5,7 @@
 #include "Window.h"
 #include "Vertex.h"
 #include "VisibleActor.h"
+#include "Camera.h"
 
 namespace Zap {
 	class Renderer
@@ -15,7 +16,7 @@ namespace Zap {
 	
 		void init();
 
-		void render();
+		void render(Camera* cam);
 
 		void clear();
 
@@ -46,6 +47,8 @@ namespace Zap {
 		//Buffers
 		struct UniformBufferObject {// definition of the uniform buffer layout
 			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 perspective;
 			glm::vec3 color;
 		};
 

@@ -1,6 +1,4 @@
 #include "Renderer.h"
-#include "Vertex.h"
-#include "Window.h"
 
 namespace Zap {
 	Renderer::Renderer(Window& window)
@@ -81,7 +79,7 @@ namespace Zap {
 		vk::createFence(&m_renderComplete);
 	}
 
-	void Renderer::render(){
+	void Renderer::render(Camera* cam){
 		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
 
 		m_ubo.color = { 1, 1, 1 };
@@ -89,7 +87,9 @@ namespace Zap {
 		this->clear();
 
 		for (VisibleActor* actor : m_actors) {
-			m_ubo.model = *actor->getTransform();
+			m_ubo.model = actor->getTransform();
+			m_ubo.view = cam->getView();
+			m_ubo.perspective = cam->getPerspective(m_viewport.width / m_viewport.height);
 
 			void* rawData; m_uniformBuffer.map(&rawData);
 			memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
