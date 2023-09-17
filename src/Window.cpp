@@ -48,7 +48,7 @@ namespace Zap {
 			colorAttachment.flags = 0;
 			colorAttachment.format = Zap::GlobalSettings::getColorFormat();
 			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -130,7 +130,6 @@ namespace Zap {
 	uint32_t Window::getWidth() {
 		return m_width;
 	}
-
 	uint32_t Window::getHeight() {
 		return m_height;
 	}
@@ -156,6 +155,9 @@ namespace Zap {
 	}
 	std::vector<vk::Framebuffer> Window::getFramebuffers() {
 		return m_framebuffers;
+	}
+	vk::Framebuffer* Window::getFramebufferPtr() {
+		return m_framebuffers.data();
 	}
 
 	uint32_t Window::getCurrentImageIndex() {

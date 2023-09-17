@@ -6,6 +6,7 @@
 class Vertex
 {
 public:
+	Vertex() {}
 	Vertex(glm::vec3 pos)
 		: m_pos(pos)
 	{}

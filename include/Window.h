@@ -32,6 +32,7 @@ namespace Zap
 
         vk::Framebuffer* getFramebuffer(uint32_t index);
         std::vector<vk::Framebuffer> getFramebuffers();
+        vk::Framebuffer* getFramebufferPtr();
 
         uint32_t getCurrentImageIndex();
 

@@ -4,6 +4,8 @@
 #include "Zap.h"
 #include "Window.h"
 #include "Vertex.h"
+#include "VisibleActor.h"
+#include "Camera.h"
 
 namespace Zap {
 	class Renderer
@@ -14,20 +16,16 @@ namespace Zap {
 	
 		void init();
 
-		void render();
+		void render(Camera* cam);
+
+		void clear();
+
+		void addActor(VisibleActor& actor);
 
 		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 
 		//TODO make actor system
-		std::vector<Vertex> vertexArray = {
-			Vertex({-0.5f, 0.5f, 0}),
-			Vertex({0.5f, 0.5f, 0}),
-			Vertex({0, -0.5f, 0})
-		};
-		
-		std::vector<uint32_t> indexArray = {
-			0, 1, 2
-		};
+
 
 	private:
 		bool m_isInit = false;
@@ -35,32 +33,27 @@ namespace Zap {
 		Window& m_window;
 		VkViewport m_viewport;
 		VkRect2D m_scissor;
+		std::vector<VisibleActor*> m_actors;
 
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 
 		vk::Shader m_vertexShader = vk::Shader();
 		vk::Shader m_fragmentShader = vk::Shader();
 		vk::Pipeline m_pipeline = vk::Pipeline();
-		
-		uint32_t m_commandBufferCount;
-		vk::CommandBuffer* m_commandBuffers;
 
 		//Fences
 		VkFence m_renderComplete;
 
 		//Buffers
 		struct UniformBufferObject {// definition of the uniform buffer layout
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 perspective;
 			glm::vec3 color;
 		};
 
-		UniformBufferObject m_ubo{// the host uniform buffer
-			m_ubo.color = {0, 1, 0}
-		};
+		UniformBufferObject m_ubo{};// the host uniform buffer
 		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer
-
-		vk::Buffer m_vertexBuffer = vk::Buffer();
-		vk::Buffer m_indexBuffer = vk::Buffer();
-
 	};
 }
 
