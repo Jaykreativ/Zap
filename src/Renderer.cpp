@@ -60,7 +60,7 @@ namespace Zap {
 		m_pipeline.addShader(m_vertexShader.getShaderStage());
 		m_pipeline.addShader(m_fragmentShader.getShaderStage());
 
-		m_pipeline.addDescriptorSetLayout(m_descriptorPool.getDescriptorSetLayout(0));
+		m_pipeline.addDescriptorSetLayout(m_descriptorPool.getVkDescriptorSetLayout(0));
 		for (auto attributeDescription : Vertex::getVertexInputAttributeDescriptions()) {
 			m_pipeline.addVertexInputAttrubuteDescription(attributeDescription);
 		}
@@ -73,7 +73,7 @@ namespace Zap {
 
 		for (VisibleActor* actor : m_actors) {
 			actor->getModel()->init(m_window.getSwapchain()->getImageCount());
-			actor->getModel()->recordCommandBuffers(*m_window.getRenderPass(), m_window.getFramebufferPtr(), m_scissor, m_pipeline, m_descriptorPool.getDescriptorSet(0));
+			actor->getModel()->recordCommandBuffers(*m_window.getRenderPass(), m_window.getFramebufferPtr(), m_scissor, m_pipeline, m_descriptorPool.getVkDescriptorSet(0));
 		}
 
 		vk::createFence(&m_renderComplete);

@@ -47,10 +47,11 @@ namespace Zap {
 			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertexBuffer.getVkBuffer(), offsets);
+			VkBuffer vertexBuffer = m_vertexBuffer.getVkBuffer();
+			vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, offsets);
 			vkCmdBindIndexBuffer(cmd, m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getVkPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
 
 			vkCmdDrawIndexed(cmd, m_indexBuffer.getSize()/sizeof(uint32_t), 1, 0, 0, 0);
 
