@@ -19,6 +19,19 @@ namespace Zap {
 		translate(pos - glm::vec3(m_transform[3]));
 	}
 
+	void Actor::rotateX(float angle) {
+		rotate(angle, glm::vec3(1, 0, 0));
+	}
+	void Actor::rotateY(float angle) {
+		rotate(angle, glm::vec3(0, 1, 0));
+	}
+	void Actor::rotateZ(float angle) {
+		rotate(angle, glm::vec3(0, 0, 1));
+	}
+	void Actor::rotate(float angle, glm::vec3 axis) {
+		m_transform = glm::rotate(m_transform, glm::radians<float>(angle), axis);
+	}
+
 	void Actor::setTransform(glm::mat4& transform) {
 		m_transform = transform;
 	}

@@ -1,5 +1,5 @@
 #pragma once
-
+#define GLM_FORCE_LEFT_HANDED
 #include "VulkanFramework.h"
 
 //TODO add standart renderer for windows with no renderer

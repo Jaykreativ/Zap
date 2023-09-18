@@ -14,32 +14,52 @@ namespace app {
 }
 
 namespace movement {
-	float speed = 0.01;
-
 	bool forward = false;
 	bool backward = false;
 	bool left = false;
 	bool right = false;
 	bool down = false;
 	bool up = false;
-	void move() {
+	bool lookUp = false;
+	bool lookDown = false;
+	bool lookLeft = false;
+	bool lookRight = false;
+	void move(float dTime) {
 		if (forward) {
-			app::cam.translate(-glm::vec3(app::cam.getTransform()[2]) * speed);
+			app::cam.translate(-glm::vec3(app::cam.getTransform()[2]) * dTime * 2.0f);
+			glm::vec3 vec = glm::vec3(app::cam.getTransform()[2]);
+			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :2-\n";
 		}
 		if (backward) {
-			app::cam.translate(glm::vec3(app::cam.getTransform()[2]) * speed);
+			app::cam.translate(glm::vec3(app::cam.getTransform()[2]) * dTime * 2.0f);
+			glm::vec3 vec = glm::vec3(app::cam.getTransform()[2]);
+			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :2\n";
 		}
 		if (left) {
-			app::cam.translate(-glm::vec3(app::cam.getTransform()[0]) * speed);
+			app::cam.translate(glm::vec3(app::cam.getTransform()[0]) * dTime * 2.0f);
+			glm::vec3 vec = glm::vec3(app::cam.getTransform()[0]);
+			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :0\n";
 		}
 		if (right) {
-			app::cam.translate(glm::vec3(app::cam.getTransform()[0]) * speed);
+			app::cam.translate(-glm::vec3(app::cam.getTransform()[0]) * dTime * 2.0f);
+			glm::vec3 vec = glm::vec3(app::cam.getTransform()[0]);
+			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :0-\n";
 		}
 		if (down) {
-			app::cam.translate(glm::vec3(app::cam.getTransform()[1]) * speed);
+			app::cam.translate(glm::vec3(app::cam.getTransform()[1]) * dTime * 2.0f);
+			glm::vec3 vec = glm::vec3(app::cam.getTransform()[1]);
+			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :1\n";
 		}
 		if (up) {
-			app::cam.translate(-glm::vec3(app::cam.getTransform()[1]) * speed);
+			app::cam.translate(-glm::vec3(app::cam.getTransform()[1]) * dTime * 2.0f);
+			glm::vec3 vec = glm::vec3(app::cam.getTransform()[1]);
+			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :1-\n";
+		}
+		if (lookLeft) {
+			app::cam.rotateY(-90 * dTime);
+		}
+		if (lookRight) {
+			app::cam.rotateY(90 * dTime);
 		}
 	}
 }
@@ -51,6 +71,10 @@ namespace keybinds {
 	int right = GLFW_KEY_D;
 	int down = GLFW_KEY_C;
 	int up = GLFW_KEY_SPACE;
+	int lookUp = GLFW_KEY_UP;
+	int lookDown = GLFW_KEY_DOWN;
+	int lookLeft = GLFW_KEY_LEFT;
+	int lookRight = GLFW_KEY_RIGHT;
 	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		if (action == GLFW_PRESS) {
 			if (key == forward) {
@@ -70,6 +94,18 @@ namespace keybinds {
 			}
 			else if (key == up) {
 				movement::up = true;
+			}
+			else if (key == lookUp) {
+				movement::lookUp = true;
+			}
+			else if (key == lookDown) {
+				movement::lookDown = true;
+			}
+			else if (key == lookLeft) {
+				movement::lookLeft = true;
+			}
+			else if (key == lookRight) {
+				movement::lookRight = true;
 			}
 		}
 		else if(action == GLFW_RELEASE) {
@@ -91,6 +127,18 @@ namespace keybinds {
 			else if (key == up) {
 				movement::up = false;
 			}
+			else if (key == lookUp) {
+				movement::lookUp = false;
+			}
+			else if (key == lookDown) {
+				movement::lookDown = false;
+			}
+			else if (key == lookLeft) {
+				movement::lookLeft = false;
+			}
+			else if (key == lookRight) {
+				movement::lookRight = false;
+			}
 		}
 	}
 }
@@ -108,29 +156,57 @@ int main() {
 	app::window.setKeyCallback(keybinds::keyCallback);
 
 	std::vector<Vertex> vertices = {
-		Vertex({-0.5, 0.5, 0}),
-		Vertex({0.5, 0.5, 0}),
-		Vertex({0, -0.5, 0})
+		Vertex({0.5, 0.5, 0.5}),//0
+		Vertex({0.5, -0.5, 0.5}),//1
+		Vertex({-0.5, -0.5, 0.5}),//2
+		Vertex({-0.5, 0.5, 0.5}),//3
+		Vertex({0.5, 0.5, -0.5}),//4
+		Vertex({0.5, -0.5, -0.5}),//5
+		Vertex({-0.5, -0.5, -0.5}),//6
+		Vertex({-0.5, 0.5, -0.5})//7
 	};
 	std::vector<uint32_t> indices = {
-		0, 1, 2
+		0, 1, 2,//back
+		0, 2, 3,
+		4, 5, 6,//front
+		4, 6, 7,
+		0, 1, 5,//right
+		0, 5, 4,
+		3, 4, 6,//left
+		3, 6, 7,
+		1, 2, 6,//top
+		1, 6, 5,
+		0, 3, 7,//bottom
+		0, 7, 4
 	};
 
 	Zap::Model model = Zap::Model();
 	model.load(vertices, indices);
 
 	//Actors
-	Zap::VisibleActor actor;
-	actor.setModel(model);
-	actor.setPos(0, 0, 0.5);
-	actor.m_color = { 0.2, 0.7, 1 };
+	Zap::VisibleActor centre;
+	centre.setModel(model);
+	centre.m_color = { 0.5, 0.5, 0.5 };
 
-	Zap::VisibleActor actor2;
-	actor2.setModel(model);
-	actor2.m_color = { 1, 0.7, 0.2 };
+	Zap::VisibleActor xDir;
+	xDir.setModel(model);
+	xDir.setPos(1, 0, 0);
+	xDir.m_color = { 1, 0, 0 };
 
-	app::renderer.addActor(actor);
-	app::renderer.addActor(actor2);
+	Zap::VisibleActor yDir;
+	yDir.setModel(model);
+	yDir.setPos(0, 1, 0);
+	yDir.m_color = { 0, 1, 0 };
+
+	Zap::VisibleActor zDir;
+	zDir.setModel(model);
+	zDir.setPos(0, 0, 1);
+	zDir.m_color = { 0, 0, 1 };
+
+	app::renderer.addActor(centre);
+	app::renderer.addActor(xDir);
+	app::renderer.addActor(yDir);
+	app::renderer.addActor(zDir);
 
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
@@ -139,16 +215,18 @@ int main() {
 
 	//mainloop
 	uint64_t currentFrame = 0;
+	float dTime = 0;
 	while (!app::window.shouldClose()) {
-		actor.setTransform(glm::rotate(actor.getTransform(), glm::radians<float>(0.25), glm::vec3{ 0, 0, 1 }));
-		//app::cam.setPos(glm::rotate(glm::mat4(1), glm::radians<float>(0.05), glm::vec3(0, 1, 0)) * glm::vec4(app::cam.getPos(), 1));
-		movement::move();
+		auto timeStartFrame = std::chrono::high_resolution_clock::now();
+		movement::move(dTime);
 
 		app::renderer.render(&app::cam);
 
 		app::window.swapBuffers();
 		Zap::Window::pollEvents();
 		currentFrame++;
+		auto timeEndFrame = std::chrono::high_resolution_clock::now();
+		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
 	}
 
 	//terminate

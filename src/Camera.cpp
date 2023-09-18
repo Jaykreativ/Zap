@@ -9,6 +9,6 @@ namespace Zap {
 	}
 
 	glm::mat4 Camera::getPerspective(float aspect) {
-		return glm::perspective<float>(glm::radians<float>(60), 1, 0.01, 1000);
+		return glm::perspective<float>(glm::radians<float>(60), aspect, 0.01, 1000);
 	}
 }

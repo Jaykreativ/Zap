@@ -14,6 +14,11 @@ namespace Zap {
         void setPos(glm::vec3 pos);
         void setPos(float x, float y, float z);
 
+        void rotateX(float angle);
+        void rotateY(float angle);
+        void rotateZ(float angle);
+        void rotate(float angle, glm::vec3 axis);
+
         void setTransform(glm::mat4& transform);
 
         glm::vec3 getPos();
