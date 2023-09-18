@@ -45,6 +45,8 @@ namespace Zap {
 		vk::Shader m_fragmentShader = vk::Shader();
 		vk::Pipeline m_pipeline = vk::Pipeline();
 
+		vk::CommandBuffer m_clearCommandBuffer = vk::CommandBuffer();
+
 		//Fences
 		VkFence m_renderComplete;
 

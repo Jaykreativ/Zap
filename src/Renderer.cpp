@@ -15,6 +15,8 @@ namespace Zap {
 
 		for (VisibleActor* actor : m_actors) actor->getModel()->~Model();
 
+		m_clearCommandBuffer.~CommandBuffer();
+
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
@@ -71,6 +73,8 @@ namespace Zap {
 		m_pipeline.enableDepthTest();
 		m_pipeline.init();
 
+		m_clearCommandBuffer.allocate();
+
 		for (VisibleActor* actor : m_actors) {
 			actor->getModel()->init(m_window.getSwapchain()->getImageCount());
 			actor->getModel()->recordCommandBuffers(*m_window.getRenderPass(), m_window.getFramebufferPtr(), m_scissor, m_pipeline, m_descriptorPool.getVkDescriptorSet(0));
@@ -82,7 +86,7 @@ namespace Zap {
 	void Renderer::render(Camera* cam){
 		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
 
-		this->clear();//TODO fix memory bug
+		this->clear();//TODO fix memory leak
 
 		for (VisibleActor* actor : m_actors) {
 			m_ubo.model = actor->getTransform();
@@ -105,8 +109,7 @@ namespace Zap {
 	}
 
 	void Renderer::clearColor() {
-		vk::CommandBuffer cmd = vk::CommandBuffer();
-		cmd.allocate();
+		vk::CommandBuffer& cmd = m_clearCommandBuffer;
 		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
 		VkImageMemoryBarrier imageMemoryBarrier;
@@ -148,8 +151,7 @@ namespace Zap {
 	}
 
 	void Renderer::clearDepthStencil() {
-		vk::CommandBuffer cmd = vk::CommandBuffer();
-		cmd.allocate();
+		vk::CommandBuffer& cmd = m_clearCommandBuffer;
 
 		m_window.getDepthImage(m_window.getCurrentImageIndex())->changeLayout(
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
