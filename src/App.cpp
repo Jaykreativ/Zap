@@ -26,40 +26,51 @@ namespace movement {
 	bool lookRight = false;
 	void move(float dTime) {
 		if (forward) {
-			app::cam.translate(-glm::vec3(app::cam.getTransform()[2]) * dTime * 2.0f);
-			glm::vec3 vec = glm::vec3(app::cam.getTransform()[2]);
-			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :2-\n";
+			//app::cam.translate(glm::vec3{0, 0, 1} * dTime * 2.0f);
+			auto res = app::cam.getTransform();
+			glm::vec3 vec = res[2];
+			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z })*dTime * 2.0f, 1);
+			app::cam.setTransform(res);
 		}
 		if (backward) {
-			app::cam.translate(glm::vec3(app::cam.getTransform()[2]) * dTime * 2.0f);
-			glm::vec3 vec = glm::vec3(app::cam.getTransform()[2]);
-			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :2\n";
-		}
-		if (left) {
-			app::cam.translate(glm::vec3(app::cam.getTransform()[0]) * dTime * 2.0f);
-			glm::vec3 vec = glm::vec3(app::cam.getTransform()[0]);
-			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :0\n";
+			auto res = app::cam.getTransform();
+			glm::vec3 vec = -res[2];
+			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z })*dTime * 2.0f, 1);
+			app::cam.setTransform(res);
 		}
 		if (right) {
-			app::cam.translate(-glm::vec3(app::cam.getTransform()[0]) * dTime * 2.0f);
-			glm::vec3 vec = glm::vec3(app::cam.getTransform()[0]);
-			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :0-\n";
+			auto res = app::cam.getTransform();
+			glm::vec3 vec = res[0];
+			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{vec.x, 0, vec.z })*dTime * 2.0f, 1);
+			app::cam.setTransform(res);
+		}
+		if (left) {
+			auto res = app::cam.getTransform();
+			glm::vec3 vec = -res[0];
+			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z })*dTime * 2.0f, 1);
+			app::cam.setTransform(res);
 		}
 		if (down) {
-			app::cam.translate(glm::vec3(app::cam.getTransform()[1]) * dTime * 2.0f);
-			glm::vec3 vec = glm::vec3(app::cam.getTransform()[1]);
-			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :1\n";
+			auto res = app::cam.getTransform();
+			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, -2, 0 }*dTime, 1);
+			app::cam.setTransform(res);
 		}
 		if (up) {
-			app::cam.translate(-glm::vec3(app::cam.getTransform()[1]) * dTime * 2.0f);
-			glm::vec3 vec = glm::vec3(app::cam.getTransform()[1]);
-			std::cout << vec.x << ", " << vec.y << ", " << vec.z << " :1-\n";
+			auto res = app::cam.getTransform();
+			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
+			app::cam.setTransform(res);
 		}
 		if (lookLeft) {
 			app::cam.rotateY(-90 * dTime);
 		}
 		if (lookRight) {
 			app::cam.rotateY(90 * dTime);
+		}
+		if (lookDown) {
+			app::cam.rotateX(-90 * dTime);
+		}
+		if (lookUp) {
+			app::cam.rotateX(90 * dTime);
 		}
 	}
 }

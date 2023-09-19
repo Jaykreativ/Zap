@@ -17,4 +17,3 @@ namespace Zap {
 		glm::mat4 getPerspective(float aspect);
 	};
 }
-

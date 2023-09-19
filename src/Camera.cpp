@@ -5,7 +5,7 @@ namespace Zap {
 	Camera::~Camera(){}
 
 	glm::mat4 Camera::getView() {
-		return glm::lookAt(glm::vec3(m_transform[3]), glm::vec3(m_transform[3]) - glm::vec3(m_transform[2]), glm::vec3(m_transform[1]));
+		return glm::lookAt(glm::vec3(m_transform[3]), glm::vec3(m_transform[3]) + glm::vec3(m_transform[2]), glm::vec3(m_transform[1]));
 	}
 
 	glm::mat4 Camera::getPerspective(float aspect) {
