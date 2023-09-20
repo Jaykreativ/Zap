@@ -52,19 +52,33 @@ namespace movement {
 		}
 		if (down) {
 			auto res = app::cam.getTransform();
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, -2, 0 }*dTime, 1);
+			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
 			app::cam.setTransform(res);
 		}
 		if (up) {
 			auto res = app::cam.getTransform();
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
+			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, -2, 0 }*dTime, 1);
 			app::cam.setTransform(res);
 		}
 		if (lookLeft) {
-			app::cam.rotateY(-90 * dTime);
+			glm::mat4 res = app::cam.getTransform();
+			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(-90 * dTime), glm::vec3{0, 1, 0});
+
+			res[0] = rot * res[0];
+			res[1] = rot * res[1];
+			res[2] = rot * res[2];
+
+			app::cam.setTransform(res);
 		}
 		if (lookRight) {
-			app::cam.rotateY(90 * dTime);
+			glm::mat4 res = app::cam.getTransform();
+			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(90 * dTime), glm::vec3{ 0, 1, 0 });
+
+			res[0] = rot * res[0];
+			res[1] = rot * res[1];
+			res[2] = rot * res[2];
+
+			app::cam.setTransform(res);
 		}
 		if (lookDown) {
 			app::cam.rotateX(-90 * dTime);
