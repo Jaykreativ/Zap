@@ -18,12 +18,6 @@ namespace Zap {
 
 		void render(Camera* cam);
 
-		void clear();
-
-		void clearColor();
-
-		void clearDepthStencil();
-
 		void addActor(VisibleActor& actor);
 
 		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
@@ -44,8 +38,6 @@ namespace Zap {
 		vk::Shader m_vertexShader = vk::Shader();
 		vk::Shader m_fragmentShader = vk::Shader();
 		vk::Pipeline m_pipeline = vk::Pipeline();
-
-		vk::CommandBuffer m_clearCommandBuffer = vk::CommandBuffer();
 
 		//Fences
 		VkFence m_renderComplete;

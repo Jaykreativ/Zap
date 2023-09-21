@@ -15,8 +15,6 @@ namespace Zap {
 
 		for (VisibleActor* actor : m_actors) actor->getModel()->~Model();
 
-		m_clearCommandBuffer.~CommandBuffer();
-
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
@@ -73,8 +71,6 @@ namespace Zap {
 		m_pipeline.enableDepthTest();
 		m_pipeline.init();
 
-		m_clearCommandBuffer.allocate();
-
 		for (VisibleActor* actor : m_actors) {
 			actor->getModel()->init(m_window.getSwapchain()->getImageCount());
 			actor->getModel()->recordCommandBuffers(*m_window.getRenderPass(), m_window.getFramebufferPtr(), m_scissor, m_pipeline, m_descriptorPool.getVkDescriptorSet(0));
@@ -86,7 +82,7 @@ namespace Zap {
 	void Renderer::render(Camera* cam){
 		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
 
-		this->clear();//TODO fix memory leak
+		m_window.clear();
 
 		for (VisibleActor* actor : m_actors) {
 			m_ubo.model = actor->getTransform();
@@ -101,83 +97,6 @@ namespace Zap {
 			actor->getModel()->getCommandBuffer(m_window.getCurrentImageIndex())->submit(m_renderComplete);
 			vk::waitForFence(m_renderComplete);
 		}
-	}
-
-	void Renderer::clear() {
-		clearColor();
-		clearDepthStencil();
-	}
-
-	void Renderer::clearColor() {
-		vk::CommandBuffer& cmd = m_clearCommandBuffer;
-		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-		VkImageMemoryBarrier imageMemoryBarrier;
-		imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		imageMemoryBarrier.pNext = nullptr;
-		imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imageMemoryBarrier.image = m_window.getSwapchain()->getImage(m_window.getCurrentImageIndex());
-		imageMemoryBarrier.subresourceRange = m_window.getSwapchain()->getImageSubresourceRange();
-
-		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-
-		cmd.end();
-		cmd.submit();
-
-		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-		VkClearColorValue clearColor = { 0.1, 0.1, 0.1, 1 };
-		vkCmdClearColorImage(cmd, m_window.getSwapchain()->getImage(m_window.getCurrentImageIndex()), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &m_window.getSwapchain()->getImageSubresourceRange());
-
-		cmd.end();
-		cmd.submit();
-
-		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-		imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-
-		cmd.end();
-		cmd.submit();
-	}
-
-	void Renderer::clearDepthStencil() {
-		vk::CommandBuffer& cmd = m_clearCommandBuffer;
-
-		m_window.getDepthImage(m_window.getCurrentImageIndex())->changeLayout(
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 
-			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
-		);
-
-		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-		VkClearDepthStencilValue clearDepthStencil = { 1, 0 };
-		vkCmdClearDepthStencilImage(
-			cmd, 
-			*m_window.getDepthImage(m_window.getCurrentImageIndex()), 
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-			&clearDepthStencil, 
-			1, &m_window.getDepthImage(m_window.getCurrentImageIndex())->getSubresourceRange()
-		);
-
-		cmd.end();
-		cmd.submit();
-
-		m_window.getDepthImage(m_window.getCurrentImageIndex())->changeLayout(
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
-		);
 	}
 
 	uint32_t highestIndex = 0;

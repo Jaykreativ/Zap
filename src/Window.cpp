@@ -15,7 +15,7 @@ namespace Zap {
 		vk::destroyFence(m_imageAvailable);
 		for (int i = 0; i < m_framebuffers.size(); i++) m_framebuffers[i].~Framebuffer();
 		m_renderPass.~RenderPass();
-		for (int i = 0; i < m_depthImages.size(); i++) m_depthImages[i].~Image();
+		m_depthImage.~Image();
 		m_swapchain.~Swapchain();
 		m_surface.~Surface();
 		glfwDestroyWindow(m_window);
@@ -43,36 +43,30 @@ namespace Zap {
 		m_swapchain.init();
 
 		/*Depth Image*/
-		m_depthImages.resize(m_swapchain.getImageCount());
-		for (int i = 0; i < m_swapchain.getImageCount(); i++) {
-			m_depthImages[i] = vk::Image();
-			m_depthImages[i].setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-			m_depthImages[i].setExtent({ m_width, m_height, 1 });
-			m_depthImages[i].setFormat(Zap::GlobalSettings::getDepthStencilFormat());
-			m_depthImages[i].setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
-			m_depthImages[i].setType(VK_IMAGE_TYPE_2D);
-			m_depthImages[i].setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-			m_depthImages[i].init();
-			m_depthImages[i].allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			m_depthImages[i].initView();
-			m_depthImages[i].changeLayout(
-				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 
-				0, 
-				VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
-			);
-		}
+		m_depthImage = vk::Image();
+		m_depthImage.setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+		m_depthImage.setExtent({ m_width, m_height, 1 });
+		m_depthImage.setFormat(Zap::GlobalSettings::getDepthStencilFormat());
+		m_depthImage.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+		m_depthImage.setType(VK_IMAGE_TYPE_2D);
+		m_depthImage.setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		m_depthImage.init();
+		m_depthImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_depthImage.initView();
+
+		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
 		/*RenderPass*/ {
 			VkAttachmentDescription colorAttachment;// Color Attachment
 			colorAttachment.flags = 0;
 			colorAttachment.format = Zap::GlobalSettings::getColorFormat();
 			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 			m_renderPass.addAttachmentDescription(colorAttachment);
 
@@ -90,11 +84,11 @@ namespace Zap {
 			depthStencilAttachment.flags = 0;
 			depthStencilAttachment.format = Zap::GlobalSettings::getDepthStencilFormat();
 			depthStencilAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 			depthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			depthStencilAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			depthStencilAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			depthStencilAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			depthStencilAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			depthStencilAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 			m_renderPass.addAttachmentDescription(depthStencilAttachment);
@@ -142,19 +136,101 @@ namespace Zap {
 			m_framebuffers[i].setWidth(m_width);
 			m_framebuffers[i].setHeight(m_height);
 			m_framebuffers[i].addAttachment(m_swapchain.getImageView(i));
-			m_framebuffers[i].addAttachment(m_depthImages[i].getVkImageView());
+			m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
 			m_framebuffers[i].setRenderPass(m_renderPass);
 			m_framebuffers[i].init();
 		}
 
 		vk::createFence(&m_imageAvailable);
 
+		m_clearCommandBuffer.allocate();
+
 		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
 		vk::waitForFence(m_imageAvailable);
 	}
 
+	void Window::clear() {
+		clearColor();
+		clearDepthStencil();
+	}
+
+	void Window::clearColor() {
+		vk::CommandBuffer& cmd = m_clearCommandBuffer;
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		VkImageMemoryBarrier imageMemoryBarrier;
+		imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imageMemoryBarrier.pNext = nullptr;
+		imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.image = m_swapchain.getImage(m_currentImageIndex);
+		imageMemoryBarrier.subresourceRange = m_swapchain.getImageSubresourceRange();
+
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+
+		cmd.end();
+		cmd.submit();
+
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		VkClearColorValue clearColor = { 0.1, 0.1, 0.1, 1 };
+		vkCmdClearColorImage(cmd, m_swapchain.getImage(m_currentImageIndex), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &m_swapchain.getImageSubresourceRange());
+
+		cmd.end();
+		cmd.submit();
+
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+
+		cmd.end();
+		cmd.submit();
+	}
+
+	void Window::clearDepthStencil() {
+		vk::CommandBuffer& cmd = m_clearCommandBuffer;
+
+		m_depthImage.changeLayout(
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+		);
+
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		VkClearDepthStencilValue clearDepthStencil = { 1, 0 };
+		vkCmdClearDepthStencilImage(
+			cmd,
+			m_depthImage,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			&clearDepthStencil,
+			1, &m_depthImage.getSubresourceRange()
+		);
+
+		cmd.end();
+		cmd.submit();
+
+		m_depthImage.changeLayout(
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+		);
+	}
+
 	void Window::swapBuffers() {
 		if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED)) return;
+
+		vk::changeImageLayout(m_swapchain.getImage(m_currentImageIndex), m_swapchain.getImageSubresourceRange(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT);
+
 		vk::queuePresent(vkUtils::queueHandler::getQueue(), m_swapchain, m_currentImageIndex);
 
 		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
@@ -193,12 +269,8 @@ namespace Zap {
 		return &m_swapchain;
 	}
 
-	std::vector<vk::Image>* Window::getDepthImages() {
-		return &m_depthImages;
-	}
-
-	vk::Image* Window::getDepthImage(int index) {
-		return &m_depthImages[index];
+	vk::Image* Window::getDepthImage() {
+		return &m_depthImage;
 	}
 
 	vk::RenderPass* Window::getRenderPass() {
