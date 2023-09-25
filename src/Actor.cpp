@@ -16,7 +16,7 @@ namespace Zap {
 		setPos(glm::vec3(x, y, z));
 	}
 	void Actor::setPos(glm::vec3 pos) {
-		translate(pos - glm::vec3(m_transform[3]));
+		m_transform[3] = glm::vec4(pos, 1);
 	}
 
 	void Actor::rotateX(float angle) {

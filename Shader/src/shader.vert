@@ -5,7 +5,7 @@ out gl_PerVertex {
 	vec4 gl_Position;
 };
 
-layout(location=0) in vec3 pos;
+layout(location=0) in vec3 vertPos;
 
 layout(location=0) out vec3 fragColor;
 
@@ -17,6 +17,8 @@ layout(binding=0) uniform UBO{
 } ubo;
 
 void main(){
-    gl_Position = ubo.perspective * ubo.view * ubo.model * vec4(pos, 1);
+    vec4 pos = ubo.perspective * ubo.view * ubo.model * vec4(vertPos, 1);
+    pos.y = -pos.y;
+    gl_Position = pos;
     fragColor = ubo.color;
 }
