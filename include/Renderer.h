@@ -14,18 +14,15 @@ namespace Zap {
 		Renderer(Window& window);
 		~Renderer();
 	
-		void init();
+		virtual void init() = 0;
 
-		void render(Camera* cam);
+		virtual void render(Camera* cam) = 0;
 
 		void addActor(VisibleActor& actor);
 
 		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 
-		//TODO make actor system
-
-
-	private:
+	protected:
 		bool m_isInit = false;
 
 		Window& m_window;
@@ -33,7 +30,7 @@ namespace Zap {
 		VkRect2D m_scissor;
 		std::vector<VisibleActor*> m_actors;
 
-		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
+		/*vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 
 		vk::Shader m_vertexShader = vk::Shader();
 		vk::Shader m_fragmentShader = vk::Shader();
@@ -51,7 +48,7 @@ namespace Zap {
 		};
 
 		UniformBufferObject m_ubo{};// the host uniform buffer
-		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer
+		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer*/
 	};
 }
 

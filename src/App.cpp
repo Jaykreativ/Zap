@@ -1,14 +1,15 @@
 #include "Zap.h"
 #include "Window.h"
-#include "Renderer.h"
+#include "SimpleRenderer.h"
 #include "PxPhysicsAPI.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
+#include "gtc/type_ptr.hpp"
 
 namespace app {
 	Zap::Window window = Zap::Window(1000, 600, "Zap Application");
 
-	Zap::Renderer renderer = Zap::Renderer(window);
+	Zap::SimpleRenderer renderer = Zap::SimpleRenderer(window);
 
 	Zap::Camera cam = Zap::Camera();
 }
@@ -208,7 +209,7 @@ namespace px {
 			throw std::runtime_error("ERROR: createScene failed");
 		}
 
-		PxMaterial* material = physics->createMaterial(1, 1, 1);
+		PxMaterial* material = physics->createMaterial(0.5, 0.5, 0.25);
 
 		glm::mat4 glmt = glm::mat4(1);
 		glm::translate(glmt, glm::vec3(-1.5, 5, 0));
@@ -238,7 +239,6 @@ namespace px {
 
 int main() {
 	px::init();
-
 	Zap::init("Zap Application");
 	
 	app::window.init();
@@ -304,15 +304,23 @@ int main() {
 		cube.setModel(model);
 		PxVec3 pos = px::cubePxActor->getGlobalPose().p;
 		cube.setPos(pos.x, pos.y, pos.z);
-		cube.m_color = {1, 1, 1};
+		cube.m_color = {0.5, 0.7, 1};
+	}
+
+	Zap::VisibleActor ground;
+	{
+		ground.setModel(model);
+		ground.setTransform(glm::scale(glm::translate(glm::mat4(1), glm::vec3(0, -1, 0)), glm::vec3(500, 2, 500)));
+		ground.m_color = { 0.6, 0.7, 0.5 };
 	}
 
 	app::renderer.addActor(cube);
+	app::renderer.addActor(ground);
 
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
 
-	app::cam.setPos(-1, -1, -5);
+	app::cam.setPos(-1, 1, -5);
 
 	//mainloop
 	uint64_t currentFrame = 0;
@@ -322,6 +330,8 @@ int main() {
 		movement::move(dTime);
 		{
 			PxVec3 pos = px::cubePxActor->getGlobalPose().p;
+			PxQuat orientation = px::cubePxActor->getGlobalPose().q;
+			cube.setTransform(glm::mat4(glm::make_quat(&orientation.x)));
 			cube.setPos(pos.x, pos.y, pos.z);
 		}
 
@@ -340,7 +350,7 @@ int main() {
 	}
 
 	//terminate
-	app::renderer.~Renderer();
+	app::renderer.~SimpleRenderer();
 	app::window.~Window();
 
 	Zap::terminate();
