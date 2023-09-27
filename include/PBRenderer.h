@@ -1,0 +1,53 @@
+#pragma once
+
+#include "Renderer.h"
+#include "Zap.h"
+#include "Window.h"
+#include "Light.h"
+
+namespace Zap {
+	class PBRenderer : public Renderer
+	{
+	public:
+		PBRenderer(Window& window);
+		~PBRenderer();
+
+		void init();
+
+		void render(Camera* cam);
+
+		void addLight(Light* pLight);
+
+	private:
+		std::vector<Light*> m_lights;
+
+		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
+
+		vk::Shader m_vertexShader = vk::Shader();
+		vk::Shader m_fragmentShader = vk::Shader();
+		vk::Pipeline m_pipeline = vk::Pipeline();
+
+		//Fences
+		VkFence m_renderComplete;
+
+		//Buffers
+		struct UniformBufferObject {// definition of the uniform buffer layout
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 perspective;
+			alignas(16) glm::vec3 color;
+			alignas(4) uint32_t lightCount;
+		};
+
+		UniformBufferObject m_ubo{};// the host uniform buffer
+		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer
+
+		struct LightData {
+			alignas(16) glm::vec3 pos;
+			alignas(16) glm::vec3 color;
+		};
+
+		vk::Buffer m_lightBuffer = vk::Buffer();
+	};
+}
+

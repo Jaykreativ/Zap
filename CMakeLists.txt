@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
 project(Zap)
-file(GLOB Zap_SRC
+file(GLOB_RECURSE Zap_SRC
     "src/*"
     "include/*"
 )
-file(GLOB Zap_Shader_SRC
-    "Shader/src/*"
+file(GLOB_RECURSE Zap_Shader_SRC
+    "Shader/*"
 )
 file(GLOB PhysX_libs
     "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.mt/debug/*.lib"

@@ -1,6 +1,6 @@
 #include "Zap.h"
 #include "Window.h"
-#include "SimpleRenderer.h"
+#include "PBRenderer.h"
 #include "PxPhysicsAPI.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
@@ -9,7 +9,7 @@
 namespace app {
 	Zap::Window window = Zap::Window(1000, 600, "Zap Application");
 
-	Zap::SimpleRenderer renderer = Zap::SimpleRenderer(window);
+	Zap::PBRenderer renderer = Zap::PBRenderer(window);
 
 	Zap::Camera cam = Zap::Camera();
 }
@@ -317,6 +317,17 @@ int main() {
 	app::renderer.addActor(cube);
 	app::renderer.addActor(ground);
 
+	Zap::Light light;
+	light.setColor({2, 2, 2});
+	light.setPos({-3, 2, 0});
+
+	Zap::Light light2;
+	light2.setColor({ 1, 0.5, 0.2 });
+	light2.setPos({ 3, 2, 0 });
+
+	app::renderer.addLight(&light2);
+	app::renderer.addLight(&light);
+
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
 
@@ -350,7 +361,7 @@ int main() {
 	}
 
 	//terminate
-	app::renderer.~SimpleRenderer();
+	app::renderer.~PBRenderer();
 	app::window.~Window();
 
 	Zap::terminate();
