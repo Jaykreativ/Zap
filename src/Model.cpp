@@ -61,13 +61,23 @@ namespace Zap {
 		}
 	}
 
-	void Model::load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray) {
-		m_vertexBuffer = vk::Buffer(vertexArray.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	void Model::load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
+		m_vertexBuffer = vk::Buffer(vertexCount * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_vertexBuffer.init(); m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_vertexBuffer.uploadData(m_vertexBuffer.getSize(), vertexArray.data());
+		m_vertexBuffer.uploadData(m_vertexBuffer.getSize(), pVertices);
 
-		m_indexBuffer = vk::Buffer(indexArray.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		m_indexBuffer = vk::Buffer(indexCount * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_indexBuffer.init(); m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_indexBuffer.uploadData(m_indexBuffer.getSize(), indexArray.data());
+		m_indexBuffer.uploadData(m_indexBuffer.getSize(), pIndices);
+	}
+
+	void Model::load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray) {
+		load(vertexArray.size(), vertexArray.data(), indexArray.size(), indexArray.data());
+	}
+
+	void Model::load(const char* modelPath) {
+		Assimp::Importer importer;
+		const aiScene* scene = importer.ReadFile(modelPath, 0);
+		std::cout << modelPath << " -> NumMeshes: " << scene->mNumMeshes << "\n";
 	}
 }

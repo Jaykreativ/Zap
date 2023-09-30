@@ -14,11 +14,14 @@ add_executable(Zap ${Zap_SRC} ${Zap_Shader_SRC})
 
 source_group("Shader" FILES ${Zap_Shader_SRC})
 
+set(${BUILD_SHARED_LIBS} false)
+
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Zap)
 add_subdirectory(Dependencies/Vulkan-Framework)
 add_subdirectory(Dependencies/glfw)
 add_subdirectory(Dependencies/glm)
-target_link_libraries(Zap PUBLIC VulkanFramework glfw glm $ENV{VULKAN_SDK}/Lib/vulkan-1.lib ${PhysX_libs})
+add_subdirectory(Dependencies/assimp)
+target_link_libraries(Zap PUBLIC VulkanFramework glfw glm assimp $ENV{VULKAN_SDK}/Lib/vulkan-1.lib ${PhysX_libs})
 target_include_directories(
     Zap PUBLIC
     "${PROJECT_BINARY_DIR}"
@@ -27,5 +30,6 @@ target_include_directories(
     "${PROJECT_SOURCE_DIR}/Dependencies/glfw/include"
     "${PROJECT_SOURCE_DIR}/Dependencies/glm/glm"
     "${PROJECT_SOURCE_DIR}/Dependencies/PhysX/physx/include"
+    "${PROJECT_SOURCE_DIR}/Dependencies/assimp/include"
     "$ENV{VULKAN_SDK}/Include"
 )

@@ -273,6 +273,9 @@ int main() {
 	Zap::Model model = Zap::Model();
 	model.load(vertices, indices);
 
+	Zap::Model objModel = Zap::Model();
+	objModel.load("Models/OBJ/Cube.obj");
+
 	//Actors
 	Zap::VisibleActor centre;
 	centre.setModel(model);

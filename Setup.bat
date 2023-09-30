@@ -3,6 +3,7 @@ cd Dependencies
 git clone https://github.com/Jaykreativ/Vulkan-Framework --recursive
 git clone https://github.com/glfw/glfw --recursive
 git clone https://github.com/g-truc/glm --recursive
+git clone https://github.com/assimp/assimp --recursive
 git clone https://github.com/NVIDIA-Omniverse/PhysX --recursive
 cd PhysX/physx
 start /W generate_projects.bat
