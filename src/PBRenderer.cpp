@@ -103,6 +103,7 @@ namespace Zap {
 
 		for (VisibleActor* actor : m_actors) {
 			m_ubo.model = actor->getTransform();
+			m_ubo.modelNormal = glm::transpose(glm::inverse(actor->getTransform()));
 			m_ubo.view = cam->getView();
 			m_ubo.perspective = cam->getPerspective(m_viewport.width / m_viewport.height);
 			m_ubo.color = actor->m_color;

@@ -38,7 +38,7 @@ namespace Zap {
 		/*Swapchain*/
 		m_swapchain.setWidth(m_width);
 		m_swapchain.setHeight(m_height);
-		m_swapchain.setPresentMode(VK_PRESENT_MODE_FIFO_KHR);
+		m_swapchain.setPresentMode(VK_PRESENT_MODE_MAILBOX_KHR);
 		m_swapchain.setSurface(m_surface);
 		m_swapchain.init();
 

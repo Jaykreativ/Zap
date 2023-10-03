@@ -19,6 +19,9 @@ namespace Zap {
         void rotateZ(float angle);
         void rotate(float angle, glm::vec3 axis);
 
+        void setScale(glm::vec3 scale);
+        void setScale(float x, float y, float z);
+
         void setTransform(glm::mat4& transform);
 
         glm::vec3 getPos();

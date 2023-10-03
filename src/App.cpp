@@ -213,7 +213,9 @@ namespace px {
 
 		glm::mat4 glmt = glm::mat4(1);
 		glm::translate(glmt, glm::vec3(-1.5, 5, 0));
+		glm::rotate(glmt, glm::radians<float>(180), glm::vec3(glmt[0]));
 		PxTransform transform = PxTransform(PxVec3(-1.5, 5, 0));
+		transform.q = PxQuat(-1, 0, 0, 0);
 		cubePxActor = physics->createRigidDynamic(transform);
 		{
 			PxShape* shape = physics->createShape(PxBoxGeometry(0.5f, 0.5f, 0.5f), &material, 1, true);
@@ -245,56 +247,38 @@ int main() {
 	app::window.show();
 	app::window.setKeyCallback(keybinds::keyCallback);
 
-	std::vector<Vertex> vertices = {
-		Vertex({0.5, 0.5, 0.5}),//0
-		Vertex({0.5, -0.5, 0.5}),//1
-		Vertex({-0.5, -0.5, 0.5}),//2
-		Vertex({-0.5, 0.5, 0.5}),//3
-		Vertex({0.5, 0.5, -0.5}),//4
-		Vertex({0.5, -0.5, -0.5}),//5
-		Vertex({-0.5, -0.5, -0.5}),//6
-		Vertex({-0.5, 0.5, -0.5})//7
-	};
-	std::vector<uint32_t> indices = {
-		0, 1, 2,//back
-		0, 2, 3,
-		4, 5, 6,//front
-		4, 6, 7,
-		0, 1, 5,//right
-		0, 5, 4,
-		3, 2, 6,//left
-		3, 6, 7,
-		1, 2, 6,//top
-		1, 6, 5,
-		0, 3, 7,//bottom
-		0, 7, 4
-	};
-
 	Zap::Model model = Zap::Model();
-	model.load(vertices, indices);
+	model.load("Models/OBJ/Cube.obj");
 
-	Zap::Model objModel = Zap::Model();
-	objModel.load("Models/OBJ/Cube.obj");
+	//Zap::Model sponzaModel = Zap::Model();
+	//sponzaModel.load("Models/OBJ/Sponza.obj");
+
+	Zap::Model giftModel = Zap::Model();
+	giftModel.load("Models/OBJ/Gift.obj");
 
 	//Actors
 	Zap::VisibleActor centre;
 	centre.setModel(model);
 	centre.setPos(0, 0, 0);
+	centre.setScale(0.5, 0.5, 0.5);
 	centre.m_color = { 0.5, 0.5, 0.5 };
 
 	Zap::VisibleActor xDir;
 	xDir.setModel(model);
 	xDir.setPos(1, 0, 0);
+	xDir.setScale(0.5, 0.1, 0.1);
 	xDir.m_color = { 1, 0, 0 };
 
 	Zap::VisibleActor yDir;
 	yDir.setModel(model);
 	yDir.setPos(0, 1, 0);
+	yDir.setScale(0.1, 0.5, 0.1);
 	yDir.m_color = { 0, 1, 0 };
 
 	Zap::VisibleActor zDir;
 	zDir.setModel(model);
 	zDir.setPos(0, 0, 1);
+	zDir.setScale(0.1, 0.1, 0.5);
 	zDir.m_color = { 0, 0, 1 };
 
 	app::renderer.addActor(centre);
@@ -302,30 +286,31 @@ int main() {
 	app::renderer.addActor(yDir);
 	app::renderer.addActor(zDir);
 
-	Zap::VisibleActor cube;
-	{
-		cube.setModel(model);
-		PxVec3 pos = px::cubePxActor->getGlobalPose().p;
-		cube.setPos(pos.x, pos.y, pos.z);
-		cube.m_color = {0.5, 0.7, 1};
-	}
+	Zap::VisibleActor physicstest;
+	physicstest.setModel(giftModel);
+	physicstest.m_color = {0.5, 0.5, 1};
+	
+	Zap::VisibleActor rotatingGift;
+	rotatingGift.setModel(giftModel);
+	rotatingGift.setPos(3, 2, 2);
+	rotatingGift.m_color = { 0.5, 1, 0.5 };
 
 	Zap::VisibleActor ground;
-	{
-		ground.setModel(model);
-		ground.setTransform(glm::scale(glm::translate(glm::mat4(1), glm::vec3(0, -1, 0)), glm::vec3(500, 2, 500)));
-		ground.m_color = { 0.6, 0.7, 0.5 };
-	}
+	ground.setModel(model);
+	ground.setPos(0, -1, 0);
+	ground.setScale(500, 1, 500);
+	ground.m_color = { 1, 1, 1 };
 
-	app::renderer.addActor(cube);
+	app::renderer.addActor(physicstest);
+	app::renderer.addActor(rotatingGift);
 	app::renderer.addActor(ground);
 
 	Zap::Light light;
-	light.setColor({2, 2, 2});
+	light.setColor({5, 5, 5});
 	light.setPos({-3, 2, 0});
 
 	Zap::Light light2;
-	light2.setColor({ 1, 0.5, 0.2 });
+	light2.setColor({ 3, 1.5, 0.6 });
 	light2.setPos({ 3, 2, 0 });
 
 	app::renderer.addLight(&light2);
@@ -345,9 +330,12 @@ int main() {
 		{
 			PxVec3 pos = px::cubePxActor->getGlobalPose().p;
 			PxQuat orientation = px::cubePxActor->getGlobalPose().q;
-			cube.setTransform(glm::mat4(glm::make_quat(&orientation.x)));
-			cube.setPos(pos.x, pos.y, pos.z);
+			physicstest.setTransform(glm::mat4(glm::make_quat(&orientation.x)));
+			physicstest.setPos(pos.x, pos.y, pos.z);
+			physicstest.setScale(0.5, 0.5, 0.5);
 		}
+
+		rotatingGift.rotateY(15*dTime);
 
 		if (dTime > 0) {
 			px::scene->simulate(dTime);

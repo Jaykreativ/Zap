@@ -7,15 +7,16 @@ class Vertex
 {
 public:
 	Vertex() {}
-	Vertex(glm::vec3 pos)
-		: m_pos(pos)
+	Vertex(glm::vec3 pos, glm::vec3 normal)
+		: m_pos(pos), m_normal(normal)
 	{}
 	~Vertex() {}
 
 	glm::vec3 m_pos;
+	glm::vec3 m_normal;
 
 	static uint32_t getVertexInputAttributeDescriptionCount() {
-		return 1;
+		return 2;
 	}
 
 	static std::vector<VkVertexInputAttributeDescription> getVertexInputAttributeDescriptions() {
@@ -25,8 +26,15 @@ public:
 		posAttributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
 		posAttributeDescription.offset = offsetof(Vertex, m_pos);
 
+		VkVertexInputAttributeDescription normalAttributeDescription;
+		normalAttributeDescription.location = 1;
+		normalAttributeDescription.binding = 0;
+		normalAttributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+		normalAttributeDescription.offset = offsetof(Vertex, m_normal);
+
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {
-			posAttributeDescription
+			posAttributeDescription,
+			normalAttributeDescription
 		};
 		return attributeDescriptions;
 	}

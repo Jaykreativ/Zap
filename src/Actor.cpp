@@ -32,6 +32,13 @@ namespace Zap {
 		m_transform = glm::rotate(m_transform, glm::radians<float>(angle), axis);
 	}
 
+	void Actor::setScale(glm::vec3 scale) {
+		m_transform = glm::scale(m_transform, scale);
+	}
+	void Actor::setScale(float x, float y, float z) {
+		setScale({ x, y, z });
+	}
+
 	void Actor::setTransform(glm::mat4& transform) {
 		m_transform = transform;
 	}

@@ -33,6 +33,7 @@ namespace Zap {
 		//Buffers
 		struct UniformBufferObject {// definition of the uniform buffer layout
 			glm::mat4 model;
+			glm::mat4 modelNormal;
 			glm::mat4 view;
 			glm::mat4 perspective;
 			alignas(16) glm::vec3 color;
