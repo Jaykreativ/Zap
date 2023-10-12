@@ -36,11 +36,8 @@ namespace Zap {
 			renderPassBeginInfo.renderPass = renderPass;
 			renderPassBeginInfo.framebuffer = framebuffers[i];
 			renderPassBeginInfo.renderArea = renderArea;
-			std::vector<VkClearValue> clearValues{
-				{ 0.1, 0.1, 0.1, 1 }
-			};
-			renderPassBeginInfo.clearValueCount = clearValues.size();
-			renderPassBeginInfo.pClearValues = clearValues.data();
+			renderPassBeginInfo.clearValueCount = 0;
+			renderPassBeginInfo.pClearValues = nullptr;
 
 			vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -128,5 +125,17 @@ namespace Zap {
 
 		vertexStgBuffer.~Buffer();
 		indexStgBuffer.~Buffer();
+	}
+
+	vk::CommandBuffer* Model::getCommandBuffer(int index) {
+		return &m_commandBuffers[index];
+	}
+
+	vk::Buffer* Model::getVertexBuffer() {
+		return &m_vertexBuffer;
+	}
+
+	vk::Buffer* Model::getIndexbuffer() {
+		return &m_indexBuffer;
 	}
 }

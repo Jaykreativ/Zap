@@ -14,6 +14,8 @@ namespace Zap {
 
 		void init();
 
+		void recordCommandBuffers();
+
 		void render(Camera* cam);
 
 		void addLight(Light* pLight);
@@ -26,6 +28,9 @@ namespace Zap {
 		vk::Shader m_vertexShader = vk::Shader();
 		vk::Shader m_fragmentShader = vk::Shader();
 		vk::Pipeline m_pipeline = vk::Pipeline();
+
+		//Semaphores
+		VkSemaphore m_semaphoreRenderComplete;
 
 		//Fences
 		VkFence m_renderComplete;

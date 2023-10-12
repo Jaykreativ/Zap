@@ -10,6 +10,7 @@ namespace Zap {
 		vk::allQueuesWaitIdle();
 
 		vk::destroyFence(m_renderComplete);
+		vk::destroySemaphore(m_semaphoreRenderComplete);
 
 		for (VisibleActor* actor : m_actors) actor->getModel()->~Model();
 
@@ -82,18 +83,80 @@ namespace Zap {
 			m_pipeline.addVertexInputAttrubuteDescription(attributeDescription);
 		}
 		m_pipeline.addVertexInputBindingDescription(Vertex::getVertexInputBindingDescription());
+		m_pipeline.addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+		m_pipeline.addDynamicState(VK_DYNAMIC_STATE_SCISSOR);
 		m_pipeline.addViewport(m_viewport);
 		m_pipeline.addScissor(m_scissor);
 		m_pipeline.setRenderPass(*m_window.getRenderPass());
 		m_pipeline.enableDepthTest();
 		m_pipeline.init();
 
-		for (VisibleActor* actor : m_actors) {
-			actor->getModel()->init(m_window.getSwapchain()->getImageCount());
-			actor->getModel()->recordCommandBuffers(*m_window.getRenderPass(), m_window.getFramebufferPtr(), m_scissor, m_pipeline, m_descriptorPool.getVkDescriptorSet(0));
+		vk::createSemaphore(&m_semaphoreRenderComplete);
+
+		for (Model* model : m_models) {
+			model->init(m_window.getSwapchain()->getImageCount());
+			for (uint32_t i = 0; i < m_window.getSwapchain()->getImageCount(); i++) {
+				model->getCommandBuffer(i)->addSignalSemaphore(m_semaphoreRenderComplete);
+				model->getCommandBuffer(i)->addWaitSemaphore(m_semaphoreRenderComplete, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+			}
 		}
+		recordCommandBuffers();
 
 		vk::createFence(&m_renderComplete);
+	}
+
+	void PBRenderer::recordCommandBuffers() {
+		for (Model* model : m_models) {
+			for (uint32_t i = 0; i < m_window.getSwapchain()->getImageCount(); i++) {
+				vk::CommandBuffer* cmd = model->getCommandBuffer(i);
+				cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+
+				VkRenderPassBeginInfo renderPassBeginInfo;
+				renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+				renderPassBeginInfo.pNext = nullptr;
+				renderPassBeginInfo.renderPass = *m_window.getRenderPass();
+				renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(i);
+				VkRect2D renderArea{};
+				int32_t restX = m_window.getWidth() - (m_scissor.extent.width + m_scissor.offset.x);
+				renderArea.offset.x = std::max<int32_t>(0, m_window.getWidth() - (m_scissor.extent.width + restX));
+				renderArea.extent.width = std::min<int32_t>(m_window.getWidth() - (m_scissor.offset.x + restX), m_window.getWidth());
+				int32_t restY = m_window.getHeight() - (m_scissor.extent.height + m_scissor.offset.y);
+				renderArea.offset.y = std::max<int32_t>(0, m_window.getHeight() - (m_scissor.extent.height + restY));
+				renderArea.extent.height = std::min<int32_t>(m_window.getHeight() - (m_scissor.offset.y + restY), m_window.getHeight());
+				renderPassBeginInfo.renderArea = renderArea;
+				renderPassBeginInfo.clearValueCount = 0;
+				renderPassBeginInfo.pClearValues = nullptr;
+
+				vkCmdBeginRenderPass(*cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+
+				VkViewport renderAreaViewport{};
+				renderAreaViewport.x = renderArea.offset.x;
+				renderAreaViewport.y = renderArea.offset.y;
+				renderAreaViewport.width = renderArea.extent.width;
+				renderAreaViewport.height = renderArea.extent.height;
+				renderAreaViewport.minDepth = 0;
+				renderAreaViewport.maxDepth = 1;
+
+				vkCmdSetViewport(*cmd, 0, 1, &renderAreaViewport);
+				vkCmdSetScissor(*cmd, 0, 1, &renderArea);
+
+				VkDeviceSize offsets[] = { 0 };
+				VkBuffer vertexBuffer = *model->getVertexBuffer();
+				vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
+				vkCmdBindIndexBuffer(*cmd, *model->getIndexbuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+				VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
+				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
+
+				vkCmdDrawIndexed(*cmd, model->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
+
+				vkCmdEndRenderPass(*cmd);
+
+				cmd->end();
+			}
+		}
 	}
 
 	void PBRenderer::render(Camera* cam) {

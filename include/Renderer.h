@@ -16,6 +16,8 @@ namespace Zap {
 	
 		virtual void init() = 0;
 
+		virtual void recordCommandBuffers() = 0;
+
 		virtual void render(Camera* cam) = 0;
 
 		void addActor(VisibleActor& actor);
@@ -29,6 +31,7 @@ namespace Zap {
 		VkViewport m_viewport;
 		VkRect2D m_scissor;
 		std::vector<VisibleActor*> m_actors;
+		std::vector<Model*> m_models;
 	};
 }
 

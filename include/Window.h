@@ -1,9 +1,11 @@
 #pragma once
 
 #include "Zap.h"
+#include "Renderer.h"
 
 namespace Zap
 {
+	class Renderer;
 	class Window
 	{
 	public:
@@ -22,9 +24,19 @@ namespace Zap
 
 		bool shouldClose();
 
+		void show();
+
 		void setKeyCallback(GLFWkeyfun callback);
 
-		void show();
+		void setResizeCallback(GLFWwindowsizefun callback);
+
+		void recordClearCommandBuffers();
+
+		void recordClearDepthStencilCommandBuffer();
+
+		void resizeVk(GLFWwindow* window, int width, int height);
+
+		void addRenderer(Renderer* renderer);
 
 		/*Getter*/
 		uint32_t getWidth();
@@ -49,6 +61,8 @@ namespace Zap
 
 		VkFence getImageAvailableFence();
 
+		Renderer* getRenderer(uint32_t index);
+
 		static void pollEvents();
 
 	private:
@@ -59,6 +73,9 @@ namespace Zap
 		std::string m_title;
 
 		GLFWwindow *m_window;
+		GLFWwindowsizefun m_sizeCallback;
+
+		std::vector<Renderer*> m_renderers;
 
 		vk::Surface m_surface = vk::Surface();
 		vk::Swapchain m_swapchain = vk::Swapchain();
@@ -68,6 +85,7 @@ namespace Zap
 		uint32_t m_currentImageIndex;
 		VkFence m_imageAvailable = VK_NULL_HANDLE;
 
-		vk::CommandBuffer m_clearCommandBuffer = vk::CommandBuffer();
+		vk::CommandBuffer* m_clearCommandBuffers;
+		vk::CommandBuffer m_clearDepthStencilCommandBuffer = vk::CommandBuffer();
 	};
 }

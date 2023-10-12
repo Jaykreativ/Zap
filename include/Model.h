@@ -20,9 +20,11 @@ namespace Zap {
         void load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray);
         void load(const char* modelPath);
 
-        vk::CommandBuffer* getCommandBuffer(int index) {
-            return &m_commandBuffers[index];
-        }
+        vk::CommandBuffer* getCommandBuffer(int index);
+
+        vk::Buffer* getVertexBuffer();
+
+        vk::Buffer* getIndexbuffer();
 
     private:
         bool m_isInit = false;

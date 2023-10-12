@@ -239,6 +239,10 @@ namespace px {
 	}
 }
 
+void resize(GLFWwindow* window, int width, int height) {
+	app::renderer.setViewport(width, height, 0, 0);
+}
+
 int main() {
 	px::init();
 	Zap::init("Zap Application");
@@ -246,6 +250,7 @@ int main() {
 	app::window.init();
 	app::window.show();
 	app::window.setKeyCallback(keybinds::keyCallback);
+	app::window.setResizeCallback(resize);
 
 	Zap::Model model = Zap::Model();
 	model.load("Models/OBJ/Cube.obj");
