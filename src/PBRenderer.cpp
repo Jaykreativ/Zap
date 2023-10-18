@@ -118,10 +118,10 @@ namespace Zap {
 				renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(i);
 				VkRect2D renderArea{};
 				int32_t restX = m_window.getWidth() - (m_scissor.extent.width + m_scissor.offset.x);
-				renderArea.offset.x = std::max<int32_t>(0, m_window.getWidth() - (m_scissor.extent.width + restX));
+				renderArea.offset.x = std::max<int32_t>(0, m_window.getWidth() - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
 				renderArea.extent.width = std::min<int32_t>(m_window.getWidth() - (m_scissor.offset.x + restX), m_window.getWidth());
 				int32_t restY = m_window.getHeight() - (m_scissor.extent.height + m_scissor.offset.y);
-				renderArea.offset.y = std::max<int32_t>(0, m_window.getHeight() - (m_scissor.extent.height + restY));
+				renderArea.offset.y = std::max<int32_t>(0, m_window.getHeight() - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
 				renderArea.extent.height = std::min<int32_t>(m_window.getHeight() - (m_scissor.offset.y + restY), m_window.getHeight());
 				renderPassBeginInfo.renderArea = renderArea;
 				renderPassBeginInfo.clearValueCount = 0;

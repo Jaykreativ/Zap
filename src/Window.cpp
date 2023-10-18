@@ -183,6 +183,7 @@ namespace Zap {
 
 	void Window::swapBuffers() {
 		if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED)) return;
+		if (m_height <= 0) return;
 
 		vk::changeImageLayout(m_swapchain.getImage(m_currentImageIndex), m_swapchain.getImageSubresourceRange(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
 
@@ -275,6 +276,8 @@ namespace Zap {
 	void Window::resizeVk(GLFWwindow* window, int width, int height) {
 		m_width = width;
 		m_height = height;
+
+		if (m_height <= 0) return;
 
 		vk::deviceWaitIdle();
 
