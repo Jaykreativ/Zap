@@ -1,4 +1,4 @@
-#include "Actor.h"
+#include "Zap/Scene/Actor.h"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace Zap {

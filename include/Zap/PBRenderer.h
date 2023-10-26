@@ -3,7 +3,7 @@
 #include "Renderer.h"
 #include "Zap.h"
 #include "Window.h"
-#include "Light.h"
+#include "Zap/Scene/Light.h"
 
 namespace Zap {
 	class PBRenderer : public Renderer

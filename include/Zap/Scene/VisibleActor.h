@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Actor.h"
-#include "Vertex.h"
+#include "Zap/Scene/Actor.h"
+#include "Zap/Vertex.h"
 #include "Model.h"
 
 namespace Zap {

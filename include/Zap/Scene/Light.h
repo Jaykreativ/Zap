@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Zap.h"
-#include "Actor.h"
+#include "Zap/Zap.h"
+#include "Zap/Scene/Actor.h"
 
 namespace Zap {
     class Light : public Actor

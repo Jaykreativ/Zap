@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Zap.h"
-#include "Actor.h"
+#include "Zap/Zap.h"
+#include "Zap/Scene/Actor.h"
 #include "glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "Zap.h"
-#include "Vertex.h"
+#include "Zap/Zap.h"
+#include "Zap/Vertex.h"
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"

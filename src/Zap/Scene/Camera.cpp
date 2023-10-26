@@ -1,4 +1,4 @@
-#include "Camera.h"
+#include "Zap/Scene/Camera.h"
 
 namespace Zap {
 	Camera::Camera(){}

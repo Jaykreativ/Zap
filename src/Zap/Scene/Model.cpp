@@ -1,4 +1,4 @@
-#include "Model.h"
+#include "Zap/Scene/Model.h"
 
 namespace Zap {
 	Model::Model(){}

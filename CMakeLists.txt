@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 project(Zap)
-file(GLOB_RECURSE Zap_SRC
-    "src/*"
-    "include/*"
+file(GLOB Zap_SRC
+    "src/Zap/*.cpp"
+    "include/Zap/*.h"
+)
+file(GLOB Zap_Scene_SRC
+    "src/Zap/Scene/*.cpp"
+    "include/Zap/Scene/*.h"
 )
 file(GLOB_RECURSE Zap_Shader_SRC
     "Shader/*"
@@ -10,8 +14,10 @@ file(GLOB_RECURSE Zap_Shader_SRC
 file(GLOB PhysX_libs
     "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.mt/debug/*.lib"
 )
-add_executable(Zap ${Zap_SRC} ${Zap_Shader_SRC})
+add_executable(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC})
 
+source_group("Source" FILES ${Zap_SRC})
+source_group("Source/Scene" FILES ${Zap_Scene_SRC})
 source_group("Shader" FILES ${Zap_Shader_SRC})
 
 set(${BUILD_SHARED_LIBS} false)

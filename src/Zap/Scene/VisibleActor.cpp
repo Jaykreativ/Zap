@@ -1,4 +1,4 @@
-#include "VisibleActor.h"
+#include "Zap/Scene/VisibleActor.h"
 
 namespace Zap {
     VisibleActor::VisibleActor() {}

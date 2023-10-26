@@ -1,6 +1,6 @@
-#include "Zap.h"
-#include "Window.h"
-#include "PBRenderer.h"
+#include "Zap/Zap.h"
+#include "Zap/Window.h"
+#include "Zap/PBRenderer.h"
 #include "PxPhysicsAPI.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
@@ -57,22 +57,22 @@ namespace movement {
 			app::cam.setTransform(res);
 		}
 		if (up) {
-			auto res = app::cam.getTransform();
+			auto res = app::cam.m_transform;
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
 			app::cam.setTransform(res);
 		}
 		if (lookLeft) {
-			glm::mat4 res = app::cam.getTransform();
+			glm::mat4 res = app::cam.m_transform;
 			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(-90 * dTime), glm::vec3{0, 1, 0});
 
 			res[0] = rot * res[0];
 			res[1] = rot * res[1];
 			res[2] = rot * res[2];
 
-			app::cam.setTransform(res);
+			app::cam.m_transform = res;
 		}
 		if (lookRight) {
-			glm::mat4 res = app::cam.getTransform();
+			glm::mat4 res = app::cam.m_transform;
 			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(90 * dTime), glm::vec3{ 0, 1, 0 });
 
 			res[0] = rot * res[0];
@@ -329,7 +329,7 @@ int main() {
 	//mainloop
 	uint64_t currentFrame = 0;
 	float dTime = 0;
-	while (!app::window.shouldClose()) {
+	while (!app::window.shouldClose()) { 
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
 		{

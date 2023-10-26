@@ -28,7 +28,6 @@ namespace Zap {
 
         glm::mat4 getTransform();
 
-    protected:
         glm::mat4 m_transform = glm::mat4(1);
     };
 }

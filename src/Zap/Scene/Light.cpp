@@ -1,4 +1,4 @@
-#include "Light.h"
+#include "Zap/Scene/Light.h"
 
 namespace Zap {
     Light::Light(){}
