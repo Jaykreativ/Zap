@@ -7,8 +7,6 @@
 namespace Zap {
     class MeshComponent : public Component {
     public:
-        static std::vector<MeshComponent> all;
-
         MeshComponent(Actor* pActor, Mesh* pMesh);
 
         static ComponentType type() {
@@ -20,6 +18,8 @@ namespace Zap {
         }
 
     private:
+        static std::vector<MeshComponent> all;
+
         Mesh* m_pMesh;
 
         friend class Renderer;

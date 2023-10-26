@@ -50,4 +50,16 @@ namespace Zap {
 	glm::mat4 Actor::getTransform() {
 		return m_transform;
 	}
+
+	void Actor::addMeshComponent(Mesh* pMesh) {
+		uint32_t id;
+		id = MeshComponent(this, pMesh).getID();
+		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_MESH, id });
+	}
+
+	void Actor::addLightComponent(glm::vec3 color) {
+		uint32_t id;
+		id = Light(this, color).getID();
+		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_LIGHT, id });
+	}
 }

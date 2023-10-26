@@ -26,7 +26,7 @@ namespace Zap {
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		m_lightBuffer = vk::Buffer(sizeof(LightData)*m_lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		m_lightBuffer = vk::Buffer(sizeof(LightData)*Light::all.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		/*DescriptorPool*/ {
@@ -166,7 +166,7 @@ namespace Zap {
 			m_ubo.view = cam->getView();
 			m_ubo.perspective = cam->getPerspective(m_viewport.width / m_viewport.height);
 			m_ubo.color = {1, 1, 1};
-			m_ubo.lightCount = m_lights.size();
+			m_ubo.lightCount = Light::all.size();
 
 			void* rawData; m_uniformBuffer.map(&rawData);
 			memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
@@ -174,10 +174,10 @@ namespace Zap {
 
 			m_lightBuffer.map(&rawData);
 			{
-				for (uint32_t i = 0; i < m_lights.size(); i++) {
+				for (uint32_t i = 0; i < Light::all.size(); i++) {
 					LightData* lightData = (LightData*)(rawData);
-					lightData[i].pos = m_lights[i]->getPos();
-					lightData[i].color = m_lights[i]->getColor();
+					lightData[i].pos = Light::all[i].m_pActor->getPos();
+					lightData[i].color = Light::all[i].getColor();
 				}
 
 			}
@@ -186,9 +186,5 @@ namespace Zap {
 			meshComponent.m_pMesh->getCommandBuffer(m_window.getCurrentImageIndex())->submit(m_renderComplete);
 			vk::waitForFence(m_renderComplete);
 		}
-	}
-
-	void PBRenderer::addLight(Light* pLight) {
-		m_lights.push_back(pLight);
 	}
 }

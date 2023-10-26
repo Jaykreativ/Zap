@@ -3,6 +3,7 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Component.h"
 #include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/Light.h"
 #include "glm.hpp"
 
 namespace Zap {
@@ -34,11 +35,8 @@ namespace Zap {
 
         glm::mat4 m_transform = glm::mat4(1);
 
-        void addMeshComponent(Mesh* pMesh){
-            uint32_t id;
-            id = MeshComponent(this, pMesh).getID();
-            m_components.push_back(ComponentAccess{ COMPONENT_TYPE_MESH, id });
-        }
+        void addMeshComponent(Mesh* pMesh);
+        void addLightComponent(glm::vec3 color);
 
         std::vector<uint32_t> getComponents(ComponentType type);
 

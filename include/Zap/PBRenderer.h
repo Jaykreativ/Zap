@@ -18,11 +18,7 @@ namespace Zap {
 
 		void render(Camera* cam);
 
-		void addLight(Light* pLight);
-
 	private:
-		std::vector<Light*> m_lights;
-
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 
 		vk::Shader m_vertexShader = vk::Shader();

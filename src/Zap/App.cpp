@@ -14,6 +14,76 @@ namespace app {
 	Zap::Camera cam = Zap::Camera();
 }
 
+using namespace physx;
+namespace px {
+	PxDefaultAllocator gDefaultAllocator;
+	PxDefaultErrorCallback gDefaultErrorCallback;
+	PxSimulationFilterShader gDefaultFilterShader;
+
+	PxFoundation* foundation;
+	PxPvd* pvd;
+	PxPhysics* physics;
+
+	PxScene* scene;
+	PxRigidDynamic* cubePxActor;
+
+	void init() {
+		foundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gDefaultErrorCallback);
+		if (!foundation) {
+			std::cerr << "ERROR: PxCreateFoundation failed\n";
+			throw std::runtime_error("ERROR: PxCreateFoundation failed");
+		}
+
+		/*pvd = PxCreatePvd(*foundation);
+		PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+		pvd->connect(*transport, PxPvdInstrumentationFlag::eALL);*/
+
+		physics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation, PxTolerancesScale(), true/*, pvd*/);
+		if (!physics) {
+			std::cerr << "ERROR: PxCreatePhysics failed\n";
+			throw std::runtime_error("ERROR: PxCreatePhysics failed");
+		}
+
+		PxSceneDesc sceneDesc(physics->getTolerancesScale());
+		sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
+		sceneDesc.cpuDispatcher = PxDefaultCpuDispatcherCreate(1);
+		sceneDesc.filterShader = PxDefaultSimulationFilterShader;
+		scene = physics->createScene(sceneDesc);
+		if (!scene) {
+			std::cerr << "ERROR: createScene failed\n";
+			throw std::runtime_error("ERROR: createScene failed");
+		}
+
+		PxMaterial* material = physics->createMaterial(0.5, 0.5, 0.25);
+
+		glm::mat4 glmt = glm::mat4(1);
+		glm::translate(glmt, glm::vec3(-1.5, 5, 0));
+		glm::rotate(glmt, glm::radians<float>(180), glm::vec3(glmt[0]));
+		PxTransform transform = PxTransform(PxVec3(-1.5, 5, 0));
+		transform.q = PxQuat(-1, 0, 0, 0);
+		cubePxActor = physics->createRigidDynamic(transform);
+		{
+			PxShape* shape = physics->createShape(PxBoxGeometry(0.5f, 0.5f, 0.5f), &material, 1, true);
+			cubePxActor->attachShape(*shape);
+			shape->release();
+		}
+		scene->addActor(*cubePxActor);
+
+		PxRigidStatic* plane = physics->createRigidStatic(PxTransformFromPlaneEquation(PxPlane(PxVec3(0, 1, 0), 0)));
+		{
+			PxShape* shape = physics->createShape(PxPlaneGeometry(), &material, 1, true);
+			plane->attachShape(*shape);
+			shape->release();
+		}
+		scene->addActor(*plane);
+	}
+
+	void terminate() {
+		physics->release();
+		foundation->release();
+	}
+}
+
 namespace movement {
 	bool forward = false;
 	bool backward = false;
@@ -133,6 +203,11 @@ namespace keybinds {
 			else if (key == lookRight) {
 				movement::lookRight = true;
 			}
+			else if (key == GLFW_KEY_ENTER) {
+				glm::vec3 dir = app::cam.getTransform()[2];
+				px::cubePxActor->addForce(PxVec3(dir.x*500, dir.y*500, dir.z*500));
+				//px::cubePxActor->setGlobalPose(PxTransform(PxVec3(0, 5, 0)));
+			}
 		}
 		else if(action == GLFW_RELEASE) {
 			if (key == forward) {
@@ -166,76 +241,6 @@ namespace keybinds {
 				movement::lookRight = false;
 			}
 		}
-	}
-}
-
-using namespace physx;
-namespace px {
-	PxDefaultAllocator gDefaultAllocator;
-	PxDefaultErrorCallback gDefaultErrorCallback;
-	PxSimulationFilterShader gDefaultFilterShader;
-	
-	PxFoundation* foundation;
-	PxPvd* pvd;
-	PxPhysics* physics;
-	
-	PxScene* scene;
-	PxRigidDynamic* cubePxActor;
-
-	void init() {
-		foundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gDefaultErrorCallback);
-		if (!foundation) {
-			std::cerr << "ERROR: PxCreateFoundation failed\n";
-			throw std::runtime_error("ERROR: PxCreateFoundation failed");
-		}
-
-		/*pvd = PxCreatePvd(*foundation);
-		PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
-		pvd->connect(*transport, PxPvdInstrumentationFlag::eALL);*/
-
-		physics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation, PxTolerancesScale(), true/*, pvd*/);
-		if (!physics) {
-			std::cerr << "ERROR: PxCreatePhysics failed\n";
-			throw std::runtime_error("ERROR: PxCreatePhysics failed");
-		}
-
-		PxSceneDesc sceneDesc(physics->getTolerancesScale());
-		sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
-		sceneDesc.cpuDispatcher = PxDefaultCpuDispatcherCreate(1);
-		sceneDesc.filterShader = PxDefaultSimulationFilterShader;
-		scene = physics->createScene(sceneDesc);
-		if (!scene) {
-			std::cerr << "ERROR: createScene failed\n";
-			throw std::runtime_error("ERROR: createScene failed");
-		}
-
-		PxMaterial* material = physics->createMaterial(0.5, 0.5, 0.25);
-
-		glm::mat4 glmt = glm::mat4(1);
-		glm::translate(glmt, glm::vec3(-1.5, 5, 0));
-		glm::rotate(glmt, glm::radians<float>(180), glm::vec3(glmt[0]));
-		PxTransform transform = PxTransform(PxVec3(-1.5, 5, 0));
-		transform.q = PxQuat(-1, 0, 0, 0);
-		cubePxActor = physics->createRigidDynamic(transform);
-		{
-			PxShape* shape = physics->createShape(PxBoxGeometry(0.5f, 0.5f, 0.5f), &material, 1, true);
-			cubePxActor->attachShape(*shape);
-			shape->release();
-		}
-		scene->addActor(*cubePxActor);
-
-		PxRigidStatic* plane = physics->createRigidStatic(PxTransformFromPlaneEquation(PxPlane(PxVec3(0, 1, 0), 0)));
-		{
-			PxShape* shape = physics->createShape(PxPlaneGeometry(), &material, 1, true);
-			plane->attachShape(*shape);
-			shape->release();
-		}
-		scene->addActor(*plane);
-	}
-
-	void terminate() {
-		physics->release();
-		foundation->release();
 	}
 }
 
@@ -285,6 +290,7 @@ int main() {
 
 	Zap::Actor physicstest;
 	physicstest.addMeshComponent(&giftModel);
+	physicstest.addLightComponent({ 0, 0, 5 });
 
 	Zap::Actor rotatingGift;
 	rotatingGift.addMeshComponent(&giftModel);
@@ -295,16 +301,13 @@ int main() {
 	ground.setPos(0, -1, 0);
 	ground.setScale(500, 1, 500);
 
-	Zap::Light light;
-	light.setColor({ 5, 5, 5 });
+	Zap::Actor light;
+	light.addLightComponent({ 2.5, 2.5, 2.5 });
 	light.setPos({ -3, 2, 0 });
 
-	Zap::Light light2;
-	light2.setColor({ 3, 1.5, 0.6 });
+	Zap::Actor light2;
+	light2.addLightComponent({ 3, 1.5, 0.6 });
 	light2.setPos({ 3, 2, 0 });
-
-	app::renderer.addLight(&light2);
-	app::renderer.addLight(&light);
 
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
