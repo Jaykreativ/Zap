@@ -252,16 +252,21 @@ int main() {
 	app::window.setKeyCallback(keybinds::keyCallback);
 	app::window.setResizeCallback(resize);
 
-	Zap::Model model = Zap::Model();
+	Zap::Mesh model = Zap::Mesh();
 	model.load("Models/OBJ/Cube.obj");
 
 	//Zap::Model sponzaModel = Zap::Model();
 	//sponzaModel.load("Models/OBJ/Sponza.obj");
 
-	Zap::Model giftModel = Zap::Model();
+	Zap::Mesh giftModel = Zap::Mesh();
 	giftModel.load("Models/OBJ/Gift.obj");
 
 	//Actors
+	Zap::Actor testECS;
+	testECS.addMeshComponent(&giftModel);
+	testECS.setPos(0, 0, 0);
+	testECS.setScale(0.5, 0.5, 0.5);
+
 	Zap::VisibleActor centre;
 	centre.setModel(model);
 	centre.setPos(0, 0, 0);

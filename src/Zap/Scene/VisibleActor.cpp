@@ -4,11 +4,11 @@ namespace Zap {
     VisibleActor::VisibleActor() {}
     VisibleActor::~VisibleActor() {}
 
-    void VisibleActor::setModel(Model& model) {
+    void VisibleActor::setModel(Mesh& model) {
         m_model = &model;
     }
 
-    Model* VisibleActor::getModel() {
+    Mesh* VisibleActor::getModel() {
         return m_model;
     }
 }

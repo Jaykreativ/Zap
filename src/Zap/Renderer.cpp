@@ -11,7 +11,7 @@ namespace Zap {
 
 	void Renderer::addActor(VisibleActor& actor) {
 		m_actors.push_back(&actor);
-		Model* pModel = actor.getModel();
+		Mesh* pModel = actor.getModel();
 		bool exists = false;
 		for (uint32_t i = 0; i < m_models.size(); i++) {
 			exists |= m_models[i] == pModel;

@@ -20,8 +20,6 @@ namespace Zap {
 
 		virtual void render(Camera* cam) = 0;
 
-		void addActor(VisibleActor& actor);
-
 		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 
 	protected:
@@ -30,8 +28,6 @@ namespace Zap {
 		Window& m_window;
 		VkViewport m_viewport;
 		VkRect2D m_scissor;
-		std::vector<VisibleActor*> m_actors;
-		std::vector<Model*> m_models;
 	};
 }
 

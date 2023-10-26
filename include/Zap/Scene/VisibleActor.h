@@ -2,7 +2,7 @@
 
 #include "Zap/Scene/Actor.h"
 #include "Zap/Vertex.h"
-#include "Model.h"
+#include "Zap/Scene/Mesh.h"
 
 namespace Zap {
     class VisibleActor : public Actor {
@@ -10,14 +10,14 @@ namespace Zap {
         VisibleActor();
         ~VisibleActor();
 
-        void setModel(Model& model);
+        void setModel(Mesh& model);
 
-        Model* getModel();
+        Mesh* getModel();
 
         glm::vec3 m_color = { 1, 1, 1 };// TODO Texture
 
     private:
-        Model* m_model;
+        Mesh* m_model;
     };
 }
 

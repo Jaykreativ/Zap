@@ -6,11 +6,11 @@
 #include "assimp/postprocess.h"
 
 namespace Zap {
-    class Model
+    class Mesh
     {
     public:
-        Model();
-        ~Model();
+        Mesh();
+        ~Mesh();
 
         void init(uint32_t commandBufferCount);
 

@@ -12,8 +12,6 @@ namespace Zap {
 		vk::destroyFence(m_renderComplete);
 		vk::destroySemaphore(m_semaphoreRenderComplete);
 
-		for (VisibleActor* actor : m_actors) actor->getModel()->~Model();
-
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
@@ -93,7 +91,7 @@ namespace Zap {
 
 		vk::createSemaphore(&m_semaphoreRenderComplete);
 
-		for (Model* model : m_models) {
+		for (Mesh* model : m_models) {
 			model->init(m_window.getSwapchain()->getImageCount());
 			for (uint32_t i = 0; i < m_window.getSwapchain()->getImageCount(); i++) {
 				model->getCommandBuffer(i)->addSignalSemaphore(m_semaphoreRenderComplete);
@@ -106,7 +104,7 @@ namespace Zap {
 	}
 
 	void PBRenderer::recordCommandBuffers() {
-		for (Model* model : m_models) {
+		for (Mesh* model : m_models) {
 			for (uint32_t i = 0; i < m_window.getSwapchain()->getImageCount(); i++) {
 				vk::CommandBuffer* cmd = model->getCommandBuffer(i);
 				cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);

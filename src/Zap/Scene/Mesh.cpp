@@ -1,9 +1,9 @@
-#include "Zap/Scene/Model.h"
+#include "Zap/Scene/Mesh.h"
 
 namespace Zap {
-	Model::Model(){}
+	Mesh::Mesh(){}
 
-	Model::~Model() {
+	Mesh::~Mesh() {
 		if (!m_isInit) return;
 		m_isInit = false;
 
@@ -14,7 +14,7 @@ namespace Zap {
 		delete[] m_commandBuffers;
 	}
 
-	void Model::init(uint32_t commandBufferCount) {
+	void Mesh::init(uint32_t commandBufferCount) {
 		if (m_isInit) return;
 		m_isInit = true;
 
@@ -25,7 +25,7 @@ namespace Zap {
 		}
 	}
 
-	void Model::recordCommandBuffers(vk::RenderPass& renderPass, vk::Framebuffer* framebuffers, VkRect2D renderArea, vk::Pipeline& pipeline, VkDescriptorSet descriptorSet) {
+	void Mesh::recordCommandBuffers(vk::RenderPass& renderPass, vk::Framebuffer* framebuffers, VkRect2D renderArea, vk::Pipeline& pipeline, VkDescriptorSet descriptorSet) {
 		for (int i = 0; i < m_commandBufferCount; i++) {
 			vk::CommandBuffer& cmd = m_commandBuffers[i];
 			cmd.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
@@ -58,7 +58,7 @@ namespace Zap {
 		}
 	}
 
-	void Model::load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
+	void Mesh::load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
 		m_vertexBuffer = vk::Buffer(vertexCount * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_vertexBuffer.init(); m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		m_vertexBuffer.uploadData(m_vertexBuffer.getSize(), pVertices);
@@ -68,11 +68,11 @@ namespace Zap {
 		m_indexBuffer.uploadData(m_indexBuffer.getSize(), pIndices);
 	}
 
-	void Model::load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray) {
+	void Mesh::load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray) {
 		load(vertexArray.size(), vertexArray.data(), indexArray.size(), indexArray.data());
 	}
 
-	void Model::load(const char* modelPath) {
+	void Mesh::load(const char* modelPath) {
 		Assimp::Importer importer;
 		const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate);
 		std::cout << modelPath << " -> NumMeshes: " << scene->mNumMeshes << "\n";
@@ -127,15 +127,15 @@ namespace Zap {
 		indexStgBuffer.~Buffer();
 	}
 
-	vk::CommandBuffer* Model::getCommandBuffer(int index) {
+	vk::CommandBuffer* Mesh::getCommandBuffer(int index) {
 		return &m_commandBuffers[index];
 	}
 
-	vk::Buffer* Model::getVertexBuffer() {
+	vk::Buffer* Mesh::getVertexBuffer() {
 		return &m_vertexBuffer;
 	}
 
-	vk::Buffer* Model::getIndexbuffer() {
+	vk::Buffer* Mesh::getIndexbuffer() {
 		return &m_indexBuffer;
 	}
 }

@@ -11,7 +11,7 @@ namespace Zap {
 
 		vk::destroyFence(m_renderComplete);
 
-		for (VisibleActor* actor : m_actors) actor->getModel()->~Model();
+		for (VisibleActor* actor : m_actors) actor->getModel()->~Mesh();
 
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
