@@ -246,7 +246,7 @@ void resize(GLFWwindow* window, int width, int height) {
 int main() {
 	px::init();
 	Zap::init("Zap Application");
-	
+
 	app::window.init();
 	app::window.show();
 	app::window.setKeyCallback(keybinds::keyCallback);
@@ -262,62 +262,42 @@ int main() {
 	giftModel.load("Models/OBJ/Gift.obj");
 
 	//Actors
-	Zap::Actor testECS;
-	testECS.addMeshComponent(&giftModel);
-	testECS.setPos(0, 0, 0);
-	testECS.setScale(0.5, 0.5, 0.5);
 
-	Zap::VisibleActor centre;
-	centre.setModel(model);
+	Zap::Actor centre;
+	centre.addMeshComponent(&model);
 	centre.setPos(0, 0, 0);
 	centre.setScale(0.5, 0.5, 0.5);
-	centre.m_color = { 0.5, 0.5, 0.5 };
 
-	Zap::VisibleActor xDir;
-	xDir.setModel(model);
+	Zap::Actor xDir;
+	xDir.addMeshComponent(&model);
 	xDir.setPos(1, 0, 0);
 	xDir.setScale(0.5, 0.1, 0.1);
-	xDir.m_color = { 1, 0, 0 };
 
-	Zap::VisibleActor yDir;
-	yDir.setModel(model);
+	Zap::Actor yDir;
+	yDir.addMeshComponent(&model);
 	yDir.setPos(0, 1, 0);
 	yDir.setScale(0.1, 0.5, 0.1);
-	yDir.m_color = { 0, 1, 0 };
 
-	Zap::VisibleActor zDir;
-	zDir.setModel(model);
+	Zap::Actor zDir;
+	zDir.addMeshComponent(&model);
 	zDir.setPos(0, 0, 1);
 	zDir.setScale(0.1, 0.1, 0.5);
-	zDir.m_color = { 0, 0, 1 };
 
-	app::renderer.addActor(centre);
-	app::renderer.addActor(xDir);
-	app::renderer.addActor(yDir);
-	app::renderer.addActor(zDir);
+	Zap::Actor physicstest;
+	physicstest.addMeshComponent(&giftModel);
 
-	Zap::VisibleActor physicstest;
-	physicstest.setModel(giftModel);
-	physicstest.m_color = {0.5, 0.5, 1};
-	
-	Zap::VisibleActor rotatingGift;
-	rotatingGift.setModel(giftModel);
+	Zap::Actor rotatingGift;
+	rotatingGift.addMeshComponent(&giftModel);
 	rotatingGift.setPos(3, 2, 2);
-	rotatingGift.m_color = { 0.5, 1, 0.5 };
 
-	Zap::VisibleActor ground;
-	ground.setModel(model);
+	Zap::Actor ground;
+	ground.addMeshComponent(&model);
 	ground.setPos(0, -1, 0);
 	ground.setScale(500, 1, 500);
-	ground.m_color = { 1, 1, 1 };
-
-	app::renderer.addActor(physicstest);
-	app::renderer.addActor(rotatingGift);
-	app::renderer.addActor(ground);
 
 	Zap::Light light;
-	light.setColor({5, 5, 5});
-	light.setPos({-3, 2, 0});
+	light.setColor({ 5, 5, 5 });
+	light.setPos({ -3, 2, 0 });
 
 	Zap::Light light2;
 	light2.setColor({ 3, 1.5, 0.6 });
@@ -334,7 +314,7 @@ int main() {
 	//mainloop
 	uint64_t currentFrame = 0;
 	float dTime = 0;
-	while (!app::window.shouldClose()) { 
+	while (!app::window.shouldClose()) {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
 		{

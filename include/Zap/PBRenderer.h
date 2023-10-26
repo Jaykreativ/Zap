@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Renderer.h"
-#include "Zap.h"
-#include "Window.h"
+#include "Zap/Zap.h"
+#include "Zap/Renderer.h"
+#include "Zap/Window.h"
 #include "Zap/Scene/Light.h"
 
 namespace Zap {

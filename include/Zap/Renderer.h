@@ -4,7 +4,6 @@
 #include "Zap.h"
 #include "Window.h"
 #include "Vertex.h"
-#include "Scene/VisibleActor.h"
 #include "Scene/Camera.h"
 
 namespace Zap {

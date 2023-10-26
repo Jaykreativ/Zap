@@ -9,18 +9,6 @@ namespace Zap {
 
 	Renderer::~Renderer() {}
 
-	void Renderer::addActor(VisibleActor& actor) {
-		m_actors.push_back(&actor);
-		Mesh* pModel = actor.getModel();
-		bool exists = false;
-		for (uint32_t i = 0; i < m_models.size(); i++) {
-			exists |= m_models[i] == pModel;
-		}
-		if (!exists) {
-			m_models.push_back(pModel);
-		}
-	}
-
 	void Renderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y){
 		m_viewport.x = x;
 		m_viewport.y = y;

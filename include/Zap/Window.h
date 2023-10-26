@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Zap.h"
-#include "Renderer.h"
+#include "Zap/Zap.h"
 
 namespace Zap
 {

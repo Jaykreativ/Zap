@@ -11,8 +11,6 @@ namespace Zap {
 
 		vk::destroyFence(m_renderComplete);
 
-		for (VisibleActor* actor : m_actors) actor->getModel()->~Mesh();
-
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
@@ -68,11 +66,6 @@ namespace Zap {
 		m_pipeline.enableDepthTest();
 		m_pipeline.init();
 
-		for (VisibleActor* actor : m_actors) {
-			actor->getModel()->init(m_window.getSwapchain()->getImageCount());
-			actor->getModel()->recordCommandBuffers(*m_window.getRenderPass(), m_window.getFramebufferPtr(), m_scissor, m_pipeline, m_descriptorPool.getVkDescriptorSet(0));
-		}
-
 		vk::createFence(&m_renderComplete);
 	}
 
@@ -81,7 +74,7 @@ namespace Zap {
 
 		m_window.clear();
 
-		for (VisibleActor* actor : m_actors) {
+		/*for (VisibleActor* actor : m_actors) {
 			m_ubo.model = actor->getTransform();
 			m_ubo.view = cam->getView();
 			m_ubo.perspective = cam->getPerspective(m_viewport.width / m_viewport.height);
@@ -93,6 +86,6 @@ namespace Zap {
 
 			actor->getModel()->getCommandBuffer(m_window.getCurrentImageIndex())->submit(m_renderComplete);
 			vk::waitForFence(m_renderComplete);
-		}
+		}*/
 	}
 }

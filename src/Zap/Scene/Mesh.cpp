@@ -25,39 +25,6 @@ namespace Zap {
 		}
 	}
 
-	void Mesh::recordCommandBuffers(vk::RenderPass& renderPass, vk::Framebuffer* framebuffers, VkRect2D renderArea, vk::Pipeline& pipeline, VkDescriptorSet descriptorSet) {
-		for (int i = 0; i < m_commandBufferCount; i++) {
-			vk::CommandBuffer& cmd = m_commandBuffers[i];
-			cmd.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-
-			VkRenderPassBeginInfo renderPassBeginInfo;
-			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassBeginInfo.pNext = nullptr;
-			renderPassBeginInfo.renderPass = renderPass;
-			renderPassBeginInfo.framebuffer = framebuffers[i];
-			renderPassBeginInfo.renderArea = renderArea;
-			renderPassBeginInfo.clearValueCount = 0;
-			renderPassBeginInfo.pClearValues = nullptr;
-
-			vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-			VkDeviceSize offsets[] = { 0 };
-			VkBuffer vertexBuffer = m_vertexBuffer.getVkBuffer();
-			vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, offsets);
-			vkCmdBindIndexBuffer(cmd, m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getVkPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
-
-			vkCmdDrawIndexed(cmd, m_indexBuffer.getSize()/sizeof(uint32_t), 1, 0, 0, 0);
-
-			vkCmdEndRenderPass(cmd);
-
-			cmd.end();
-		}
-	}
-
 	void Mesh::load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
 		m_vertexBuffer = vk::Buffer(vertexCount * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		m_vertexBuffer.init(); m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

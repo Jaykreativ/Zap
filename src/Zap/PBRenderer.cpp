@@ -91,22 +91,20 @@ namespace Zap {
 
 		vk::createSemaphore(&m_semaphoreRenderComplete);
 
-		for (Mesh* model : m_models) {
-			model->init(m_window.getSwapchain()->getImageCount());
-			for (uint32_t i = 0; i < m_window.getSwapchain()->getImageCount(); i++) {
-				model->getCommandBuffer(i)->addSignalSemaphore(m_semaphoreRenderComplete);
-				model->getCommandBuffer(i)->addWaitSemaphore(m_semaphoreRenderComplete, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-			}
+		for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
+			MeshComponent::all[i].m_pMesh->init(m_window.getSwapchain()->getImageCount());
 		}
+
 		recordCommandBuffers();
 
 		vk::createFence(&m_renderComplete);
 	}
 
 	void PBRenderer::recordCommandBuffers() {
-		for (Mesh* model : m_models) {
+		for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
+			Mesh* mesh = MeshComponent::all[i].m_pMesh;
 			for (uint32_t i = 0; i < m_window.getSwapchain()->getImageCount(); i++) {
-				vk::CommandBuffer* cmd = model->getCommandBuffer(i);
+				vk::CommandBuffer* cmd = mesh->getCommandBuffer(i);
 				cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
 				VkRenderPassBeginInfo renderPassBeginInfo;
@@ -141,14 +139,14 @@ namespace Zap {
 				vkCmdSetScissor(*cmd, 0, 1, &renderArea);
 
 				VkDeviceSize offsets[] = { 0 };
-				VkBuffer vertexBuffer = *model->getVertexBuffer();
+				VkBuffer vertexBuffer = *mesh->getVertexBuffer();
 				vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
-				vkCmdBindIndexBuffer(*cmd, *model->getIndexbuffer(), 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindIndexBuffer(*cmd, *mesh->getIndexbuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 				VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
 				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
 
-				vkCmdDrawIndexed(*cmd, model->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
+				vkCmdDrawIndexed(*cmd, mesh->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
 
 				vkCmdEndRenderPass(*cmd);
 
@@ -162,12 +160,12 @@ namespace Zap {
 
 		m_window.clear();
 
-		for (VisibleActor* actor : m_actors) {
-			m_ubo.model = actor->getTransform();
-			m_ubo.modelNormal = glm::transpose(glm::inverse(actor->getTransform()));
+		for (MeshComponent& meshComponent : MeshComponent::all) {
+			m_ubo.model = meshComponent.m_pActor->m_transform;
+			m_ubo.modelNormal = glm::transpose(glm::inverse(meshComponent.m_pActor->m_transform));
 			m_ubo.view = cam->getView();
 			m_ubo.perspective = cam->getPerspective(m_viewport.width / m_viewport.height);
-			m_ubo.color = actor->m_color;
+			m_ubo.color = {1, 1, 1};
 			m_ubo.lightCount = m_lights.size();
 
 			void* rawData; m_uniformBuffer.map(&rawData);
@@ -185,7 +183,7 @@ namespace Zap {
 			}
 			m_lightBuffer.unmap();
 
-			actor->getModel()->getCommandBuffer(m_window.getCurrentImageIndex())->submit(m_renderComplete);
+			meshComponent.m_pMesh->getCommandBuffer(m_window.getCurrentImageIndex())->submit(m_renderComplete);
 			vk::waitForFence(m_renderComplete);
 		}
 	}

@@ -21,6 +21,9 @@ namespace Zap {
 
     private:
         Mesh* m_pMesh;
+
+        friend class Renderer;
+        friend class PBRenderer;
     };
 
 }
