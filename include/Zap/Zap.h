@@ -15,7 +15,22 @@ namespace Zap {
         VkFormat getDepthStencilFormat();
     }
 
-    void init(const char* applicationName);
+    class Base {
+    public:
+        Base(const char* applicationName);
 
-    void terminate();
+        ~Base();
+
+        void init();
+
+        void terminate();
+
+    private:
+        bool m_isInit;
+
+        const char* m_applicationName;
+
+        static bool m_exists;
+    };
+
 }

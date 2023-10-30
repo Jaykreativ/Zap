@@ -7,6 +7,8 @@
 #include "gtc/type_ptr.hpp"
 
 namespace app {
+	Zap::Base engineBase = Zap::Base("Zap Application");
+
 	Zap::Window window = Zap::Window(1000, 600, "Zap Application");
 
 	Zap::PBRenderer renderer = Zap::PBRenderer(window);
@@ -250,7 +252,7 @@ void resize(GLFWwindow* window, int width, int height) {
 
 int main() {
 	px::init();
-	Zap::init("Zap Application");
+	app::engineBase.init();
 
 	app::window.init();
 	app::window.show();
@@ -348,7 +350,7 @@ int main() {
 	app::renderer.~PBRenderer();
 	app::window.~Window();
 
-	Zap::terminate();
+	app::engineBase.terminate();
 	px::terminate();
 
 #ifdef _DEBUG

@@ -22,6 +22,7 @@ namespace Zap {
 
         Mesh* m_pMesh;
 
+        friend class Base;
         friend class Renderer;
         friend class PBRenderer;
     };
