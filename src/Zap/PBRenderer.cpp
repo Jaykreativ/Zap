@@ -1,4 +1,8 @@
 #include "Zap/PBRenderer.h"
+#include "Zap/Scene/Actor.h"
+#include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/Light.h"
+#include "Zap/Scene/Camera.h"
 
 namespace Zap {
 	PBRenderer::PBRenderer(Window& window)
@@ -155,16 +159,16 @@ namespace Zap {
 		}
 	}
 
-	void PBRenderer::render(Camera* cam) {
+	void PBRenderer::render(uint32_t cam) {
 		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
 
-		m_window.clear();
+		recordCommandBuffers();
 
 		for (MeshComponent& meshComponent : MeshComponent::all) {
 			m_ubo.model = meshComponent.m_pActor->m_transform;
 			m_ubo.modelNormal = glm::transpose(glm::inverse(meshComponent.m_pActor->m_transform));
-			m_ubo.view = cam->getView();
-			m_ubo.perspective = cam->getPerspective(m_viewport.width / m_viewport.height);
+			m_ubo.view = Camera::all[cam].getView();
+			m_ubo.perspective = Camera::all[cam].getPerspective(m_viewport.width / m_viewport.height);
 			m_ubo.color = {1, 1, 1};
 			m_ubo.lightCount = Light::all.size();
 

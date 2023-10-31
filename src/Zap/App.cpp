@@ -1,6 +1,10 @@
 #include "Zap/Zap.h"
 #include "Zap/Window.h"
 #include "Zap/PBRenderer.h"
+#include "Zap/Scene/Mesh.h"
+#include "Zap/Scene/Actor.h"
+#include "Zap/Scene/Component.h"
+#include "Zap/Scene/MeshComponent.h"
 #include "PxPhysicsAPI.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
@@ -12,8 +16,9 @@ namespace app {
 	Zap::Window window = Zap::Window(1000, 600, "Zap Application");
 
 	Zap::PBRenderer renderer = Zap::PBRenderer(window);
+	Zap::PBRenderer renderer2 = Zap::PBRenderer(window);
 
-	Zap::Camera cam = Zap::Camera();
+	Zap::Actor cam = Zap::Actor();
 }
 
 using namespace physx;
@@ -272,6 +277,7 @@ int main() {
 
 	Zap::Actor centre;
 	centre.addMeshComponent(&model);
+	for(uint32_t mc : centre.getComponents(Zap::COMPONENT_TYPE_MESH)) 
 	centre.setPos(0, 0, 0);
 	centre.setScale(0.5, 0.5, 0.5);
 
@@ -291,8 +297,8 @@ int main() {
 	zDir.setScale(0.1, 0.1, 0.5);
 
 	Zap::Actor physicstest;
-	physicstest.addMeshComponent(&giftModel);
-	physicstest.addLightComponent({ 0, 0, 5 });
+	physicstest.addCameraComponent({0, 0, 0});
+	physicstest.addLightComponent({ 0.25, 1, 3 });
 
 	Zap::Actor rotatingGift;
 	rotatingGift.addMeshComponent(&giftModel);
@@ -302,6 +308,11 @@ int main() {
 	ground.addMeshComponent(&model);
 	ground.setPos(0, -1, 0);
 	ground.setScale(500, 1, 500);
+
+	Zap::Actor skybox;
+	skybox.addMeshComponent(&model);
+	skybox.setPos(0, 0, 0);
+	skybox.setScale(500, 500, 500);
 
 	Zap::Actor light;
 	light.addLightComponent({ 2.5, 2.5, 2.5 });
@@ -314,7 +325,11 @@ int main() {
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
 
+	app::renderer2.setViewport(500, 300, 0, 0);
+	app::renderer2.init();
+
 	app::cam.setPos(-1, 1, -5);
+	app::cam.addCameraComponent(glm::vec3(0, 0, 0));
 
 	//mainloop
 	uint64_t currentFrame = 0;
@@ -330,14 +345,18 @@ int main() {
 			physicstest.setScale(0.5, 0.5, 0.5);
 		}
 
-		rotatingGift.rotateY(15*dTime);
+		rotatingGift.rotateY(15 * dTime);
 
 		if (dTime > 0) {
 			px::scene->simulate(dTime);
 			px::scene->fetchResults(true);
 		}
 
-		app::renderer.render(&app::cam);
+		app::window.clear();
+
+		app::renderer.render(app::cam.getComponents(Zap::COMPONENT_TYPE_CAMERA)[0]);
+		app::window.clearDepthStencil();
+		app::renderer2.render(physicstest.getComponents(Zap::COMPONENT_TYPE_CAMERA)[0]);
 
 		app::window.swapBuffers();
 		Zap::Window::pollEvents();
@@ -348,6 +367,7 @@ int main() {
 
 	//terminate
 	app::renderer.~PBRenderer();
+	app::renderer2.~PBRenderer();
 	app::window.~Window();
 
 	app::engineBase.terminate();

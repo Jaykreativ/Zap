@@ -17,12 +17,15 @@ namespace Zap {
             m_pMesh = pMesh;
         }
 
-    private:
-        static std::vector<MeshComponent> all;
+        Material m_material = Material();
 
+    private:
         Mesh* m_pMesh;
 
+        static std::vector<MeshComponent> all;
+
         friend class Base;
+        friend class Actor;
         friend class Renderer;
         friend class PBRenderer;
     };

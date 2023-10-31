@@ -69,7 +69,7 @@ namespace Zap {
 		vk::createFence(&m_renderComplete);
 	}
 
-	void SimpleRenderer::render(Camera* cam) {
+	void SimpleRenderer::render(uint32_t cam) {
 		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
 
 		m_window.clear();

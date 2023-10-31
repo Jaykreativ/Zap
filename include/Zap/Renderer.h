@@ -17,7 +17,7 @@ namespace Zap {
 
 		virtual void recordCommandBuffers() = 0;
 
-		virtual void render(Camera* cam) = 0;
+		virtual void render(uint32_t cam) = 0;
 
 		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 

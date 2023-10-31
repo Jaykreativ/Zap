@@ -1,11 +1,22 @@
 #include "Zap/Scene/Camera.h"
+#include "Zap/Scene/Actor.h"
 
 namespace Zap {
-	Camera::Camera(){}
-	Camera::~Camera(){}
+	std::vector<Camera> Camera::all;
+
+	Camera::Camera(Actor* pActor, glm::vec3 offset)
+		: Component(pActor), m_offset(offset)
+	{
+		m_id = all.size();
+		all.push_back(*this);
+	}
+	Camera::Camera(Actor* pActor)
+		: Camera(pActor, glm::vec3(0, 0, 0))
+	{}
 
 	glm::mat4 Camera::getView() {
-		return glm::lookAt(glm::vec3(m_transform[3]), glm::vec3(m_transform[3]) + glm::vec3(m_transform[2]), glm::vec3(m_transform[1]));
+		auto transform = m_pActor->m_transform;
+		return glm::lookAt(glm::vec3(transform[3]), glm::vec3(transform[3]) + glm::vec3(transform[2]), glm::vec3(transform[1]));
 	}
 
 	glm::mat4 Camera::getPerspective(float aspect) {

@@ -1,4 +1,7 @@
 #include "Zap/Scene/Actor.h"
+#include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/Light.h"
+#include "Zap/Scene/Camera.h"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace Zap {
@@ -51,6 +54,38 @@ namespace Zap {
 		return m_transform;
 	}
 
+	std::vector<uint32_t> Actor::getComponentIDs(ComponentType type) {
+		std::vector<uint32_t> components;
+		for (ComponentAccess component : m_components) {
+			if (component.type == type) components.push_back(component.id);
+		}
+		return components;
+	}
+
+	Component* Actor::getComponent(ComponentType type, uint32_t index) {
+		uint32_t num = 0;
+		for (ComponentAccess component : m_components) {
+			if (component.type == type) {
+				if (num >= index) {
+					switch (type) {
+					case COMPONENT_TYPE_CAMERA:
+						return &Camera::all[component.id];
+					case COMPONENT_TYPE_LIGHT:
+						return &Light::all[component.id];
+					case COMPONENT_TYPE_MESH:
+						return &MeshComponent::all[component.id];
+					case COMPONENT_TYPE_NONE:
+						return nullptr;
+					default:
+						std::cerr << "No return case implemented for this ComponentType\n";
+						throw std::runtime_error("No return case implemented for this ComponentType\n");
+					}
+				}
+				num++;
+			}
+		}
+	}
+
 	void Actor::addMeshComponent(Mesh* pMesh) {
 		uint32_t id;
 		id = MeshComponent(this, pMesh).getID();
@@ -61,5 +96,11 @@ namespace Zap {
 		uint32_t id;
 		id = Light(this, color).getID();
 		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_LIGHT, id });
+	}
+
+	void Actor::addCameraComponent(glm::vec3 offset) {
+		uint32_t id;
+		id = Camera(this, offset).getID();
+		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_CAMERA, id });
 	}
 }

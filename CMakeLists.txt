@@ -23,7 +23,7 @@ source_group("Shader" FILES ${Zap_Shader_SRC})
 set(${BUILD_SHARED_LIBS} false)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Zap)
-add_subdirectory(Dependencies/Vulkan-Framework)
+add_subdirectory(Dependencies/VulkanFramework)
 add_subdirectory(Dependencies/glfw)
 add_subdirectory(Dependencies/glm)
 add_subdirectory(Dependencies/assimp)
@@ -32,7 +32,7 @@ target_include_directories(
     Zap PUBLIC
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}/include"
-    "${PROJECT_SOURCE_DIR}/Dependencies/Vulkan-Framework/include"
+    "${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework/include"
     "${PROJECT_SOURCE_DIR}/Dependencies/glfw/include"
     "${PROJECT_SOURCE_DIR}/Dependencies/glm/glm"
     "${PROJECT_SOURCE_DIR}/Dependencies/PhysX/physx/include"

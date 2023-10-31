@@ -8,7 +8,8 @@ namespace Zap {
 	enum ComponentType {
 		COMPONENT_TYPE_NONE = 0,
 		COMPONENT_TYPE_MESH = 1,
-		COMPONENT_TYPE_LIGHT = 3
+		COMPONENT_TYPE_LIGHT = 2,
+		COMPONENT_TYPE_CAMERA = 3
 	};
 
 	class Component

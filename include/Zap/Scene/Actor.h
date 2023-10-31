@@ -2,8 +2,7 @@
 
 #include "Zap/Zap.h"
 #include "Zap/Scene/Component.h"
-#include "Zap/Scene/MeshComponent.h"
-#include "Zap/Scene/Light.h"
+#include "Zap/Scene/Mesh.h"
 #include "glm.hpp"
 
 namespace Zap {
@@ -37,8 +36,11 @@ namespace Zap {
 
         void addMeshComponent(Mesh* pMesh);
         void addLightComponent(glm::vec3 color);
+        void addCameraComponent(glm::vec3 offset);
 
-        std::vector<uint32_t> getComponents(ComponentType type);
+        std::vector<uint32_t> getComponentIDs(ComponentType type);
+
+        Component* getComponent(ComponentType type, uint32_t index);
 
     private:
         struct ComponentAccess

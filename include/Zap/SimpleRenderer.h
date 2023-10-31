@@ -13,7 +13,7 @@ namespace Zap {
 
 		void init();
 
-		void render(Camera* cam);
+		void render(uint32_t cam);
 
 	private:
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();

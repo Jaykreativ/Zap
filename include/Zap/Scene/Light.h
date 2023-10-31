@@ -17,10 +17,11 @@ namespace Zap {
         glm::vec3 getColor();
 
     private:
-        static std::vector<Light> all;
-
         glm::vec3 m_color;
 
+        static std::vector<Light> all;
+
+        friend class Actor;
         friend class PBRenderer;
     };
 }

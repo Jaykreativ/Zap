@@ -3,7 +3,6 @@
 #include "Zap/Zap.h"
 #include "Zap/Renderer.h"
 #include "Zap/Window.h"
-#include "Zap/Scene/Light.h"
 
 namespace Zap {
 	class PBRenderer : public Renderer
@@ -16,7 +15,7 @@ namespace Zap {
 
 		void recordCommandBuffers();
 
-		void render(Camera* cam);
+		void render(uint32_t cam);
 
 	private:
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
