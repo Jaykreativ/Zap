@@ -169,7 +169,7 @@ namespace Zap {
 			m_ubo.modelNormal = glm::transpose(glm::inverse(meshComponent.m_pActor->m_transform));
 			m_ubo.view = Camera::all[cam].getView();
 			m_ubo.perspective = Camera::all[cam].getPerspective(m_viewport.width / m_viewport.height);
-			m_ubo.color = {1, 1, 1};
+			m_ubo.color = meshComponent.m_material.m_AlbedoColor;
 			m_ubo.lightCount = Light::all.size();
 
 			void* rawData; m_uniformBuffer.map(&rawData);
