@@ -11,7 +11,7 @@
 #include "gtc/type_ptr.hpp"
 
 namespace app {
-	Zap::Base engineBase = Zap::Base("Zap Application");
+	Zap::Base* engineBase = Zap::Base::createBase("Zap Application");
 
 	Zap::Window window = Zap::Window(1000, 600, "Zap Application");
 
@@ -21,7 +21,7 @@ namespace app {
 	Zap::Actor cam = Zap::Actor();
 }
 
-using namespace physx;
+/*using namespace physx;
 namespace px {
 	PxDefaultAllocator gDefaultAllocator;
 	PxDefaultErrorCallback gDefaultErrorCallback;
@@ -43,9 +43,9 @@ namespace px {
 
 		/*pvd = PxCreatePvd(*foundation);
 		PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
-		pvd->connect(*transport, PxPvdInstrumentationFlag::eALL);*/
+		pvd->connect(*transport, PxPvdInstrumentationFlag::eALL);*//*
 
-		physics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation, PxTolerancesScale(), true/*, pvd*/);
+		physics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation, PxTolerancesScale(), true/*, pvd*//*);
 		if (!physics) {
 			std::cerr << "ERROR: PxCreatePhysics failed\n";
 			throw std::runtime_error("ERROR: PxCreatePhysics failed");
@@ -89,7 +89,7 @@ namespace px {
 		physics->release();
 		foundation->release();
 	}
-}
+}*/
 
 namespace movement {
 	bool forward = false;
@@ -210,11 +210,11 @@ namespace keybinds {
 			else if (key == lookRight) {
 				movement::lookRight = true;
 			}
-			else if (key == GLFW_KEY_ENTER) {
+			/*else if (key == GLFW_KEY_ENTER) {
 				glm::vec3 dir = app::cam.getTransform()[2];
 				px::cubePxActor->addForce(PxVec3(dir.x*500, dir.y*500, dir.z*500));
 				//px::cubePxActor->setGlobalPose(PxTransform(PxVec3(0, 5, 0)));
-			}
+			}*/
 		}
 		else if(action == GLFW_RELEASE) {
 			if (key == forward) {
@@ -256,8 +256,8 @@ void resize(GLFWwindow* window, int width, int height) {
 }
 
 int main() {
-	px::init();
-	app::engineBase.init();
+	//px::init();
+	app::engineBase->init();
 
 	app::window.init();
 	app::window.show();
@@ -340,20 +340,20 @@ int main() {
 	while (!app::window.shouldClose()) {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
-		{
+		/*{
 			PxVec3 pos = px::cubePxActor->getGlobalPose().p;
 			PxQuat orientation = px::cubePxActor->getGlobalPose().q;
 			physicstest.setTransform(glm::mat4(glm::make_quat(&orientation.x)));
 			physicstest.setPos(pos.x, pos.y, pos.z);
 			physicstest.setScale(0.5, 0.5, 0.5);
-		}
+		}*/
 
 		rotatingGift.rotateY(15 * dTime);
 
-		if (dTime > 0) {
+		/*if (dTime > 0) {
 			px::scene->simulate(dTime);
 			px::scene->fetchResults(true);
-		}
+		}*/
 
 		app::window.clear();
 
@@ -373,8 +373,8 @@ int main() {
 	app::renderer2.~PBRenderer();
 	app::window.~Window();
 
-	app::engineBase.terminate();
-	px::terminate();
+	app::engineBase->terminate();
+	//px::terminate();
 
 #ifdef _DEBUG
 	system("pause");
