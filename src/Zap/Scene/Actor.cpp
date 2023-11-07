@@ -86,6 +86,42 @@ namespace Zap {
 		}
 	}
 
+	MeshComponent* Actor::getMeshComponent(uint32_t index) {
+		int num = 0;
+		for (ComponentAccess cA : m_components) {
+			if (cA.type == COMPONENT_TYPE_MESH) {
+				if (num >= index) {
+					return &MeshComponent::all[cA.id];
+				}
+				num++;
+			}
+		}
+	}
+
+	Light* Actor::getLightComponent(uint32_t index) {
+		int num = 0;
+		for (ComponentAccess cA : m_components) {
+			if (cA.type == COMPONENT_TYPE_LIGHT) {
+				if (num >= index) {
+					return &Light::all[cA.id];
+				}
+				num++;
+			}
+		}
+	}
+
+	Camera* Actor::getCameraComponent(uint32_t index) {
+		int num = 0;
+		for (ComponentAccess cA : m_components) {
+			if (cA.type == COMPONENT_TYPE_CAMERA) {
+				if (num >= index) {
+					return &Camera::all[cA.id];
+				}
+				num++;
+			}
+		}
+	}
+
 	void Actor::addMeshComponent(Mesh* pMesh) {
 		uint32_t id;
 		id = MeshComponent(this, pMesh).getID();

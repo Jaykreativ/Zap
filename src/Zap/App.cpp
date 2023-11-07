@@ -274,7 +274,6 @@ int main() {
 	giftModel.load("Models/OBJ/Gift.obj");
 
 	//Actors
-
 	Zap::Actor centre;
 	centre.addMeshComponent(&model);
 	for(uint32_t mc : centre.getComponentIDs(Zap::COMPONENT_TYPE_MESH)) 
@@ -285,19 +284,19 @@ int main() {
 	xDir.addMeshComponent(&model);
 	xDir.setPos(1, 0, 0);
 	xDir.setScale(0.5, 0.1, 0.1);
-	((Zap::MeshComponent*)(xDir.getComponent(Zap::COMPONENT_TYPE_MESH, 0)))->m_material.m_AlbedoColor = { 1, 0, 0 };
+	xDir.getMeshComponent(0)->m_material.m_AlbedoColor = {1, 0, 0};
 
 	Zap::Actor yDir;
 	yDir.addMeshComponent(&model);
 	yDir.setPos(0, 1, 0);
 	yDir.setScale(0.1, 0.5, 0.1);
-	((Zap::MeshComponent*)(yDir.getComponent(Zap::COMPONENT_TYPE_MESH, 0)))->m_material.m_AlbedoColor = { 0, 1, 0 };
+	yDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 1, 0 };
 
 	Zap::Actor zDir;
 	zDir.addMeshComponent(&model);
 	zDir.setPos(0, 0, 1);
 	zDir.setScale(0.1, 0.1, 0.5);
-	((Zap::MeshComponent*)(zDir.getComponent(Zap::COMPONENT_TYPE_MESH, 0)))->m_material.m_AlbedoColor = { 0, 0, 1 };
+	zDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 0, 1 };
 
 	Zap::Actor physicstest;
 	physicstest.addCameraComponent({0, 0, 0});
@@ -306,7 +305,7 @@ int main() {
 	Zap::Actor rotatingGift;
 	rotatingGift.addMeshComponent(&giftModel);
 	rotatingGift.setPos(3, 2, 2);
-	((Zap::MeshComponent*)(rotatingGift.getComponent(Zap::COMPONENT_TYPE_MESH, 0)))->m_material.m_AlbedoColor = {0.5, 1, 0.5};
+	rotatingGift.getMeshComponent(0)->m_material.m_AlbedoColor = {0.5, 1, 0.5};
 
 	Zap::Actor ground;
 	ground.addMeshComponent(&model);

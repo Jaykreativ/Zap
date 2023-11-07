@@ -6,6 +6,10 @@
 #include "glm.hpp"
 
 namespace Zap {
+    class MeshComponent;
+    class Light;
+    class Camera;
+
     class Actor
     {
     public:
@@ -40,7 +44,13 @@ namespace Zap {
 
         std::vector<uint32_t> getComponentIDs(ComponentType type);
 
-        Component* getComponent(ComponentType type, uint32_t index);
+        Component* Actor::getComponent(ComponentType type, uint32_t index);
+
+        MeshComponent* getMeshComponent(uint32_t index);
+
+        Light* getLightComponent(uint32_t index);
+
+        Camera* getCameraComponent(uint32_t index);
 
     private:
         struct ComponentAccess

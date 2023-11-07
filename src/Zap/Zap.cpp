@@ -33,7 +33,8 @@ namespace Zap {
 		if (!glfwInit())
 			std::runtime_error("Can't initialize GLFW");
 
-		initVulkan(m_applicationName);
+		vk::initInfo initInfo = { m_applicationName, 1 };
+		initVulkan(initInfo);
 	}
 
 	void Base::terminate() {
