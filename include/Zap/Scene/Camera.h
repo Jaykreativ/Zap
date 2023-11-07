@@ -20,6 +20,7 @@ namespace Zap {
 
 		static std::vector<Camera> all;
 
+		
 		friend class Actor;
 		friend class Renderer;
 		friend class PBRenderer;

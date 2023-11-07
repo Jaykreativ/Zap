@@ -34,6 +34,8 @@ namespace Zap {
 
         static Base m_engineBase;
         static bool m_exists;
+
+        friend class PhysicsComponent;
     };
 
     namespace objects {
