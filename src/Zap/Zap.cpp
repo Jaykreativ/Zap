@@ -40,8 +40,6 @@ namespace Zap {
 
 		vk::initInfo initInfo = { m_applicationName, 1 };
 		initVulkan(initInfo);
-	}
-		initVulkan(m_applicationName);
 
 		//init physx
 		m_pxFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gDefaultErrorCallback);
