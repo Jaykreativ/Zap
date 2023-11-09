@@ -1,9 +1,11 @@
 #include "Zap/Zap.h"
 #include "Zap/Window.h"
 #include "Zap/PBRenderer.h"
+#include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Component.h"
+#include "Zap/Scene/Transform.h"
 #include "Zap/Scene/MeshComponent.h"
 #include "PxPhysicsAPI.h"
 #include "glm.hpp"
@@ -134,22 +136,22 @@ namespace movement {
 			app::cam.setTransform(res);
 		}
 		if (up) {
-			auto res = app::cam.m_transform;
+			auto res = app::cam.getTransform();
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
 			app::cam.setTransform(res);
 		}
 		if (lookLeft) {
-			glm::mat4 res = app::cam.m_transform;
+			glm::mat4 res = app::cam.getTransform();
 			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(-90 * dTime), glm::vec3{0, 1, 0});
 
 			res[0] = rot * res[0];
 			res[1] = rot * res[1];
 			res[2] = rot * res[2];
 
-			app::cam.m_transform = res;
+			app::cam.setTransform(res);
 		}
 		if (lookRight) {
-			glm::mat4 res = app::cam.m_transform;
+			glm::mat4 res = app::cam.getTransform();
 			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(90 * dTime), glm::vec3{ 0, 1, 0 });
 
 			res[0] = rot * res[0];
@@ -159,10 +161,10 @@ namespace movement {
 			app::cam.setTransform(res);
 		}
 		if (lookDown) {
-			app::cam.rotateX(90 * dTime);
+			app::cam.getTransformComponent()->rotateX(90 * dTime);
 		}
 		if (lookUp) {
-			app::cam.rotateX(-90 * dTime);
+			app::cam.getTransformComponent()->rotateX(-90 * dTime);
 		}
 	}
 }
@@ -275,64 +277,75 @@ int main() {
 
 	//Actors
 	Zap::Actor centre;
-	centre.addMeshComponent(&model);
-	for(uint32_t mc : centre.getComponentIDs(Zap::COMPONENT_TYPE_MESH)) 
-	centre.setPos(0, 0, 0);
-	centre.setScale(0.5, 0.5, 0.5);
+	centre.addTransform(glm::mat4(1));
+	centre.getTransformComponent()->setPos(0, 0, 0);
+	centre.getTransformComponent()->setScale(0.25, 0.25, 0.25);
+	centre.addMesh(&model);
 
 	Zap::Actor xDir;
-	xDir.addMeshComponent(&model);
-	xDir.setPos(1, 0, 0);
-	xDir.setScale(0.5, 0.1, 0.1);
+	xDir.addTransform(glm::mat4(1));
+	xDir.getTransformComponent()->setPos(0.75, 0, 0);
+	xDir.getTransformComponent()->setScale(0.5, 0.1, 0.1);
+	xDir.addMesh(&model);
 	xDir.getMeshComponent(0)->m_material.m_AlbedoColor = {1, 0, 0};
 
 	Zap::Actor yDir;
-	yDir.addMeshComponent(&model);
-	yDir.setPos(0, 1, 0);
-	yDir.setScale(0.1, 0.5, 0.1);
+	yDir.addTransform(glm::mat4(1));
+	yDir.getTransformComponent()->setPos(0, 0.75, 0);
+	yDir.getTransformComponent()->setScale(0.1, 0.5, 0.1);
+	yDir.addMesh(&model);
 	yDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 1, 0 };
 
 	Zap::Actor zDir;
-	zDir.addMeshComponent(&model);
-	zDir.setPos(0, 0, 1);
-	zDir.setScale(0.1, 0.1, 0.5);
+	zDir.addTransform(glm::mat4(1));
+	zDir.getTransformComponent()->setPos(0, 0, 0.75);
+	zDir.getTransformComponent()->setScale(0.1, 0.1, 0.5);
+	zDir.addMesh(&model);
 	zDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 0, 1 };
 
 	Zap::Actor physicstest;
-	physicstest.addCameraComponent({0, 0, 0});
-	physicstest.addLightComponent({ 0.25, 1, 3 });
+	physicstest.addTransform(glm::mat4(1));
+	physicstest.addPhysics(Zap::PHYSICS_TYPE_RIGID_DYNAMIC);
+	physicstest.addCamera({0, 0, 0});
+	physicstest.addLight({ 0.25, 1, 3 });
 
 	Zap::Actor rotatingGift;
-	rotatingGift.addMeshComponent(&giftModel);
-	rotatingGift.setPos(3, 2, 2);
+	rotatingGift.addTransform(glm::mat4(1));
+	rotatingGift.getTransformComponent()->setPos(3, 2, 2);
+	rotatingGift.addMesh(&giftModel);
 	rotatingGift.getMeshComponent(0)->m_material.m_AlbedoColor = {0.5, 1, 0.5};
 
 	Zap::Actor ground;
-	ground.addMeshComponent(&model);
-	ground.setPos(0, -1, 0);
-	ground.setScale(500, 1, 500);
+	ground.addTransform(glm::mat4(1));
+	ground.getTransformComponent()->setPos(0, -2, 0);
+	ground.getTransformComponent()->setScale(500, 1, 500);
+	ground.addMesh(&model);
 
 	Zap::Actor skybox;
-	skybox.addMeshComponent(&model);
-	skybox.setPos(0, 0, 0);
-	skybox.setScale(500, 500, 500);
+	skybox.addTransform(glm::mat4(1));
+	skybox.getTransformComponent()->setPos(0, 0, 0);
+	skybox.getTransformComponent()->setScale(500, 500, 500);
+	skybox.addMesh(&model);
 
 	Zap::Actor light;
-	light.addLightComponent({ 2.5, 2.5, 2.5 });
-	light.setPos({ -3, 2, 0 });
+	light.addTransform(glm::mat4(1));
+	light.getTransformComponent()->setPos({ -3, 2, 0 });
+	light.addLight({ 2.5, 2.5, 2.5 });
 
 	Zap::Actor light2;
-	light2.addLightComponent({ 3, 1.5, 0.6 });
-	light2.setPos({ 3, 2, 0 });
+	light2.addTransform(glm::mat4(1));
+	light2.getTransformComponent()->setPos({ 3, 2, 0 });
+	light2.addLight({ 3, 1.5, 0.6 });
+
+	app::cam.addTransform(glm::mat4(1));
+	app::cam.getTransformComponent()->setPos(-1, 1, -5);
+	app::cam.addCamera(glm::vec3(0, 0, 0));
 
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
 
 	app::renderer2.setViewport(500, 300, 0, 0);
 	app::renderer2.init();
-
-	app::cam.setPos(-1, 1, -5);
-	app::cam.addCameraComponent(glm::vec3(0, 0, 0));
 
 	//mainloop
 	uint64_t currentFrame = 0;
@@ -348,12 +361,13 @@ int main() {
 			physicstest.setScale(0.5, 0.5, 0.5);
 		}*/
 
-		rotatingGift.rotateY(15 * dTime);
+		rotatingGift.getTransformComponent()->rotateY(15 * dTime);
 
-		/*if (dTime > 0) {
-			px::scene->simulate(dTime);
-			px::scene->fetchResults(true);
-		}*/
+		if (dTime > 0) {
+			//px::scene->simulate(dTime);
+			//px::scene->fetchResults(true);
+			Zap::Scene::simulate(dTime);
+		}
 
 		app::window.clear();
 

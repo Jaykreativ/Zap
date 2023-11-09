@@ -15,7 +15,7 @@ namespace Zap {
 	{}
 
 	glm::mat4 Camera::getView() {
-		auto transform = m_pActor->m_transform;
+		auto transform = m_pActor->getTransform();
 		return glm::lookAt(glm::vec3(transform[3]), glm::vec3(transform[3]) + glm::vec3(transform[2]), glm::vec3(transform[1]));
 	}
 

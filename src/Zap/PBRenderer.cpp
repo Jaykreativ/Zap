@@ -1,5 +1,6 @@
 #include "Zap/PBRenderer.h"
 #include "Zap/Scene/Actor.h"
+#include "Zap/Scene/Transform.h"
 #include "Zap/Scene/MeshComponent.h"
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Camera.h"
@@ -165,8 +166,8 @@ namespace Zap {
 		recordCommandBuffers();
 
 		for (MeshComponent& meshComponent : MeshComponent::all) {
-			m_ubo.model = meshComponent.m_pActor->m_transform;
-			m_ubo.modelNormal = glm::transpose(glm::inverse(meshComponent.m_pActor->m_transform));
+			m_ubo.model = meshComponent.m_pActor->getTransform();
+			m_ubo.modelNormal = glm::transpose(glm::inverse(meshComponent.m_pActor->getTransform()));
 			m_ubo.view = Camera::all[cam].getView();
 			m_ubo.perspective = Camera::all[cam].getPerspective(m_viewport.width / m_viewport.height);
 			m_ubo.color = meshComponent.m_material.m_AlbedoColor;
@@ -180,7 +181,7 @@ namespace Zap {
 			{
 				for (uint32_t i = 0; i < Light::all.size(); i++) {
 					LightData* lightData = (LightData*)(rawData);
-					lightData[i].pos = Light::all[i].m_pActor->getPos();
+					lightData[i].pos = Light::all[i].m_pActor->getTransformComponent()->getPos();
 					lightData[i].color = Light::all[i].getColor();
 				}
 

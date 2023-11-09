@@ -1,7 +1,9 @@
-#include "Transform.h"
+#include "Zap/Scene/Transform.h"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace Zap {
+	std::vector<Transform> Transform::all;
+
 	Transform::Transform(glm::mat4 transform, Actor* pActor)
 		: Component(pActor), m_transform(transform)
 	{

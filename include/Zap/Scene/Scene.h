@@ -11,10 +11,7 @@ namespace Zap {
         Scene();
         ~Scene();
 
-        void addActor(Actor& actor);
-
-    private:
-        std::vector<Actor*> m_physicsActors;
+        static void simulate(float elapsedTime);
     };
 }
 

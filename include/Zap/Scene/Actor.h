@@ -8,16 +8,21 @@
 namespace Zap {
     class Transform;
     class MeshComponent;
+    class PhysicsComponent;
     class Light;
     class Camera;
 
     class Actor
     {
     public:
-        void addTransform(glm::mat4 transform);
-        void addMesh(Mesh* pMesh);
-        void addLight(glm::vec3 color);
-        void addCamera(glm::vec3 offset);
+        Actor();
+        ~Actor();
+
+        bool addTransform(glm::mat4 transform);
+        bool addMesh(Mesh* pMesh);
+        bool addPhysics(PhysicsType type);
+        bool addLight(glm::vec3 color);
+        bool addCamera(glm::vec3 offset);
 
         glm::mat4 getTransform();
 
@@ -27,20 +32,25 @@ namespace Zap {
 
         Component* getComponent(ComponentType type, uint32_t index);
 
-        Transform* getTransformComponent(uint32_t index);
+        Transform* getTransformComponent();
 
         MeshComponent* getMeshComponent(uint32_t index);
+
+        PhysicsComponent* getPhysicsComponent(uint32_t index);
 
         Light* getLightComponent(uint32_t index);
 
         Camera* getCameraComponent(uint32_t index);
 
     private:
-        struct ComponentAccess
-        {
-            ComponentType type;
-            uint32_t id;
+        enum TransformState {
+            TRANSFORM_STATE_NONE = 0,
+            TRANSFORM_STATE_COMPONENT = 1,
+            TRANSFORM_STATE_PHYSICS = 2
         };
+
+        TransformState m_transformState = TRANSFORM_STATE_NONE;
+
         std::vector<ComponentAccess> m_components;
     };
 }

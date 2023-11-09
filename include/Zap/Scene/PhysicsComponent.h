@@ -6,28 +6,20 @@
 #include "Zap/Scene/Transform.h"
 
 namespace Zap {
-	enum PhysiscsType {
-		RIGID_DYNAMIC = 0
-	};
 
 	class PhysicsComponent : public Component {
 	public:
-		PhysicsComponent(PhysiscsType type, Actor* pActor)
-			: Component(pActor)
-		{
-			physx::PxTransform t = physx::PxTransform(*(physx::PxMat44*)(&m_pActor->getTransformComponent(0)->getTransform()));
-
-			switch(type){
-			case RIGID_DYNAMIC:
-				m_pxActor = Base::getBase()->m_pxPhysics->createRigidDynamic(t);
-			default:
-				std::cerr << "Not yet added to constructor: " << type << "\n";
-			}
-		}
+		PhysicsComponent(PhysicsType type, Actor* pActor);
 
 	private:
-		PhysiscsType m_type;
+		PhysicsType m_type;
 		physx::PxActor* m_pxActor;
+
+		static std::vector<PhysicsComponent> all;
+
+		friend class Base;
+		friend class Scene;
+		friend class Actor;
 	};
 }
 

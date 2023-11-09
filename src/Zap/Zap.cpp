@@ -38,7 +38,7 @@ namespace Zap {
 		if (!glfwInit())
 			std::runtime_error("Can't initialize GLFW");
 
-		vk::initInfo initInfo = { m_applicationName, 1 };
+		vk::initInfo initInfo = { m_applicationName, 0 };
 		initVulkan(initInfo);
 
 		//init physx

@@ -35,6 +35,7 @@ namespace Zap {
         static Base m_engineBase;
         static bool m_exists;
 
+        friend class Scene;
         friend class PhysicsComponent;
     };
 
