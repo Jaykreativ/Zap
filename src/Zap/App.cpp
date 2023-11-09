@@ -305,8 +305,10 @@ int main() {
 
 	Zap::Actor physicstest;
 	physicstest.addTransform(glm::mat4(1));
+	physicstest.getTransformComponent()->setPos({0, 5, 0});
 	physicstest.addPhysics(Zap::PHYSICS_TYPE_RIGID_DYNAMIC);
 	physicstest.addCamera({0, 0, 0});
+	physicstest.addMesh(&giftModel);
 	physicstest.addLight({ 0.25, 1, 3 });
 
 	Zap::Actor rotatingGift;
@@ -319,6 +321,7 @@ int main() {
 	ground.addTransform(glm::mat4(1));
 	ground.getTransformComponent()->setPos(0, -2, 0);
 	ground.getTransformComponent()->setScale(500, 1, 500);
+	ground.addPhysics(Zap::PHYSICS_TYPE_RIGID_STATIC);
 	ground.addMesh(&model);
 
 	Zap::Actor skybox;

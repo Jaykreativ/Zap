@@ -6,7 +6,8 @@ namespace Zap {
 	class Actor;// declare for not having to inlude Actor.h -> "forwarded declaration"
 
 	enum PhysicsType {
-		PHYSICS_TYPE_RIGID_DYNAMIC = 0
+		PHYSICS_TYPE_RIGID_DYNAMIC = 0,
+		PHYSICS_TYPE_RIGID_STATIC = 1
 	};
 
 	enum ComponentType {

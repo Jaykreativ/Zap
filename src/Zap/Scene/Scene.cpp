@@ -16,7 +16,6 @@ namespace Zap {
         base->m_pxScene->fetchResults(true);
         uint32_t numActors = 0;
         auto actors = base->m_pxScene->getActiveActors(numActors);
-        std::cout << base->m_pxScene->getNbActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC) << ", " << numActors << "\n";
         for (uint32_t i = 0; i < numActors; i++) {
             auto pxActor = actors[i];
             PhysicsComponent* pComponent = (PhysicsComponent*)pxActor->userData;
