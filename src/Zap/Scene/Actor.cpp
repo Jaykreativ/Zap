@@ -33,8 +33,8 @@ namespace Zap {
 		return true;
 	}
 	
-	bool Actor::addPhysics(PhysicsType type) {
-		uint32_t id = PhysicsComponent(type, this).getID();
+	bool Actor::addPhysics(PhysicsType type, Shape shape) {
+		uint32_t id = PhysicsComponent(type, shape, this).getID();
 		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_PHYSICS, id });
 		return true;
 	}

@@ -18,7 +18,7 @@ namespace Zap {
         auto actors = base->m_pxScene->getActiveActors(numActors);
         for (uint32_t i = 0; i < numActors; i++) {
             auto pxActor = actors[i];
-            PhysicsComponent* pComponent = (PhysicsComponent*)pxActor->userData;
+            PhysicsComponent* pComponent = &PhysicsComponent::all[(uint64_t)pxActor->userData];
             switch (pComponent->m_type) {
             case PHYSICS_TYPE_RIGID_DYNAMIC: {
                 physx::PxRigidDynamic* pxRigidDynamic = (physx::PxRigidDynamic*)pxActor;

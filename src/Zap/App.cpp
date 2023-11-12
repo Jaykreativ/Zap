@@ -3,6 +3,7 @@
 #include "Zap/PBRenderer.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
+#include "Zap/Scene/Shape.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Component.h"
 #include "Zap/Scene/Transform.h"
@@ -306,7 +307,13 @@ int main() {
 	Zap::Actor physicstest;
 	physicstest.addTransform(glm::mat4(1));
 	physicstest.getTransformComponent()->setPos({0, 5, 0});
-	physicstest.addPhysics(Zap::PHYSICS_TYPE_RIGID_DYNAMIC);
+	physicstest.getTransformComponent()->setScale({0.5, 0.5, 0.5});
+	{
+		auto material = Zap::PhysicsMaterial(0.5, 0.5, 0.25);
+		auto geometry = Zap::BoxGeometry({ 1, 1, 1 });
+		auto shape = Zap::Shape(geometry, material, true);
+		physicstest.addPhysics(Zap::PHYSICS_TYPE_RIGID_DYNAMIC, shape);
+	}
 	physicstest.addCamera({0, 0, 0});
 	physicstest.addMesh(&giftModel);
 	physicstest.addLight({ 0.25, 1, 3 });
@@ -321,7 +328,12 @@ int main() {
 	ground.addTransform(glm::mat4(1));
 	ground.getTransformComponent()->setPos(0, -2, 0);
 	ground.getTransformComponent()->setScale(500, 1, 500);
-	ground.addPhysics(Zap::PHYSICS_TYPE_RIGID_STATIC);
+	{
+		auto material = Zap::PhysicsMaterial(0.5, 0.5, 0.25);
+		auto geometry = Zap::BoxGeometry({10, 1, 10});
+		auto shape = Zap::Shape(geometry, material, true);
+		ground.addPhysics(Zap::PHYSICS_TYPE_RIGID_STATIC, shape);
+	}
 	ground.addMesh(&model);
 
 	Zap::Actor skybox;

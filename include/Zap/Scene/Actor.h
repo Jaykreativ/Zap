@@ -3,6 +3,7 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Component.h"
 #include "Zap/Scene/Mesh.h"
+#include "Zap/Scene/Shape.h"
 #include "glm.hpp"
 
 namespace Zap {
@@ -20,7 +21,7 @@ namespace Zap {
 
         bool addTransform(glm::mat4 transform);
         bool addMesh(Mesh* pMesh);
-        bool addPhysics(PhysicsType type);
+        bool addPhysics(PhysicsType type, Shape shape);
         bool addLight(glm::vec3 color);
         bool addCamera(glm::vec3 offset);
 
