@@ -33,13 +33,22 @@ namespace Zap {
         ~BoxGeometry();
     };
 
+    class PlaneGeometry : public PhysicsGeometry {
+    public:
+        PlaneGeometry();
+        ~PlaneGeometry();
+    };
+
     class Shape
     {
     public:
-        Shape(PhysicsGeometry geometry, PhysicsMaterial material, bool isExclusive);
+        Shape(PhysicsGeometry geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform = glm::mat4(1));
         ~Shape();
+        Shape(Shape& shape);
 
     private:
+        bool m_hasShape = false;
+
         physx::PxShape* m_pxShape;
 
         friend class PhysicsComponent;

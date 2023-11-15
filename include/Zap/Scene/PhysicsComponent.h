@@ -9,7 +9,7 @@ namespace Zap {
 
 	class PhysicsComponent : public Component {
 	public:
-		PhysicsComponent(PhysicsType type, Shape shape, Actor* pActor);
+		PhysicsComponent(Actor* pActor, PhysicsType type, Shape shape);
 
 	private:
 		PhysicsType m_type;

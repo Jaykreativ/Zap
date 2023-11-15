@@ -1,5 +1,6 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/PhysicsComponent.h"
 
 namespace Zap {
 	namespace GlobalSettings {
@@ -48,11 +49,11 @@ namespace Zap {
 			throw std::runtime_error("ERROR: PxCreateFoundation failed");
 		}
 
-		/*pvd = PxCreatePvd(*foundation);
-		PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
-		pvd->connect(*transport, PxPvdInstrumentationFlag::eALL);*/
+		m_pxPvd = physx::PxCreatePvd(*m_pxFoundation);
+		physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+		m_pxPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
 
-		m_pxPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_pxFoundation, physx::PxTolerancesScale(), true/*, pvd*/);
+		m_pxPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_pxFoundation, physx::PxTolerancesScale(), true, m_pxPvd);
 		if (!m_pxPhysics) {
 			std::cerr << "ERROR: PxCreatePhysics failed\n";
 			throw std::runtime_error("ERROR: PxCreatePhysics failed");
@@ -61,17 +62,27 @@ namespace Zap {
 		physx::PxSceneDesc sceneDesc(m_pxPhysics->getTolerancesScale());
 		sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
 		sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
-		sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
+		sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
 		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
 		m_pxScene = m_pxPhysics->createScene(sceneDesc);
 		if (!m_pxScene) {
 			std::cerr << "ERROR: createScene failed\n";
 			throw std::runtime_error("ERROR: createScene failed");
 		}
+
+		physx::PxPvdSceneClient* pvdClient = m_pxScene->getScenePvdClient();
+		if (pvdClient)
+		{
+			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
+			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
+			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
+		}
 	}
 
 	void Base::terminate() {
 		for (MeshComponent mc : MeshComponent::all) mc.m_pMesh->~Mesh();
+
+		for (PhysicsComponent pc : PhysicsComponent::all) pc.m_pxActor->release();
 
 		m_pxPhysics->release();
 		m_pxFoundation->release();

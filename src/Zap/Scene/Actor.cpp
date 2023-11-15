@@ -34,7 +34,7 @@ namespace Zap {
 	}
 	
 	bool Actor::addPhysics(PhysicsType type, Shape shape) {
-		uint32_t id = PhysicsComponent(type, shape, this).getID();
+		uint32_t id = PhysicsComponent(this, type, shape).getID();
 		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_PHYSICS, id });
 		return true;
 	}

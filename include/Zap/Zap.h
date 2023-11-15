@@ -29,6 +29,7 @@ namespace Zap {
 
         //physx variables
         physx::PxFoundation* m_pxFoundation;
+        physx::PxPvd* m_pxPvd;
         physx::PxPhysics* m_pxPhysics;
         physx::PxScene* m_pxScene;
 

@@ -4,11 +4,10 @@
 namespace Zap {
     std::vector<PhysicsComponent> PhysicsComponent::all;
 
-    PhysicsComponent::PhysicsComponent(PhysicsType type, Shape shape, Actor* pActor)
+    PhysicsComponent::PhysicsComponent(Actor* pActor, PhysicsType type, Shape shape)
 		: Component(pActor), m_type(type)
 	{
 		m_id = all.size();
-		all.push_back(*this);
 
 		auto glmt = m_pActor->getTransformComponent()->getTransform();
 		glmt[0] = glm::vec4(glm::normalize(glm::vec3(glmt[0])), glmt[0].w);
@@ -16,8 +15,6 @@ namespace Zap {
 		glmt[2] = glm::vec4(glm::normalize(glm::vec3(glmt[2])), glmt[2].w);
 
 		physx::PxTransform t = physx::PxTransform(*(physx::PxMat44*)(&glmt));
-
-		std::cout << t.p.x << ", " << t.p.y << ", " << t.p.z << "\n";
 
 		auto base = Base::getBase();
 		switch (type) {
@@ -39,5 +36,7 @@ namespace Zap {
 			std::cerr << "Not yet added to constructor: " << type << "\n";
 			throw std::runtime_error("Not yet added to constructor\n");
 		}
+
+		all.push_back(*this);
 	}
 }

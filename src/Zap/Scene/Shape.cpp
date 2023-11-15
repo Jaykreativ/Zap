@@ -7,7 +7,8 @@ namespace Zap {
     }
 
     PhysicsMaterial::~PhysicsMaterial() {
-        m_pxMaterial->release();
+        //TODO clean up materials
+        //m_pxMaterial->release();
     }
 
     BoxGeometry::BoxGeometry(glm::vec3 size) {
@@ -18,12 +19,39 @@ namespace Zap {
         delete m_pxGeometry;
     }
 
-    Shape::Shape(PhysicsGeometry geometry, PhysicsMaterial material, bool isExclusive) {
+    PlaneGeometry::PlaneGeometry() {
+        m_pxGeometry = new physx::PxPlaneGeometry();
+    }
+
+    PlaneGeometry::~PlaneGeometry() {
+        delete m_pxGeometry;
+    }
+
+    Shape::Shape(PhysicsGeometry geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform) {
         auto base = Base::getBase();
-        m_pxShape = base->m_pxPhysics->createShape(*geometry.m_pxGeometry, *material.m_pxMaterial, isExclusive);
+        if (!m_hasShape) {
+            m_pxShape = base->m_pxPhysics->createShape(*geometry.m_pxGeometry, &material.m_pxMaterial, isExclusive);
+            m_hasShape = true;
+
+            offsetTransform[0] = glm::vec4(glm::normalize(glm::vec3(offsetTransform[0])), offsetTransform[0].w);
+            offsetTransform[1] = glm::vec4(glm::normalize(glm::vec3(offsetTransform[1])), offsetTransform[1].w);
+            offsetTransform[2] = glm::vec4(glm::normalize(glm::vec3(offsetTransform[2])), offsetTransform[2].w);
+
+            physx::PxTransform t = physx::PxTransform(*(physx::PxMat44*)(&offsetTransform));
+
+            m_pxShape->setLocalPose(t);
+        }
     }
 
     Shape::~Shape() {
-        m_pxShape->release();
+        if (m_hasShape) {
+            m_pxShape->release();
+            m_hasShape = false;
+        }
+    }
+
+    Shape::Shape(Shape& shape) {
+        m_hasShape = false;
+        m_pxShape = shape.m_pxShape;
     }
 }
