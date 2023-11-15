@@ -11,14 +11,19 @@ file(GLOB Zap_Scene_SRC
 file(GLOB_RECURSE Zap_Shader_SRC
     "Shader/*"
 )
+file(GLOB Imgui_SRC
+    "Dependencies/imgui/imgui*.cpp"
+    "Dependencies/imgui/imgui*.h"
+)
 file(GLOB PhysX_libs
     "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.mt/debug/*.lib"
 )
-add_executable(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC})
+add_executable(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Imgui_SRC})
 
 source_group("Source" FILES ${Zap_SRC})
 source_group("Source/Scene" FILES ${Zap_Scene_SRC})
 source_group("Shader" FILES ${Zap_Shader_SRC})
+source_group("Imgui" FILES ${Imgui_SRC})
 
 set(${BUILD_SHARED_LIBS} false)
 
@@ -34,6 +39,7 @@ target_include_directories(
     "${PROJECT_SOURCE_DIR}/include"
     "${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework/include"
     "${PROJECT_SOURCE_DIR}/Dependencies/glfw/include"
+    "${PROJECT_SOURCE_DIR}/Dependencies/imgui"
     "${PROJECT_SOURCE_DIR}/Dependencies/glm/glm"
     "${PROJECT_SOURCE_DIR}/Dependencies/PhysX/physx/include"
     "${PROJECT_SOURCE_DIR}/Dependencies/assimp/include"
