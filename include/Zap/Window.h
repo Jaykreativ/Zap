@@ -86,5 +86,7 @@ namespace Zap
 
 		vk::CommandBuffer* m_clearCommandBuffers;
 		vk::CommandBuffer m_clearDepthStencilCommandBuffer = vk::CommandBuffer();
+
+		friend class Gui;
 	};
 }

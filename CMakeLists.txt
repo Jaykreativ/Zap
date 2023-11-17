@@ -14,6 +14,10 @@ file(GLOB_RECURSE Zap_Shader_SRC
 file(GLOB Imgui_SRC
     "Dependencies/imgui/imgui*.cpp"
     "Dependencies/imgui/imgui*.h"
+    "Dependencies/imgui/backends/imgui_impl_vulkan.cpp"
+    "Dependencies/imgui/backends/imgui_impl_vulkan.h"
+    "Dependencies/imgui/backends/imgui_impl_glfw.cpp"
+    "Dependencies/imgui/backends/imgui_impl_glfw.h"
 )
 file(GLOB PhysX_libs
     "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.mt/debug/*.lib"

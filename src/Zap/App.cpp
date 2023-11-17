@@ -1,6 +1,7 @@
 #include "Zap/Zap.h"
 #include "Zap/Window.h"
 #include "Zap/PBRenderer.h"
+#include "Zap/Gui.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Shape.h"
@@ -8,6 +9,7 @@
 #include "Zap/Scene/Component.h"
 #include "Zap/Scene/Transform.h"
 #include "Zap/Scene/MeshComponent.h"
+#include "imgui.h"
 #include "PxPhysicsAPI.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
@@ -18,81 +20,13 @@ namespace app {
 
 	Zap::Window window = Zap::Window(1000, 600, "Zap Application");
 
+	Zap::Gui gui = Zap::Gui(window);
+
 	Zap::PBRenderer renderer = Zap::PBRenderer(window);
 	Zap::PBRenderer renderer2 = Zap::PBRenderer(window);
 
 	Zap::Actor cam = Zap::Actor();
 }
-
-/*using namespace physx;
-namespace px {
-	PxDefaultAllocator gDefaultAllocator;
-	PxDefaultErrorCallback gDefaultErrorCallback;
-	PxSimulationFilterShader gDefaultFilterShader;
-
-	PxFoundation* foundation;
-	PxPvd* pvd;
-	PxPhysics* physics;
-
-	PxScene* scene;
-	PxRigidDynamic* cubePxActor;
-
-	void init() {
-		foundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gDefaultErrorCallback);
-		if (!foundation) {
-			std::cerr << "ERROR: PxCreateFoundation failed\n";
-			throw std::runtime_error("ERROR: PxCreateFoundation failed");
-		}
-
-		/*pvd = PxCreatePvd(*foundation);
-		PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
-		pvd->connect(*transport, PxPvdInstrumentationFlag::eALL);*//*
-
-		physics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation, PxTolerancesScale(), true/*, pvd*//*);
-		if (!physics) {
-			std::cerr << "ERROR: PxCreatePhysics failed\n";
-			throw std::runtime_error("ERROR: PxCreatePhysics failed");
-		}
-
-		PxSceneDesc sceneDesc(physics->getTolerancesScale());
-		sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
-		sceneDesc.cpuDispatcher = PxDefaultCpuDispatcherCreate(1);
-		sceneDesc.filterShader = PxDefaultSimulationFilterShader;
-		scene = physics->createScene(sceneDesc);
-		if (!scene) {
-			std::cerr << "ERROR: createScene failed\n";
-			throw std::runtime_error("ERROR: createScene failed");
-		}
-
-		PxMaterial* material = physics->createMaterial(0.5, 0.5, 0.25);
-
-		glm::mat4 glmt = glm::mat4(1);
-		glm::translate(glmt, glm::vec3(-1.5, 5, 0));
-		glm::rotate(glmt, glm::radians<float>(180), glm::vec3(glmt[0]));
-		PxTransform transform = PxTransform(PxVec3(-1.5, 5, 0));
-		transform.q = PxQuat(-1, 0, 0, 0);
-		cubePxActor = physics->createRigidDynamic(transform);
-		{
-			PxShape* shape = physics->createShape(PxBoxGeometry(0.5f, 0.5f, 0.5f), &material, 1, true);
-			cubePxActor->attachShape(*shape);
-			shape->release();
-		}
-		scene->addActor(*cubePxActor);
-
-		PxRigidStatic* plane = physics->createRigidStatic(PxTransformFromPlaneEquation(PxPlane(PxVec3(0, 1, 0), 0)));
-		{
-			PxShape* shape = physics->createShape(PxPlaneGeometry(), &material, 1, true);
-			plane->attachShape(*shape);
-			shape->release();
-		}
-		scene->addActor(*plane);
-	}
-
-	void terminate() {
-		physics->release();
-		foundation->release();
-	}
-}*/
 
 namespace movement {
 	bool forward = false;
@@ -266,6 +200,8 @@ int main() {
 	app::window.setKeyCallback(keybinds::keyCallback);
 	app::window.setResizeCallback(resize);
 
+	app::gui.init();
+
 	Zap::Mesh model = Zap::Mesh();
 	model.load("Models/OBJ/Cube.obj");
 
@@ -374,6 +310,8 @@ int main() {
 
 		rotatingGift.getTransformComponent()->rotateY(15 * dTime);
 
+		ImGui::ShowDemoWindow();
+
 		if (dTime > 0) {
 			//px::scene->simulate(dTime);
 			//px::scene->fetchResults(true);
@@ -385,6 +323,7 @@ int main() {
 		app::renderer.render(app::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
 		app::window.clearDepthStencil();
 		app::renderer2.render(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
+		app::gui.render(0);
 
 		app::window.swapBuffers();
 		Zap::Window::pollEvents();
@@ -396,6 +335,7 @@ int main() {
 	//terminate
 	app::renderer.~PBRenderer();
 	app::renderer2.~PBRenderer();
+	app::gui.~Gui();
 	app::window.~Window();
 
 	app::engineBase->terminate();
