@@ -3,7 +3,7 @@
 #include "Zap/Renderer.h"
 
 namespace Zap {
-    class Gui : Renderer {
+    class Gui : public Renderer {
     public:
         Gui(Window& window);
         ~Gui();

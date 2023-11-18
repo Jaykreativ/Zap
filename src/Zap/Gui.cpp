@@ -10,8 +10,11 @@ namespace Zap {
 	{}
 
 	Gui::~Gui(){
+		ImGui::EndFrame();
+
 		vkDestroyDescriptorPool(vk::getDevice(), m_imguiPool, nullptr);
 		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
 	}
 
     void Gui::init() {
@@ -74,7 +77,7 @@ namespace Zap {
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
 		renderPassBeginInfo.renderPass = *m_window.getRenderPass();
-		renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(i);
+		renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(m_window.getCurrentImageIndex());
 		VkRect2D renderArea{};
 		int32_t restX = m_window.getWidth() - (m_scissor.extent.width + m_scissor.offset.x);
 		renderArea.offset.x = std::max<int32_t>(0, m_window.getWidth() - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
@@ -94,6 +97,10 @@ namespace Zap {
 
 		cmd.end();
 		cmd.submit();
+
+		ImGui_ImplVulkan_NewFrame();
+
+		ImGui_ImplGlfw_NewFrame();
 
 		ImGui::NewFrame();
 	}

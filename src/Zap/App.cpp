@@ -1,5 +1,6 @@
 #include "Zap/Zap.h"
 #include "Zap/Window.h"
+#include "Zap/Renderer.h"
 #include "Zap/PBRenderer.h"
 #include "Zap/Gui.h"
 #include "Zap/Scene/Scene.h"
@@ -190,6 +191,7 @@ namespace keybinds {
 
 void resize(GLFWwindow* window, int width, int height) {
 	app::renderer.setViewport(width, height, 0, 0);
+	app::gui.setViewport(width, height, 0, 0);
 }
 
 int main() {
