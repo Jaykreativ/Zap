@@ -42,7 +42,6 @@ namespace movement {
 	bool lookRight = false;
 	void move(float dTime) {
 		if (forward) {
-			//app::cam.translate(glm::vec3{0, 0, 1} * dTime * 2.0f);
 			auto res = app::cam.getTransform();
 			glm::vec3 vec = res[2];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z })*dTime * 2.0f, 1);
@@ -202,6 +201,7 @@ int main() {
 	app::window.setKeyCallback(keybinds::keyCallback);
 	app::window.setResizeCallback(resize);
 
+	app::gui.setViewport(app::window.getWidth(), app::window.getHeight(), 0, 0);
 	app::gui.init();
 
 	Zap::Mesh model = Zap::Mesh();
@@ -310,13 +310,11 @@ int main() {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
 
-		rotatingGift.getTransformComponent()->rotateY(15 * dTime);
+		rotatingGift.getTransformComponent()->rotateY(45 * dTime);
 
 		ImGui::ShowDemoWindow();
 
 		if (dTime > 0) {
-			//px::scene->simulate(dTime);
-			//px::scene->fetchResults(true);
 			Zap::Scene::simulate(dTime);
 		}
 

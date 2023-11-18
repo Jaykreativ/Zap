@@ -10,14 +10,21 @@ namespace Zap {
 	{}
 
 	Gui::~Gui(){
+		if (!m_isInit) return;
+		m_isInit = false;
+
 		ImGui::EndFrame();
 
-		vkDestroyDescriptorPool(vk::getDevice(), m_imguiPool, nullptr);
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
+
+		vkDestroyDescriptorPool(vk::getDevice(), m_imguiPool, nullptr);
 	}
 
     void Gui::init() {
+		if (m_isInit) return;
+		m_isInit = true;
+
 		VkDescriptorPoolSize poolSizes[] =
 		{
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
@@ -67,6 +74,9 @@ namespace Zap {
     }
 
 	void Gui::render(uint32_t cam) {
+		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
+		if (m_scissor.extent.width <= 0 || m_scissor.extent.height <= 0) return;
+
 		ImGui::Render();
 
 		auto cmd = vk::CommandBuffer();
