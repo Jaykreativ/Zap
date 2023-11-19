@@ -20,12 +20,12 @@ namespace Zap {
         static Base* getBase();
 
     private:
-        Base(const char* applicationName);
+        Base(std::string applicationName);
         ~Base();
 
         bool m_isInit;
 
-        const char* m_applicationName;
+        std::string m_applicationName;
 
         //physx variables
         physx::PxFoundation* m_pxFoundation;

@@ -22,7 +22,7 @@ file(GLOB Imgui_SRC
 file(GLOB PhysX_libs
     "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.mt/debug/*.lib"
 )
-add_executable(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Imgui_SRC})
+add_library(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Imgui_SRC})
 
 source_group("Source" FILES ${Zap_SRC})
 source_group("Source/Scene" FILES ${Zap_Scene_SRC})

@@ -15,16 +15,12 @@ namespace Zap {
 		}
 	}
 
-	Base::Base(const char* applicationName) {
-		char* str = new char[strlen(applicationName) + 1];
-		strcpy(str, applicationName);
+	Base::Base(std::string applicationName) {
 
-		m_applicationName = str;
+		m_applicationName = applicationName;
 	};
 
-	Base::~Base() {
-		delete[] m_applicationName;
-	}
+	Base::~Base() {}
 
 	//physx defaults
 	physx::PxDefaultAllocator gDefaultAllocator;
@@ -39,7 +35,7 @@ namespace Zap {
 		if (!glfwInit())
 			std::runtime_error("Can't initialize GLFW");
 
-		vk::initInfo initInfo = { m_applicationName, 0 };
+		vk::initInfo initInfo = { m_applicationName.c_str(), 0};
 		initVulkan(initInfo);
 		printStats();
 
