@@ -20,7 +20,7 @@ namespace Zap {
         ~Actor();
 
         bool addTransform(glm::mat4 transform);
-        bool addMesh(Mesh* pMesh);
+        bool addMesh(uint32_t mesh);
         bool addPhysics(PhysicsType type, Shape shape);
         bool addLight(glm::vec3 color);
         bool addCamera(glm::vec3 offset);

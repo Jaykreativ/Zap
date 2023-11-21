@@ -7,20 +7,20 @@
 namespace Zap {
     class MeshComponent : public Component {
     public:
-        MeshComponent(Actor* pActor, Mesh* pMesh);
+        MeshComponent(Actor* pActor, uint32_t mesh);
 
         static ComponentType type() {
             return COMPONENT_TYPE_MESH;
         }
 
-        void setMesh(Mesh* pMesh) {
-            m_pMesh = pMesh;
+        void setMesh(uint32_t mesh) {
+            m_mesh = mesh;
         }
 
         Material m_material = Material();
 
     private:
-        Mesh* m_pMesh;
+        uint32_t m_mesh;
 
         static std::vector<MeshComponent> all;
 

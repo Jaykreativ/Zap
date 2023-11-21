@@ -96,13 +96,12 @@ namespace Zap {
 
 		vk::createSemaphore(&m_semaphoreRenderComplete);
 
-		for (uint32_t i = 0; i < MeshComponent::all.size(); i++) { // initialize all meshes
-			auto mesh = MeshComponent::all[i].m_pMesh;
-			auto oldSize = mesh->m_commandBuffers.size();
+		for (Mesh& mesh : Mesh::all) { // initialize all meshes
+			auto oldSize = mesh.m_commandBuffers.size();
 			m_id = oldSize / m_window.getSwapchain()->getImageCount(); // Set ID to number of already initialized renderers of this mesh
-			mesh->m_commandBuffers.resize(oldSize + m_window.getSwapchain()->getImageCount()); // add commandBuffers to mesh
+			mesh.m_commandBuffers.resize(oldSize + m_window.getSwapchain()->getImageCount()); // add commandBuffers to mesh
 			for (uint32_t j = oldSize; j < m_window.getSwapchain()->getImageCount(); j++) { // allocate commandBuffers
-				mesh->m_commandBuffers[j].allocate();
+				mesh.m_commandBuffers[j].allocate();
 			}
 		}
 
@@ -113,8 +112,8 @@ namespace Zap {
 
 	void PBRenderer::recordCommandBuffers() {
 		for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
-			Mesh* mesh = MeshComponent::all[i].m_pMesh;
-			for (uint32_t i = m_id * m_window.getSwapchain()->getImageCount(); i < m_window.getSwapchain()->getImageCount(); i++) {
+			Mesh* mesh = &Mesh::all[MeshComponent::all[i].m_mesh];//TODO find out bug. compare mesh ids and validate them.
+			for (uint32_t i = m_id * m_window.getSwapchain()->getImageCount(); i < (m_id+1) * m_window.getSwapchain()->getImageCount(); i++) {
 				vk::CommandBuffer* cmd = mesh->getCommandBuffer(i);
 				cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
@@ -196,7 +195,7 @@ namespace Zap {
 			memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
 			m_uniformBuffer.unmap();
 
-			meshComponent.m_pMesh->m_commandBuffers[m_id * m_window.getSwapchain()->getImageCount() + m_window.getCurrentImageIndex()].submit(m_renderComplete);
+			Mesh::all[meshComponent.m_mesh].m_commandBuffers[m_id * m_window.getSwapchain()->getImageCount() + m_window.getCurrentImageIndex()].submit(m_renderComplete);
 			vk::waitForFence(m_renderComplete);
 		}
 	}

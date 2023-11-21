@@ -3,7 +3,7 @@
 namespace Zap {
     std::vector<MeshComponent> MeshComponent::all;
 
-    MeshComponent::MeshComponent(Actor* pActor, Mesh* pMesh) : Component(pActor), m_pMesh(pMesh)
+    MeshComponent::MeshComponent(Actor* pActor, uint32_t mesh) : Component(pActor), m_mesh(mesh)
     {
         m_id = all.size();
         all.push_back(*this);

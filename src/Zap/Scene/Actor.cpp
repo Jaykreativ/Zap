@@ -27,8 +27,8 @@ namespace Zap {
 		}
 	}
 
-	bool Actor::addMesh(Mesh* pMesh) {
-		uint32_t id = MeshComponent(this, pMesh).getID();
+	bool Actor::addMesh(uint32_t mesh) {
+		uint32_t id = MeshComponent(this, mesh).getID();
 		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_MESH, id });
 		return true;
 	}

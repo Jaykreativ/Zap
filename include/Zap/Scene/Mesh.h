@@ -28,10 +28,15 @@ namespace Zap {
     private:
         bool m_isInit = false;
 
+        uint32_t m_id;
+
         std::vector<vk::CommandBuffer> m_commandBuffers;
         vk::Buffer m_vertexBuffer = vk::Buffer();
         vk::Buffer m_indexBuffer = vk::Buffer();
 
+        static std::vector<Mesh> all;
+
+        friend class Base;
         friend class Renderer;
         friend class PBRenderer;
     };

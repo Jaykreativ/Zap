@@ -1,8 +1,12 @@
 #include "Zap/Scene/Mesh.h"
 
 namespace Zap {
+	std::vector<Mesh> Mesh::all;
+
 	Mesh::Mesh(){
-		init();
+		m_id = all.size();
+		all.push_back(*this);
+		all.back().init();
 	}
 
 	Mesh::~Mesh() {
