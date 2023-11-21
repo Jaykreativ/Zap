@@ -18,6 +18,8 @@ namespace Zap {
 		void render(uint32_t cam);
 
 	private:
+		uint32_t m_id;// id to identify commandBuffers in Meshes
+
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 
 		vk::Shader m_vertexShader = vk::Shader();

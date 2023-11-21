@@ -1,7 +1,9 @@
 #include "Zap/Scene/Mesh.h"
 
 namespace Zap {
-	Mesh::Mesh(){}
+	Mesh::Mesh(){
+		init();
+	}
 
 	Mesh::~Mesh() {
 		if (!m_isInit) return;
@@ -9,20 +11,11 @@ namespace Zap {
 
 		m_vertexBuffer.~Buffer();
 		m_indexBuffer.~Buffer();
-
-		m_commandBufferCount = 0;
-		delete[] m_commandBuffers;
 	}
 
-	void Mesh::init(uint32_t commandBufferCount) {
+	void Mesh::init() {
 		if (m_isInit) return;
 		m_isInit = true;
-
-		m_commandBufferCount = commandBufferCount;
-		m_commandBuffers = new vk::CommandBuffer[m_commandBufferCount];
-		for (int i = 0; i < m_commandBufferCount; i++) {
-			m_commandBuffers[i].allocate();
-		}
 	}
 
 	void Mesh::load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {

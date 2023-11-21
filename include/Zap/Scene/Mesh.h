@@ -13,9 +13,7 @@ namespace Zap {
         Mesh();
         ~Mesh();
 
-        void init(uint32_t commandBufferCount);
-
-        void recordCommandBuffers(vk::RenderPass& renderPass, vk::Framebuffer* framebuffers, VkRect2D renderArea, vk::Pipeline& pipeline, VkDescriptorSet descriptorSet);
+        void init();
 
         void load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices);
         void load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray);
@@ -30,10 +28,12 @@ namespace Zap {
     private:
         bool m_isInit = false;
 
-        uint32_t m_commandBufferCount = 0;
-        vk::CommandBuffer* m_commandBuffers = nullptr;
+        std::vector<vk::CommandBuffer> m_commandBuffers;
         vk::Buffer m_vertexBuffer = vk::Buffer();
         vk::Buffer m_indexBuffer = vk::Buffer();
+
+        friend class Renderer;
+        friend class PBRenderer;
     };
 }
 

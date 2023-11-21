@@ -12,7 +12,7 @@ namespace Zap {
 
     void Scene::simulate(float elapsedTime) {
         auto base = Base::getBase();
-        base->m_pxScene->simulate(1.0f/60);
+        base->m_pxScene->simulate(elapsedTime);
         base->m_pxScene->fetchResults(true);
         uint32_t numActors = 0;
         auto actors = base->m_pxScene->getActiveActors(numActors);

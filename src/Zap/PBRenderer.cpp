@@ -96,8 +96,14 @@ namespace Zap {
 
 		vk::createSemaphore(&m_semaphoreRenderComplete);
 
-		for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
-			MeshComponent::all[i].m_pMesh->init(m_window.getSwapchain()->getImageCount());
+		for (uint32_t i = 0; i < MeshComponent::all.size(); i++) { // initialize all meshes
+			auto mesh = MeshComponent::all[i].m_pMesh;
+			auto oldSize = mesh->m_commandBuffers.size();
+			m_id = oldSize / m_window.getSwapchain()->getImageCount(); // Set ID to number of already initialized renderers of this mesh
+			mesh->m_commandBuffers.resize(oldSize + m_window.getSwapchain()->getImageCount()); // add commandBuffers to mesh
+			for (uint32_t j = oldSize; j < m_window.getSwapchain()->getImageCount(); j++) { // allocate commandBuffers
+				mesh->m_commandBuffers[j].allocate();
+			}
 		}
 
 		recordCommandBuffers();
@@ -108,7 +114,7 @@ namespace Zap {
 	void PBRenderer::recordCommandBuffers() {
 		for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
 			Mesh* mesh = MeshComponent::all[i].m_pMesh;
-			for (uint32_t i = 0; i < m_window.getSwapchain()->getImageCount(); i++) {
+			for (uint32_t i = m_id * m_window.getSwapchain()->getImageCount(); i < m_window.getSwapchain()->getImageCount(); i++) {
 				vk::CommandBuffer* cmd = mesh->getCommandBuffer(i);
 				cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
@@ -163,32 +169,34 @@ namespace Zap {
 	void PBRenderer::render(uint32_t cam) {
 		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
 
-		recordCommandBuffers();
+		//recordCommandBuffers();
+
+		m_ubo.view = Camera::all[cam].getView();
+		m_ubo.perspective = Camera::all[cam].getPerspective(m_viewport.width / m_viewport.height);
+		m_ubo.lightCount = Light::all.size();
+
+		void* rawData;
+		m_lightBuffer.map(&rawData);
+		{
+			for (uint32_t i = 0; i < Light::all.size(); i++) {
+				LightData* lightData = (LightData*)(rawData);
+				lightData[i].pos = Light::all[i].m_pActor->getTransformComponent()->getPos();
+				lightData[i].color = Light::all[i].getColor();
+			}
+
+		}
+		m_lightBuffer.unmap();
 
 		for (MeshComponent& meshComponent : MeshComponent::all) {
 			m_ubo.model = meshComponent.m_pActor->getTransform();
 			m_ubo.modelNormal = glm::transpose(glm::inverse(meshComponent.m_pActor->getTransform()));
-			m_ubo.view = Camera::all[cam].getView();
-			m_ubo.perspective = Camera::all[cam].getPerspective(m_viewport.width / m_viewport.height);
 			m_ubo.color = meshComponent.m_material.m_AlbedoColor;
-			m_ubo.lightCount = Light::all.size();
 
-			void* rawData; m_uniformBuffer.map(&rawData);
+			rawData; m_uniformBuffer.map(&rawData);
 			memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
 			m_uniformBuffer.unmap();
 
-			m_lightBuffer.map(&rawData);
-			{
-				for (uint32_t i = 0; i < Light::all.size(); i++) {
-					LightData* lightData = (LightData*)(rawData);
-					lightData[i].pos = Light::all[i].m_pActor->getTransformComponent()->getPos();
-					lightData[i].color = Light::all[i].getColor();
-				}
-
-			}
-			m_lightBuffer.unmap();
-
-			meshComponent.m_pMesh->getCommandBuffer(m_window.getCurrentImageIndex())->submit(m_renderComplete);
+			meshComponent.m_pMesh->m_commandBuffers[m_id * m_window.getSwapchain()->getImageCount() + m_window.getCurrentImageIndex()].submit(m_renderComplete);
 			vk::waitForFence(m_renderComplete);
 		}
 	}
