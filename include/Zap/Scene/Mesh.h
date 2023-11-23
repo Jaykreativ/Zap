@@ -29,6 +29,8 @@ namespace Zap {
 
         vk::Buffer* getIndexbuffer();
 
+        static Mesh* createMesh();
+
     private:
         bool m_isInit = false;
 

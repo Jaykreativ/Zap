@@ -108,4 +108,8 @@ namespace Zap {
 	vk::Buffer* Mesh::getIndexbuffer() {
 		return &m_indexBuffer;
 	}
+
+	Mesh* Mesh::createMesh() {
+		return &Mesh::all[Mesh().m_id];
+	}
 }

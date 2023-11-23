@@ -32,6 +32,14 @@ namespace Zap {
 		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_MESH, id });
 		return true;
 	}
+
+	bool Actor::addMeshes(std::vector<uint32_t> meshes) {
+		bool returnVal = true;
+		for (uint32_t mesh : meshes) {
+			returnVal &= addMesh(mesh);
+		}
+		return returnVal;
+	}
 	
 	bool Actor::addPhysics(PhysicsType type, Shape shape) {
 		uint32_t id = PhysicsComponent(this, type, shape).getID();

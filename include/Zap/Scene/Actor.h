@@ -21,6 +21,7 @@ namespace Zap {
 
         bool addTransform(glm::mat4 transform);
         bool addMesh(uint32_t mesh);
+        bool addMeshes(std::vector<uint32_t> meshes);
         bool addPhysics(PhysicsType type, Shape shape);
         bool addLight(glm::vec3 color);
         bool addCamera(glm::vec3 offset);
