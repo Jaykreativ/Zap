@@ -9,17 +9,19 @@ namespace Zap {
 		all.back().init();
 	}
 
-	Mesh::~Mesh() {
-		if (!m_isInit) return;
-		m_isInit = false;
-
-		m_vertexBuffer.~Buffer();
-		m_indexBuffer.~Buffer();
-	}
+	Mesh::~Mesh() {}
 
 	void Mesh::init() {
 		if (m_isInit) return;
 		m_isInit = true;
+	}
+
+	void Mesh::destroy() {
+		if (!m_isInit) return;
+		m_isInit = false;
+
+		m_vertexBuffer.destroy();
+		m_indexBuffer.destroy();
 	}
 
 	void Mesh::load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
@@ -87,8 +89,8 @@ namespace Zap {
 		m_indexBuffer.init(); m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		m_indexBuffer.uploadData(&indexStgBuffer);
 
-		vertexStgBuffer.~Buffer();
-		indexStgBuffer.~Buffer();
+		vertexStgBuffer.destroy();
+		indexStgBuffer.destroy();
 	}
 
 	uint32_t Mesh::getId() {

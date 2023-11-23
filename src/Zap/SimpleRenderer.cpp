@@ -14,7 +14,7 @@ namespace Zap {
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
-		m_uniformBuffer.~Buffer();
+		m_uniformBuffer.destroy();
 	}
 
 	void SimpleRenderer::init() {

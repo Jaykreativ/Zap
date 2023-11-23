@@ -67,8 +67,11 @@ namespace Zap {
 		mesh->m_indexBuffer.init(); mesh->m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		mesh->m_indexBuffer.uploadData(&indexStgBuffer);
 
-		vertexStgBuffer.~Buffer();
-		indexStgBuffer.~Buffer();
+		vertexStgBuffer.destroy();
+		indexStgBuffer.destroy();
+
+		std::cout << "mesh->m_vertexBuffer: " << mesh->m_vertexBuffer << "\n";
+		std::cout << "mesh->m_indexBuffer: " << mesh->m_indexBuffer << "\n";
 
 		std::vector<uint32_t> meshIds = { mesh->m_id };
 		return meshIds;

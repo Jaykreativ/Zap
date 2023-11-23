@@ -17,10 +17,15 @@ namespace Zap {
 		vk::destroyFence(m_renderComplete);
 		vk::destroySemaphore(m_semaphoreRenderComplete);
 
+		for (Mesh& mesh : Mesh::all)
+			for (uint32_t j = mesh.m_commandBuffers.size(); j < m_window.getSwapchain()->getImageCount(); j++)
+				mesh.m_commandBuffers[j].free();
+
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
-		m_uniformBuffer.~Buffer();
+		m_uniformBuffer.destroy();
+		m_lightBuffer.destroy();
 	}
 
 	void PBRenderer::init() {
@@ -100,7 +105,7 @@ namespace Zap {
 			auto oldSize = mesh.m_commandBuffers.size();
 			m_id = oldSize / m_window.getSwapchain()->getImageCount(); // Set ID to number of already initialized renderers of this mesh
 			mesh.m_commandBuffers.resize(oldSize + m_window.getSwapchain()->getImageCount()); // add commandBuffers to mesh
-			for (uint32_t j = oldSize; j < m_window.getSwapchain()->getImageCount(); j++) { // allocate commandBuffers
+			for (uint32_t j = oldSize; j < (m_id + 1)*m_window.getSwapchain()->getImageCount(); j++) { // allocate commandBuffers
 				mesh.m_commandBuffers[j].allocate();
 			}
 		}
@@ -112,7 +117,7 @@ namespace Zap {
 
 	void PBRenderer::recordCommandBuffers() {
 		for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
-			Mesh* mesh = &Mesh::all[MeshComponent::all[i].m_mesh];//TODO find out bug. compare mesh ids and validate them.
+			Mesh* mesh = &Mesh::all[MeshComponent::all[i].m_mesh]; //TODO find out bug. compare mesh ids and validate them.
 			for (uint32_t i = m_id * m_window.getSwapchain()->getImageCount(); i < (m_id+1) * m_window.getSwapchain()->getImageCount(); i++) {
 				vk::CommandBuffer* cmd = mesh->getCommandBuffer(i);
 				cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
@@ -121,7 +126,7 @@ namespace Zap {
 				renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 				renderPassBeginInfo.pNext = nullptr;
 				renderPassBeginInfo.renderPass = *m_window.getRenderPass();
-				renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(i);
+				renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(i- m_id * m_window.getSwapchain()->getImageCount());
 				VkRect2D renderArea{};
 				int32_t restX = m_window.getWidth() - (m_scissor.extent.width + m_scissor.offset.x);
 				renderArea.offset.x = std::max<int32_t>(0, m_window.getWidth() - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
@@ -149,9 +154,9 @@ namespace Zap {
 				vkCmdSetScissor(*cmd, 0, 1, &renderArea);
 
 				VkDeviceSize offsets[] = { 0 };
-				VkBuffer vertexBuffer = *mesh->getVertexBuffer();
+				VkBuffer vertexBuffer = mesh->m_vertexBuffer;
 				vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
-				vkCmdBindIndexBuffer(*cmd, *mesh->getIndexbuffer(), 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindIndexBuffer(*cmd, mesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 				VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
 				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
@@ -167,8 +172,6 @@ namespace Zap {
 
 	void PBRenderer::render(uint32_t cam) {
 		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
-
-		//recordCommandBuffers();
 
 		m_ubo.view = Camera::all[cam].getView();
 		m_ubo.perspective = Camera::all[cam].getPerspective(m_viewport.width / m_viewport.height);

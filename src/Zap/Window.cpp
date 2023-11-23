@@ -20,6 +20,8 @@ namespace Zap {
 		m_isInit = false;
 
 		vk::destroyFence(m_imageAvailable);
+		for (uint32_t i = 0; i < m_swapchain.getImageCount(); i++) m_clearCommandBuffers[i].free();
+		m_clearDepthStencilCommandBuffer.free();
 		for (int i = 0; i < m_framebuffers.size(); i++) m_framebuffers[i].~Framebuffer();
 		m_renderPass.~RenderPass();
 		m_depthImage.~Image();
