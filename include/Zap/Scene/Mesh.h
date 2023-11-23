@@ -19,6 +19,8 @@ namespace Zap {
         void load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray);
         void load(const char* modelPath);
 
+        uint32_t getId();
+
         vk::CommandBuffer* getCommandBuffer(int index);
 
         vk::Buffer* getVertexBuffer();
@@ -39,6 +41,7 @@ namespace Zap {
         friend class Base;
         friend class Renderer;
         friend class PBRenderer;
+        friend class ModelLoader;
     };
 }
 

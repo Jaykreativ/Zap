@@ -91,6 +91,10 @@ namespace Zap {
 		indexStgBuffer.~Buffer();
 	}
 
+	uint32_t Mesh::getId() {
+		return m_id;
+	}
+
 	vk::CommandBuffer* Mesh::getCommandBuffer(int index) {
 		return &m_commandBuffers[index];
 	}
