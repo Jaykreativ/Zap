@@ -6,6 +6,8 @@
 #include "Zap/Scene/Camera.h"
 
 namespace Zap {
+	VkSemaphore PBRenderer::m_staticSemaphore = VK_NULL_HANDLE;
+
 	PBRenderer::PBRenderer(Window& window)
 		: Renderer(window) {}
 	PBRenderer::~PBRenderer() {
@@ -15,7 +17,8 @@ namespace Zap {
 		vk::allQueuesWaitIdle();
 
 		vk::destroyFence(m_renderComplete);
-		vk::destroySemaphore(m_semaphoreRenderComplete);
+
+		for (VkSemaphore semaphore : m_semaphores) vk::destroySemaphore(semaphore);
 
 		for (Mesh& mesh : Mesh::all)
 			for (uint32_t j = mesh.m_commandBuffers.size(); j < m_window.getSwapchain()->getImageCount(); j++)
@@ -99,8 +102,6 @@ namespace Zap {
 		m_pipeline.enableDepthTest();
 		m_pipeline.init();
 
-		vk::createSemaphore(&m_semaphoreRenderComplete);
-
 		for (Mesh& mesh : Mesh::all) { // initialize all meshes
 			auto oldSize = mesh.m_commandBuffers.size();
 			m_id = oldSize / m_window.getSwapchain()->getImageCount(); // Set ID to number of already initialized renderers of this mesh
@@ -111,6 +112,11 @@ namespace Zap {
 		}
 
 		recordCommandBuffers();
+
+		m_semaphores.resize(MeshComponent::all.size());
+		for (VkSemaphore& semaphore : m_semaphores) {
+			vk::createSemaphore(&semaphore);
+		}
 
 		vk::createFence(&m_renderComplete);
 	}
@@ -180,8 +186,8 @@ namespace Zap {
 		void* rawData;
 		m_lightBuffer.map(&rawData);
 		{
+			LightData* lightData = (LightData*)(rawData);
 			for (uint32_t i = 0; i < Light::all.size(); i++) {
-				LightData* lightData = (LightData*)(rawData);
 				lightData[i].pos = Light::all[i].m_pActor->getTransformComponent()->getPos();
 				lightData[i].color = Light::all[i].getColor();
 			}
@@ -189,7 +195,8 @@ namespace Zap {
 		}
 		m_lightBuffer.unmap();
 
-		for (MeshComponent& meshComponent : MeshComponent::all) {
+		for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
+			MeshComponent& meshComponent = MeshComponent::all[i];
 			m_ubo.model = meshComponent.m_pActor->getTransform();
 			m_ubo.modelNormal = glm::transpose(glm::inverse(meshComponent.m_pActor->getTransform()));
 			m_ubo.color = meshComponent.m_material.m_AlbedoColor;
@@ -198,8 +205,27 @@ namespace Zap {
 			memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
 			m_uniformBuffer.unmap();
 
-			Mesh::all[meshComponent.m_mesh].m_commandBuffers[m_id * m_window.getSwapchain()->getImageCount() + m_window.getCurrentImageIndex()].submit(m_renderComplete);
-			vk::waitForFence(m_renderComplete);
+			vk::CommandBuffer* cmd = &Mesh::all[meshComponent.m_mesh].m_commandBuffers[m_id * m_window.getSwapchain()->getImageCount() + m_window.getCurrentImageIndex()];
+
+			VkQueue queue;
+			VkPipelineStageFlags stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			if (i == 0) {
+				if (m_staticSemaphore == VK_NULL_HANDLE) {
+					cmd->submit(&queue, VK_NULL_HANDLE, 0, nullptr, nullptr, 1, &m_semaphores[i]);
+				}
+				else {
+					cmd->submit(&queue, VK_NULL_HANDLE, 1, &m_staticSemaphore, &stage, 1, &m_semaphores[i]);
+				}
+			}
+			else {
+				if (i == m_semaphores.size() - 1) {
+					cmd->submit(&queue, VK_NULL_HANDLE, 1, &m_semaphores[i - 1], &stage, 1, &m_semaphores[i]);
+					m_staticSemaphore = m_semaphores[i];
+				}
+				else {
+					cmd->submit(&queue, VK_NULL_HANDLE, 1, &m_semaphores[i-1], &stage, 1, &m_semaphores[i]);
+				}
+			}
 		}
 	}
 }

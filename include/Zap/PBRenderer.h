@@ -27,12 +27,16 @@ namespace Zap {
 		vk::Pipeline m_pipeline = vk::Pipeline();
 
 		//Semaphores
-		VkSemaphore m_semaphoreRenderComplete;
+		std::vector<VkSemaphore> m_semaphores;
+		static VkSemaphore m_staticSemaphore;
 
 		//Fences
 		VkFence m_renderComplete;
 
 		//Buffers
+		uint32_t m_commandBufferCount;
+		vk::CommandBuffer* m_commandBuffers;
+
 		struct UniformBufferObject {// definition of the uniform buffer layout
 			glm::mat4 model;
 			glm::mat4 modelNormal;
@@ -51,6 +55,8 @@ namespace Zap {
 		};
 
 		vk::Buffer m_lightBuffer = vk::Buffer();
+
+		friend class Window;
 	};
 }
 
