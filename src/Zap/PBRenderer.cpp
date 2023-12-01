@@ -26,6 +26,7 @@ namespace Zap {
 		m_vertexShader.~Shader();
 		m_uniformBuffer.destroy();
 		m_lightBuffer.destroy();
+		m_perMeshBuffer.destroy();
 	}
 
 	void PBRenderer::init() {
@@ -38,6 +39,9 @@ namespace Zap {
 
 		m_lightBuffer = vk::Buffer(sizeof(LightData)*Light::all.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+		m_perMeshBuffer = vk::Buffer(sizeof(PerMeshData)*MeshComponent::all.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		m_perMeshBuffer.init(); m_perMeshBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		/*DescriptorPool*/ {
 			VkDescriptorBufferInfo uniformBufferInfo;
@@ -62,9 +66,21 @@ namespace Zap {
 			lightBufferDescriptor.binding = 1;
 			lightBufferDescriptor.pBufferInfo = &lightBufferInfo;
 
+			VkDescriptorBufferInfo perMeshBufferInfo;
+			perMeshBufferInfo.buffer = m_perMeshBuffer;
+			perMeshBufferInfo.offset = 0;
+			perMeshBufferInfo.range = m_perMeshBuffer.getSize();
+
+			vk::Descriptor perMeshBufferDescriptor{};
+			perMeshBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			perMeshBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT;
+			perMeshBufferDescriptor.binding = 2;
+			perMeshBufferDescriptor.pBufferInfo = &perMeshBufferInfo;
+
 			m_descriptorPool.addDescriptorSet();
 			m_descriptorPool.addDescriptor(uniformBufferDescriptor, 0);
 			m_descriptorPool.addDescriptor(lightBufferDescriptor, 0);
+			m_descriptorPool.addDescriptor(perMeshBufferDescriptor, 0);
 			m_descriptorPool.init();
 		}
 
@@ -97,6 +113,14 @@ namespace Zap {
 		m_pipeline.addScissor(m_scissor);
 		m_pipeline.setRenderPass(*m_window.getRenderPass());
 		m_pipeline.enableDepthTest();
+
+		VkPushConstantRange pushConstantRange{};
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = sizeof(uint32_t);
+
+		m_pipeline.addPushConstantRange(pushConstantRange);
+		
 		m_pipeline.init();
 
 		vk::createSemaphore(&m_semaphoreRenderComplete);
@@ -161,6 +185,9 @@ namespace Zap {
 				VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
 				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
 
+				uint32_t constant = 1;
+				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &constant);
+
 				vkCmdDrawIndexed(*cmd, mesh->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
 
 				vkCmdEndRenderPass(*cmd);
@@ -180,14 +207,25 @@ namespace Zap {
 		void* rawData;
 		m_lightBuffer.map(&rawData);
 		{
+			LightData* lightData = (LightData*)(rawData);
 			for (uint32_t i = 0; i < Light::all.size(); i++) {
-				LightData* lightData = (LightData*)(rawData);
 				lightData[i].pos = Light::all[i].m_pActor->getTransformComponent()->getPos();
 				lightData[i].color = Light::all[i].getColor();
 			}
 
 		}
 		m_lightBuffer.unmap();
+
+		m_perMeshBuffer.map(&rawData);
+		{
+			PerMeshData* perMeshData = (PerMeshData*)(rawData);
+			for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
+				perMeshData->transform = MeshComponent::all[i].m_pActor->getTransform();
+				perMeshData->normalTransform = glm::transpose(glm::inverse(perMeshData->transform));
+				perMeshData->color = glm::vec4(MeshComponent::all[i].m_material.m_AlbedoColor, 0);
+			}
+		}
+		m_perMeshBuffer.unmap();
 
 		for (MeshComponent& meshComponent : MeshComponent::all) {
 			m_ubo.model = meshComponent.m_pActor->getTransform();

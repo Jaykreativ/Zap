@@ -51,6 +51,14 @@ namespace Zap {
 		};
 
 		vk::Buffer m_lightBuffer = vk::Buffer();
+
+		struct PerMeshData {
+			glm::mat4 transform;
+			glm::mat4 normalTransform;
+			glm::vec4 color;
+		};
+
+		vk::Buffer m_perMeshBuffer;
 	};
 }
 
