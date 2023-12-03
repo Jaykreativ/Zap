@@ -33,6 +33,9 @@ namespace Zap {
 		VkFence m_renderComplete;
 
 		//Buffers
+		uint32_t m_commandBufferCount;
+		vk::CommandBuffer* m_commandBuffers;
+
 		struct UniformBufferObject {// definition of the uniform buffer layout
 			glm::mat4 model;
 			glm::mat4 modelNormal;

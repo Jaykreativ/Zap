@@ -15,7 +15,6 @@ namespace Zap {
 		vk::allQueuesWaitIdle();
 
 		vk::destroyFence(m_renderComplete);
-		vk::destroySemaphore(m_semaphoreRenderComplete);
 
 		for (Mesh& mesh : Mesh::all)
 			for (uint32_t j = mesh.m_commandBuffers.size(); j < m_window.getSwapchain()->getImageCount(); j++)
@@ -122,8 +121,6 @@ namespace Zap {
 		m_pipeline.addPushConstantRange(pushConstantRange);
 		
 		m_pipeline.init();
-
-		vk::createSemaphore(&m_semaphoreRenderComplete);
 
 		for (Mesh& mesh : Mesh::all) { // initialize all meshes
 			auto oldSize = mesh.m_commandBuffers.size();
