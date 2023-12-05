@@ -41,8 +41,14 @@ namespace Zap {
 		return returnVal;
 	}
 	
-	bool Actor::addPhysics(PhysicsType type, Shape shape) {
-		uint32_t id = PhysicsComponent(this, type, shape).getID();
+	bool Actor::addRigidDynamic(Shape shape) {
+		uint32_t id = RigidDynamicComponent(this, shape).getID();
+		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_PHYSICS, id });
+		return true;
+	}
+
+	bool Actor::addRigidStatic(Shape shape) {
+		uint32_t id = RigidStaticComponent(this, shape).getID();
 		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_PHYSICS, id });
 		return true;
 	}

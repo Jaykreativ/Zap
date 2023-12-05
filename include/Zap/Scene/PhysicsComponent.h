@@ -9,16 +9,10 @@ namespace Zap {
 
 	class PhysicsComponent : public Component {
 	public:
-		PhysicsComponent(Actor* pActor, Shape shape);
+		PhysicsComponent(Actor* pActor);
 
 	protected:
 		physx::PxActor* m_pxActor;
-
-		static std::vector<PhysicsComponent> all;
-
-		friend class Base;
-		friend class Scene;
-		friend class Actor;
 	};
 
 	class RigidBodyComponent : public PhysicsComponent {
@@ -29,6 +23,21 @@ namespace Zap {
 	class RigidDynamicComponent : public RigidBodyComponent {
 	public:
 		RigidDynamicComponent(Actor* pActor, Shape shape);
+
+	private:
+		static std::vector<RigidDynamicComponent> all;
+
+		friend class Base;
+	};
+
+	class RigidStaticComponent : public RigidBodyComponent {
+	public:
+		RigidStaticComponent(Actor* pActor, Shape shape);
+
+	private:
+		static std::vector<RigidStaticComponent> all;
+
+		friend class Base;
 	};
 }
 

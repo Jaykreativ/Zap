@@ -40,6 +40,7 @@ namespace Zap {
         friend class PhysicsComponent;
         friend class RigidBodyComponent;
         friend class RigidDynamicComponent;
+        friend class RigidStaticComponent;
         friend class Shape;
         friend class PhysicsMaterial;
     };

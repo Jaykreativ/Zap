@@ -79,8 +79,8 @@ namespace Zap {
 	void Base::terminate() {
 		for (Mesh mesh : Mesh::all) mesh.destroy();
 
-		for (PhysicsComponent pc : PhysicsComponent::all) pc.m_pxActor->release();
-
+		for (PhysicsComponent& pc : RigidDynamicComponent::all) pc.m_pxActor->release();
+		
 		m_pxPhysics->release();
 		m_pxFoundation->release();
 

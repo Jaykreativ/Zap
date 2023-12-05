@@ -19,7 +19,7 @@ namespace Zap {
         for (uint32_t i = 0; i < numActors; i++) {
             auto pxActor = actors[i];
             PhysicsComponent* pComponent = &PhysicsComponent::all[(uint64_t)pxActor->userData];
-            switch (pComponent->m_type) {
+            switch (pComponent->type()) {
             case PHYSICS_TYPE_RIGID_DYNAMIC: {
                 physx::PxRigidDynamic* pxRigidDynamic = (physx::PxRigidDynamic*)pxActor;
                 auto mat = physx::PxMat44(pxRigidDynamic->getGlobalPose());
