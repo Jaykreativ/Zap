@@ -138,6 +138,11 @@ namespace Zap {
 			vk::CommandBuffer* cmd = &m_commandBuffers[i];
 			cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
+			vk::cmdChangeImageLayout(*cmd, m_window.m_swapchain.getImage(m_window.m_currentImageIndex), m_window.m_swapchain.getImageSubresourceRange(),
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+			);
+
 			VkRenderPassBeginInfo renderPassBeginInfo;
 			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			renderPassBeginInfo.pNext = nullptr;

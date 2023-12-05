@@ -189,14 +189,15 @@ namespace Zap {
 		if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED)) return;
 		if (m_height <= 0) return;
 
-		vk::changeImageLayout(m_swapchain.getImage(m_currentImageIndex), m_swapchain.getImageSubresourceRange(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
+		vk::changeImageLayout(m_swapchain.getImage(m_currentImageIndex), m_swapchain.getImageSubresourceRange(),
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+		);
 
 		vk::queuePresent(vkUtils::queueHandler::getQueue(), m_swapchain, m_currentImageIndex);
 
 		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
 		vk::waitForFence(m_imageAvailable);
-
-		vk::changeImageLayout(m_swapchain.getImage(m_currentImageIndex), m_swapchain.getImageSubresourceRange(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 	}
 
 	bool Window::shouldClose() {

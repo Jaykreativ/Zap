@@ -19,8 +19,10 @@ namespace Zap {
 
 		Assimp::Importer importer;
 		const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate);
-		std::cout << modelPath << " -> NumMeshes: " << scene->mNumMeshes << "\n";
 
+#ifdef _DEBUG
+		std::cout << modelPath << " -> NumMeshes: " << scene->mNumMeshes << "\n";
+#endif
 
 		for (uint32_t i = 0; i < scene->mNumMeshes; i++) {
 			meshIds.push_back(loadMesh(scene->mMeshes[i]));
@@ -44,7 +46,6 @@ namespace Zap {
 		uint32_t highestIndex = 0;
 		for (uint32_t i = 0; i < scene->mNumMeshes; i++) {
 			aiMesh* mesh = scene->mMeshes[i];
-			//memcpy(vertexData, mesh->mVertices, mesh->mNumVertices * sizeof(Vertex));
 			for (uint32_t j = 0; j < mesh->mNumVertices; j++) {
 				aiVector3D pos = mesh->mVertices[j];
 				aiVector3D normal = mesh->mNormals[j];
@@ -76,9 +77,6 @@ namespace Zap {
 
 		vertexStgBuffer.destroy();
 		indexStgBuffer.destroy();
-
-		std::cout << "mesh->m_vertexBuffer: " << mesh->m_vertexBuffer << "\n";
-		std::cout << "mesh->m_indexBuffer: " << mesh->m_indexBuffer << "\n";
 
 		return meshIds;
 	}
