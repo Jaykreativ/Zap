@@ -16,9 +16,9 @@ namespace Zap {
 
 		vk::destroyFence(m_renderComplete);
 
-		for (Mesh& mesh : Mesh::all)
-			for (uint32_t j = mesh.m_commandBuffers.size(); j < m_window.getSwapchain()->getImageCount(); j++)
-				mesh.m_commandBuffers[j].free();
+		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
+			m_commandBuffers[i].free();
+		}
 
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
@@ -122,13 +122,10 @@ namespace Zap {
 		
 		m_pipeline.init();
 
-		for (Mesh& mesh : Mesh::all) { // initialize all meshes
-			auto oldSize = mesh.m_commandBuffers.size();
-			m_id = oldSize / m_window.getSwapchain()->getImageCount(); // Set ID to number of already initialized renderers of this mesh
-			mesh.m_commandBuffers.resize(oldSize + m_window.getSwapchain()->getImageCount()); // add commandBuffers to mesh
-			for (uint32_t j = oldSize; j < (m_id + 1)*m_window.getSwapchain()->getImageCount(); j++) { // allocate commandBuffers
-				mesh.m_commandBuffers[j].allocate();
-			}
+		m_commandBufferCount = m_window.m_swapchain.getImageCount();
+		m_commandBuffers = new vk::CommandBuffer[m_commandBufferCount];
+		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
+			m_commandBuffers[i].allocate();
 		}
 
 		recordCommandBuffers();
@@ -137,42 +134,48 @@ namespace Zap {
 	}
 
 	void PBRenderer::recordCommandBuffers() {
-		for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
-			Mesh* mesh = &Mesh::all[MeshComponent::all[i].m_mesh]; //TODO find out bug. compare mesh ids and validate them.
-			for (uint32_t i = m_id * m_window.getSwapchain()->getImageCount(); i < (m_id+1) * m_window.getSwapchain()->getImageCount(); i++) {
-				vk::CommandBuffer* cmd = mesh->getCommandBuffer(i);
-				cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
+			vk::CommandBuffer* cmd = &m_commandBuffers[i];
+			cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
-				VkRenderPassBeginInfo renderPassBeginInfo;
-				renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-				renderPassBeginInfo.pNext = nullptr;
-				renderPassBeginInfo.renderPass = *m_window.getRenderPass();
-				renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(i- m_id * m_window.getSwapchain()->getImageCount());
-				VkRect2D renderArea{};
-				int32_t restX = m_window.getWidth() - (m_scissor.extent.width + m_scissor.offset.x);
-				renderArea.offset.x = std::max<int32_t>(0, m_window.getWidth() - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
-				renderArea.extent.width = std::min<int32_t>(m_window.getWidth() - (m_scissor.offset.x + restX), m_window.getWidth());
-				int32_t restY = m_window.getHeight() - (m_scissor.extent.height + m_scissor.offset.y);
-				renderArea.offset.y = std::max<int32_t>(0, m_window.getHeight() - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
-				renderArea.extent.height = std::min<int32_t>(m_window.getHeight() - (m_scissor.offset.y + restY), m_window.getHeight());
-				renderPassBeginInfo.renderArea = renderArea;
-				renderPassBeginInfo.clearValueCount = 0;
-				renderPassBeginInfo.pClearValues = nullptr;
+			vk::cmdChangeImageLayout(*cmd, m_window.m_swapchain.getImage(m_window.m_currentImageIndex), m_window.m_swapchain.getImageSubresourceRange(),
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+			);
 
-				vkCmdBeginRenderPass(*cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			VkRenderPassBeginInfo renderPassBeginInfo;
+			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassBeginInfo.pNext = nullptr;
+			renderPassBeginInfo.renderPass = *m_window.getRenderPass();
+			renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(i - m_id * m_window.getSwapchain()->getImageCount());
+			VkRect2D renderArea{};
+			int32_t restX = m_window.getWidth() - (m_scissor.extent.width + m_scissor.offset.x);
+			renderArea.offset.x = std::max<int32_t>(0, m_window.getWidth() - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
+			renderArea.extent.width = std::min<int32_t>(m_window.getWidth() - (m_scissor.offset.x + restX), m_window.getWidth());
+			int32_t restY = m_window.getHeight() - (m_scissor.extent.height + m_scissor.offset.y);
+			renderArea.offset.y = std::max<int32_t>(0, m_window.getHeight() - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
+			renderArea.extent.height = std::min<int32_t>(m_window.getHeight() - (m_scissor.offset.y + restY), m_window.getHeight());
+			renderPassBeginInfo.renderArea = renderArea;
+			renderPassBeginInfo.clearValueCount = 0;
+			renderPassBeginInfo.pClearValues = nullptr;
 
-				vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+			vkCmdBeginRenderPass(*cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-				VkViewport renderAreaViewport{};
-				renderAreaViewport.x = renderArea.offset.x;
-				renderAreaViewport.y = renderArea.offset.y;
-				renderAreaViewport.width = renderArea.extent.width;
-				renderAreaViewport.height = renderArea.extent.height;
-				renderAreaViewport.minDepth = 0;
-				renderAreaViewport.maxDepth = 1;
+			vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 
-				vkCmdSetViewport(*cmd, 0, 1, &renderAreaViewport);
-				vkCmdSetScissor(*cmd, 0, 1, &renderArea);
+			VkViewport renderAreaViewport{};
+			renderAreaViewport.x = renderArea.offset.x;
+			renderAreaViewport.y = renderArea.offset.y;
+			renderAreaViewport.width = renderArea.extent.width;
+			renderAreaViewport.height = renderArea.extent.height;
+			renderAreaViewport.minDepth = 0;
+			renderAreaViewport.maxDepth = 1;
+
+			vkCmdSetViewport(*cmd, 0, 1, &renderAreaViewport);
+			vkCmdSetScissor(*cmd, 0, 1, &renderArea);
+
+			for (MeshComponent& meshCmp : MeshComponent::all) {
+				Mesh* mesh = &Mesh::all[meshCmp.m_mesh];
 
 				VkDeviceSize offsets[] = { 0 };
 				VkBuffer vertexBuffer = mesh->m_vertexBuffer;
@@ -182,15 +185,15 @@ namespace Zap {
 				VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
 				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
 
-				uint32_t constant = 1;
-				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &constant);
+				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &meshCmp.m_id);
 
 				vkCmdDrawIndexed(*cmd, mesh->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
-
-				vkCmdEndRenderPass(*cmd);
-
-				cmd->end();
 			}
+
+
+			vkCmdEndRenderPass(*cmd);
+
+			cmd->end();
 		}
 	}
 
@@ -201,7 +204,10 @@ namespace Zap {
 		m_ubo.perspective = Camera::all[cam].getPerspective(m_viewport.width / m_viewport.height);
 		m_ubo.lightCount = Light::all.size();
 
-		void* rawData;
+		void* rawData; m_uniformBuffer.map(&rawData);
+		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
+		m_uniformBuffer.unmap();
+
 		m_lightBuffer.map(&rawData);
 		{
 			LightData* lightData = (LightData*)(rawData);
@@ -217,24 +223,14 @@ namespace Zap {
 		{
 			PerMeshData* perMeshData = (PerMeshData*)(rawData);
 			for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
-				perMeshData->transform = MeshComponent::all[i].m_pActor->getTransform();
-				perMeshData->normalTransform = glm::transpose(glm::inverse(perMeshData->transform));
-				perMeshData->color = glm::vec4(MeshComponent::all[i].m_material.m_AlbedoColor, 0);
+				perMeshData[i].transform = MeshComponent::all[i].m_pActor->getTransform();
+				perMeshData[i].normalTransform = glm::transpose(glm::inverse(perMeshData[i].transform));
+				perMeshData[i].color = glm::vec4(MeshComponent::all[i].m_material.m_AlbedoColor, 0);
 			}
 		}
 		m_perMeshBuffer.unmap();
 
-		for (MeshComponent& meshComponent : MeshComponent::all) {
-			m_ubo.model = meshComponent.m_pActor->getTransform();
-			m_ubo.modelNormal = glm::transpose(glm::inverse(meshComponent.m_pActor->getTransform()));
-			m_ubo.color = meshComponent.m_material.m_AlbedoColor;
-
-			rawData; m_uniformBuffer.map(&rawData);
-			memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
-			m_uniformBuffer.unmap();
-
-			Mesh::all[meshComponent.m_mesh].m_commandBuffers[m_id * m_window.getSwapchain()->getImageCount() + m_window.getCurrentImageIndex()].submit(m_renderComplete);
-			vk::waitForFence(m_renderComplete);
-		}
+		m_commandBuffers[m_window.m_currentImageIndex].submit(m_renderComplete);
+		vk::waitForFence(m_renderComplete);
 	}
 }

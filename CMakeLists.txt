@@ -19,9 +19,11 @@ file(GLOB Imgui_SRC
     "Dependencies/imgui/backends/imgui_impl_glfw.cpp"
     "Dependencies/imgui/backends/imgui_impl_glfw.h"
 )
+string(TOLOWER ${CMAKE_BUILD_TYPE} PHYSX_BUILD_TYPE)
 file(GLOB PhysX_libs
-    "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.mt/debug/*.lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.md/${PHYSX_BUILD_TYPE}/*.lib"
 )
+
 add_library(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Imgui_SRC})
 
 source_group("Source" FILES ${Zap_SRC})
@@ -30,12 +32,13 @@ source_group("Shader" FILES ${Zap_Shader_SRC})
 source_group("Imgui" FILES ${Imgui_SRC})
 
 set(${BUILD_SHARED_LIBS} false)
-
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Zap)
-add_subdirectory(Dependencies/VulkanFramework)
-add_subdirectory(Dependencies/glfw)
-add_subdirectory(Dependencies/glm)
-add_subdirectory(Dependencies/assimp)
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/glfw)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/glm)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/assimp)
+
 target_link_libraries(Zap PUBLIC VulkanFramework glfw glm assimp $ENV{VULKAN_SDK}/Lib/vulkan-1.lib ${PhysX_libs})
 target_include_directories(
     Zap PUBLIC
