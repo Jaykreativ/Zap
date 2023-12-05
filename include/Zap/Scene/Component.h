@@ -42,6 +42,8 @@ namespace Zap {
 	protected:
 		uint32_t m_id;
 		Actor* m_pActor;
+
+		friend class Scene;
 	};
 }
 

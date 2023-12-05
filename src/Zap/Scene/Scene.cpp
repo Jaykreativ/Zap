@@ -18,13 +18,11 @@ namespace Zap {
         auto actors = base->m_pxScene->getActiveActors(numActors);
         for (uint32_t i = 0; i < numActors; i++) {
             auto pxActor = actors[i];
-            PhysicsComponent* pComponent = &PhysicsComponent::all[(uint64_t)pxActor->userData];
-            switch (pComponent->type()) {
-            case PHYSICS_TYPE_RIGID_DYNAMIC: {
-                physx::PxRigidDynamic* pxRigidDynamic = (physx::PxRigidDynamic*)pxActor;
-                auto mat = physx::PxMat44(pxRigidDynamic->getGlobalPose());
-                pComponent->m_pActor->setTransform(*((glm::mat4*)&mat));
-                break;
+            switch (pxActor->getType()) {
+            case physx::PxActorType::eRIGID_DYNAMIC: {
+                auto cmp = &RigidDynamicComponent::all[(uint32_t)pxActor->userData];
+                auto mat = physx::PxMat44(((physx::PxRigidDynamic*)pxActor)->getGlobalPose());
+                cmp->m_pActor->setTransform(*((glm::mat4*)&mat));
             }
             }
         }

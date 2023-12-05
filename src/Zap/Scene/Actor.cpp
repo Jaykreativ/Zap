@@ -148,7 +148,7 @@ namespace Zap {
 		}
 	}
 
-	PhysicsComponent* Actor::getPhysicsComponent(uint32_t index) {
+	/*PhysicsComponent* Actor::getPhysicsComponent(uint32_t index) {// TODO rewrite
 		int num = 0;
 		for (ComponentAccess cA : m_components) {
 			if (cA.type == COMPONENT_TYPE_PHYSICS) {
@@ -158,7 +158,7 @@ namespace Zap {
 				num++;
 			}
 		}
-	}
+	}*/
 
 	Light* Actor::getLightComponent(uint32_t index) {
 		int num = 0;

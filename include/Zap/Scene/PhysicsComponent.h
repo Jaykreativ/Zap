@@ -13,6 +13,8 @@ namespace Zap {
 
 	protected:
 		physx::PxActor* m_pxActor;
+
+		friend class Base;
 	};
 
 	class RigidBodyComponent : public PhysicsComponent {
@@ -28,6 +30,7 @@ namespace Zap {
 		static std::vector<RigidDynamicComponent> all;
 
 		friend class Base;
+		friend class Scene;
 	};
 
 	class RigidStaticComponent : public RigidBodyComponent {
