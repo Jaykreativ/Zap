@@ -42,7 +42,7 @@ namespace Zap {
     class Shape
     {
     public:
-        Shape(PhysicsGeometry geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform = glm::mat4(1));
+        Shape(PhysicsGeometry geometry, PhysicsMaterial material, bool isExclusive = false, glm::mat4 offsetTransform = glm::mat4(1));
         ~Shape();
         Shape(Shape& shape);
 

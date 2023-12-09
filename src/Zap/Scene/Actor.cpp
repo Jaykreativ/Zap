@@ -67,7 +67,7 @@ namespace Zap {
 		return true;
 	}
 
-	glm::mat4 Actor::getTransform() {
+	glm::mat4 Actor::getTransform() {// TODO cleanup Transform states
 		switch (m_transformState) {
 		case TRANSFORM_STATE_NONE:
 			return glm::mat4(1);

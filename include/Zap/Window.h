@@ -27,6 +27,10 @@ namespace Zap
 
 		void setKeyCallback(GLFWkeyfun callback);
 
+		void setMousebButtonCallback(GLFWmousebuttonfun mouseButtonCallback);
+
+		void setCursorPosCallback(GLFWcursorposfun cursorPosCallback);
+
 		void setResizeCallback(GLFWwindowsizefun callback);
 
 		void recordClearCommandBuffers();
@@ -72,7 +76,7 @@ namespace Zap
 		std::string m_title;
 
 		GLFWwindow *m_window;
-		GLFWwindowsizefun m_sizeCallback;
+		GLFWwindowsizefun m_sizeCallback = nullptr;
 
 		std::vector<Renderer*> m_renderers;
 

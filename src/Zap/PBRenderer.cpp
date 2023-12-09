@@ -142,11 +142,6 @@ namespace Zap {
 			vk::CommandBuffer* cmd = &m_commandBuffers[i];
 			cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
-			vk::cmdChangeImageLayout(*cmd, m_window.m_swapchain.getImage(m_window.m_currentImageIndex), m_window.m_swapchain.getImageSubresourceRange(),
-				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-			);
-
 			VkRenderPassBeginInfo renderPassBeginInfo;
 			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			renderPassBeginInfo.pNext = nullptr;
@@ -160,8 +155,14 @@ namespace Zap {
 			renderArea.offset.y = std::max<int32_t>(0, m_window.getHeight() - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
 			renderArea.extent.height = std::min<int32_t>(m_window.getHeight() - (m_scissor.offset.y + restY), m_window.getHeight());
 			renderPassBeginInfo.renderArea = renderArea;
-			renderPassBeginInfo.clearValueCount = 0;
-			renderPassBeginInfo.pClearValues = nullptr;
+			VkClearValue clearValue = { 0.1f, 0.1f, 0.1f, 1.0f };
+			VkClearValue depthClearValue = { 1.0f, 0 };
+			std::vector<VkClearValue> clearValues = {
+				clearValue,
+				depthClearValue
+			};
+			renderPassBeginInfo.clearValueCount = clearValues.size();
+			renderPassBeginInfo.pClearValues = clearValues.data();
 
 			vkCmdBeginRenderPass(*cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -234,6 +235,11 @@ namespace Zap {
 			}
 		}
 		m_perMeshBuffer.unmap();
+
+		vk::changeImageLayout(m_window.m_swapchain.getImage(m_window.m_currentImageIndex), m_window.m_swapchain.getImageSubresourceRange(),
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+		);
 
 		m_commandBuffers[m_window.m_currentImageIndex].submit(m_renderComplete);
 		vk::waitForFence(m_renderComplete);

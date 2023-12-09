@@ -56,6 +56,13 @@ namespace Zap {
 		m_swapchain.setSurface(m_surface);
 		m_swapchain.init();
 
+		for (uint32_t i = 0; i < m_swapchain.getImageCount(); i++) {
+			vk::changeImageLayout(m_swapchain.getImage(i), m_swapchain.getImageSubresourceRange(),
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+			);
+		}
+
 		/*Depth Image*/
 		m_depthImage = vk::Image();
 		m_depthImage.setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
@@ -76,7 +83,7 @@ namespace Zap {
 			colorAttachment.flags = 0;
 			colorAttachment.format = Zap::GlobalSettings::getColorFormat();
 			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -99,7 +106,7 @@ namespace Zap {
 			depthStencilAttachment.flags = 0;
 			depthStencilAttachment.format = Zap::GlobalSettings::getDepthStencilFormat();
 			depthStencilAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			depthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			depthStencilAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			depthStencilAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -191,7 +198,7 @@ namespace Zap {
 
 		vk::changeImageLayout(m_swapchain.getImage(m_currentImageIndex), m_swapchain.getImageSubresourceRange(),
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
 		);
 
 		vk::queuePresent(vkUtils::queueHandler::getQueue(), m_swapchain, m_currentImageIndex);
@@ -210,6 +217,14 @@ namespace Zap {
 
 	void Window::setKeyCallback(GLFWkeyfun callback) {
 		glfwSetKeyCallback(m_window, callback);
+	}
+
+	void Window::setMousebButtonCallback(GLFWmousebuttonfun mouseButtonCallback) {
+		glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
+	}
+
+	void Window::setCursorPosCallback(GLFWcursorposfun cursorPosCallback) {
+		glfwSetCursorPosCallback(m_window, cursorPosCallback);
 	}
 
 	void Window::setResizeCallback(GLFWwindowsizefun callback) {

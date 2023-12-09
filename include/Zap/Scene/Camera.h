@@ -12,11 +12,20 @@ namespace Zap {
 		Camera(Actor* pActor, glm::vec3 offset);
 		Camera(Actor* pActor);
 
+		void lookAtCenter();
+
+		void lookAtFront();
+
+		void setOffset(glm::mat4 offset);
+
+		glm::mat4 getOffset();
+
 		glm::mat4 getView();
 
 		glm::mat4 getPerspective(float aspect);
 	private:
-		glm::vec3 m_offset;
+		bool m_lookAtCenter = false;
+		glm::mat4 m_offset;
 
 		static std::vector<Camera> all;
 
