@@ -9,11 +9,6 @@ layout(location=2) in vec3 fragNormal;
 
 layout(location=0) out vec4 outColor;
 
-struct LightData {
-    vec3 pos;
-    vec3 color;
-};
-
 layout(binding=0) uniform UBO{
     mat4 model;
     mat4 modelNormal;
@@ -22,6 +17,11 @@ layout(binding=0) uniform UBO{
     vec3 color;
     uint lightCount;
 } ubo;
+
+struct LightData {
+    vec3 pos;
+    vec3 color;
+};
 
 layout(set=0, binding=1) readonly buffer LightBuffer{
     LightData data[];

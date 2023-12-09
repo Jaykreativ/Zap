@@ -12,7 +12,7 @@ layout(location=0) out vec3 fragColor;
 layout(location=1) out vec3 fragPos;
 layout(location=2) out vec3 fragNormal;
 
-layout(binding=0) uniform UBO {
+layout(binding=0) uniform UBO{
     mat4 model;
     mat4 modelNormal;
     mat4 view;
@@ -25,21 +25,21 @@ struct PerMeshData {
     mat4 transform;
     mat4 normalTransform;
     vec4 color;
-}
+};
 
-layout(set=0, binding=2) readonly buffer PerMeshBuffer {
+layout(set=0, binding=2) readonly buffer PerMeshBuffer{
     PerMeshData data[];
 } perMesh;
 
-layout( push_constant ) uniform constants {
+layout( push_constant ) uniform PushConstant {
     uint index;
-} PushConstant;
+}constants;
 
 void main(){
-    vec4 worldPos = ubo.model * vec4(vertPos, 1);
+    vec4 worldPos = perMesh.data[constants.index].transform * vec4(vertPos, 1);
     vec4 viewPos = ubo.view * worldPos;
     gl_Position = ubo.perspective * vec4(viewPos.x, -viewPos.y, viewPos.z, 1);
-    fragColor = perMesh.data[PushConstant.index].color.xyz;
+    fragColor = vec3(perMesh.data[constants.index].color);
     fragPos = vec3(worldPos);
-    fragNormal = vec3(ubo.modelNormal * vec4(vertNormal, 0));
+    fragNormal = vec3(perMesh.data[constants.index].normalTransform * vec4(vertNormal, 0));
 }

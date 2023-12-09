@@ -36,13 +36,15 @@ namespace Zap {
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		m_lightBuffer = vk::Buffer(sizeof(LightData)*Light::all.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		m_lightBuffer = vk::Buffer(sizeof(LightData)*std::max<size_t>(Light::all.size(), 1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		m_perMeshBuffer = vk::Buffer(sizeof(PerMeshData)*MeshComponent::all.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_perMeshBuffer.init(); m_perMeshBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		/*DescriptorPool*/ {
+			m_descriptorPool.addDescriptorSet();
+
 			VkDescriptorBufferInfo uniformBufferInfo;
 			uniformBufferInfo.buffer = m_uniformBuffer;
 			uniformBufferInfo.offset = 0;
@@ -53,6 +55,8 @@ namespace Zap {
 			uniformBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			uniformBufferDescriptor.binding = 0;
 			uniformBufferDescriptor.pBufferInfo = &uniformBufferInfo;
+
+			m_descriptorPool.addDescriptor(uniformBufferDescriptor, 0);
 
 			VkDescriptorBufferInfo lightBufferInfo;
 			lightBufferInfo.buffer = m_lightBuffer;
@@ -65,6 +69,8 @@ namespace Zap {
 			lightBufferDescriptor.binding = 1;
 			lightBufferDescriptor.pBufferInfo = &lightBufferInfo;
 
+			m_descriptorPool.addDescriptor(lightBufferDescriptor, 0);
+
 			VkDescriptorBufferInfo perMeshBufferInfo;
 			perMeshBufferInfo.buffer = m_perMeshBuffer;
 			perMeshBufferInfo.offset = 0;
@@ -76,16 +82,14 @@ namespace Zap {
 			perMeshBufferDescriptor.binding = 2;
 			perMeshBufferDescriptor.pBufferInfo = &perMeshBufferInfo;
 
-			m_descriptorPool.addDescriptorSet();
-			m_descriptorPool.addDescriptor(uniformBufferDescriptor, 0);
-			m_descriptorPool.addDescriptor(lightBufferDescriptor, 0);
 			m_descriptorPool.addDescriptor(perMeshBufferDescriptor, 0);
+
 			m_descriptorPool.init();
 		}
 
 		/*Shader*/
 #ifdef _DEBUG
-		vk::Shader::compile("Shader/src/", {"PBRShader.vert", "PBRShader.frag"}, {"./"});
+		vk::Shader::compile("../Zap/Shader/src/", {"PBRShader.vert", "PBRShader.frag"}, {"./"});
 #endif
 
 		m_vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
@@ -147,7 +151,7 @@ namespace Zap {
 			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			renderPassBeginInfo.pNext = nullptr;
 			renderPassBeginInfo.renderPass = *m_window.getRenderPass();
-			renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(i - m_id * m_window.getSwapchain()->getImageCount());
+			renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(i);
 			VkRect2D renderArea{};
 			int32_t restX = m_window.getWidth() - (m_scissor.extent.width + m_scissor.offset.x);
 			renderArea.offset.x = std::max<int32_t>(0, m_window.getWidth() - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
@@ -190,7 +194,6 @@ namespace Zap {
 				vkCmdDrawIndexed(*cmd, mesh->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
 			}
 
-
 			vkCmdEndRenderPass(*cmd);
 
 			cmd->end();
@@ -208,16 +211,18 @@ namespace Zap {
 		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
 		m_uniformBuffer.unmap();
 
-		m_lightBuffer.map(&rawData);
-		{
-			LightData* lightData = (LightData*)(rawData);
-			for (uint32_t i = 0; i < Light::all.size(); i++) {
-				lightData[i].pos = Light::all[i].m_pActor->getTransformComponent()->getPos();
-				lightData[i].color = Light::all[i].getColor();
-			}
+		if (Light::all.size() > 0) {
+			m_lightBuffer.map(&rawData);
+			{
+				LightData* lightData = (LightData*)(rawData);
+				for (uint32_t i = 0; i < Light::all.size(); i++) {
+					lightData[i].pos = Light::all[i].m_pActor->getTransformComponent()->getPos();
+					lightData[i].color = Light::all[i].getColor();
+				}
 
+			}
+			m_lightBuffer.unmap();
 		}
-		m_lightBuffer.unmap();
 
 		m_perMeshBuffer.map(&rawData);
 		{

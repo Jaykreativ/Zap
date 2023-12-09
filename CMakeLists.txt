@@ -19,7 +19,7 @@ file(GLOB Imgui_SRC
     "Dependencies/imgui/backends/imgui_impl_glfw.cpp"
     "Dependencies/imgui/backends/imgui_impl_glfw.h"
 )
-string(TOLOWER ${CMAKE_BUILD_TYPE} PHYSX_BUILD_TYPE)
+string(TOLOWER "${CMAKE_BUILD_TYPE}" PHYSX_BUILD_TYPE)
 file(GLOB PhysX_libs
     "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.md/${PHYSX_BUILD_TYPE}/*.lib"
 )
