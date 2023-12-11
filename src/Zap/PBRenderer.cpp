@@ -155,7 +155,7 @@ namespace Zap {
 			renderArea.offset.y = std::max<int32_t>(0, m_window.getHeight() - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
 			renderArea.extent.height = std::min<int32_t>(m_window.getHeight() - (m_scissor.offset.y + restY), m_window.getHeight());
 			renderPassBeginInfo.renderArea = renderArea;
-			VkClearValue clearValue = { 0.1f, 0.1f, 0.1f, 1.0f };
+			VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
 			VkClearValue depthClearValue = { 1.0f, 0 };
 			std::vector<VkClearValue> clearValues = {
 				clearValue,

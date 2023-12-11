@@ -36,13 +36,10 @@ namespace Zap {
 		Component* getComponent(ComponentType type, uint32_t index);
 
 		Transform* getTransformComponent();
-
 		MeshComponent* getMeshComponent(uint32_t index);
-
-		PhysicsComponent* getPhysicsComponent(uint32_t index);
-
+		RigidDynamicComponent* getRigidDynamic(uint32_t index);
+		RigidStaticComponent* getRigidStatic(uint32_t index);
 		Light* getLightComponent(uint32_t index);
-
 		Camera* getCameraComponent(uint32_t index);
 
 	private:

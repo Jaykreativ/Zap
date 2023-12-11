@@ -2,6 +2,27 @@
 #include "Zap/Scene/MeshComponent.h"
 #include "Zap/Scene/PhysicsComponent.h"
 
+void SimulationCallbacks::onConstraintBreak(physx::PxConstraintInfo* constraints, physx::PxU32 count) {
+
+}
+void SimulationCallbacks::onWake(physx::PxActor** actors, physx::PxU32 count) {
+	std::cout << count << " :WakeCount\n";
+}
+void SimulationCallbacks::onSleep(physx::PxActor** actors, physx::PxU32 count) {
+
+}
+void SimulationCallbacks::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs) {
+
+}
+void SimulationCallbacks::onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) {
+
+}
+void SimulationCallbacks::onAdvance(const physx::PxRigidBody* const* bodyBuffer, const physx::PxTransform* poseBuffer, const physx::PxU32 count) {
+
+}
+
+SimulationCallbacks simulationCallbacks = SimulationCallbacks();
+
 namespace Zap {
 	namespace GlobalSettings {
 		VkFormat colorFormat;
@@ -61,6 +82,7 @@ namespace Zap {
 		sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
 		sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
 		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
+		sceneDesc.simulationEventCallback = &simulationCallbacks;
 		m_pxScene = m_pxPhysics->createScene(sceneDesc);
 		if (!m_pxScene) {
 			std::cerr << "ERROR: createScene failed\n";

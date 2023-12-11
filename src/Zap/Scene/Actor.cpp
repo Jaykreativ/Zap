@@ -43,13 +43,13 @@ namespace Zap {
 	
 	bool Actor::addRigidDynamic(Shape shape) {
 		uint32_t id = RigidDynamicComponent(this, shape).getID();
-		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_PHYSICS, id });
+		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_RIGID_DYNAMIC, id });
 		return true;
 	}
 
 	bool Actor::addRigidStatic(Shape shape) {
 		uint32_t id = RigidStaticComponent(this, shape).getID();
-		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_PHYSICS, id });
+		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_RIGID_STATIC, id });
 		return true;
 	}
 
@@ -146,19 +146,34 @@ namespace Zap {
 				num++;
 			}
 		}
+		return nullptr;
 	}
 
-	/*PhysicsComponent* Actor::getPhysicsComponent(uint32_t index) {// TODO rewrite
+	RigidDynamicComponent* Actor::getRigidDynamic(uint32_t index) {
 		int num = 0;
 		for (ComponentAccess cA : m_components) {
-			if (cA.type == COMPONENT_TYPE_PHYSICS) {
+			if (cA.type == COMPONENT_TYPE_RIGID_DYNAMIC) {
 				if (num >= index) {
-					return &PhysicsComponent::all[cA.id];
+					return &RigidDynamicComponent::all[cA.id];
 				}
 				num++;
 			}
 		}
-	}*/
+		return nullptr;
+	}
+
+	RigidStaticComponent* Actor::getRigidStatic(uint32_t index) {
+		int num = 0;
+		for (ComponentAccess cA : m_components) {
+			if (cA.type == COMPONENT_TYPE_RIGID_STATIC) {
+				if (num >= index) {
+					return &RigidStaticComponent::all[cA.id];
+				}
+				num++;
+			}
+		}
+		return nullptr;
+	}
 
 	Light* Actor::getLightComponent(uint32_t index) {
 		int num = 0;
@@ -170,6 +185,7 @@ namespace Zap {
 				num++;
 			}
 		}
+		return nullptr;
 	}
 
 	Camera* Actor::getCameraComponent(uint32_t index) {
@@ -182,5 +198,6 @@ namespace Zap {
 				num++;
 			}
 		}
+		return nullptr;
 	}
 }

@@ -34,6 +34,34 @@ namespace Zap {
 		base->m_pxScene->addActor(*cmp->m_pxActor);
 	}
 
+	void RigidDynamicComponent::addForce(const glm::vec3& force) {
+		((physx::PxRigidDynamic*)m_pxActor)->addForce(*((physx::PxVec3*)&force), physx::PxForceMode::eFORCE, true);
+	}
+
+	void RigidDynamicComponent::clearForce() {
+		((physx::PxRigidDynamic*)m_pxActor)->clearForce();
+	}
+
+	void RigidDynamicComponent::addTorque(const glm::vec3& torque) {
+		((physx::PxRigidDynamic*)m_pxActor)->addTorque(*((physx::PxVec3*)&torque), physx::PxForceMode::eFORCE, true);
+	}
+
+	void RigidDynamicComponent::clearTorque() {
+		((physx::PxRigidDynamic*)m_pxActor)->clearTorque();
+	}
+
+	void RigidDynamicComponent::wakeUp() {
+		((physx::PxRigidDynamic*)m_pxActor)->wakeUp();
+	}
+
+	void RigidDynamicComponent::setFlag(physx::PxActorFlag::Enum flag, bool value) { // TODO Make own enum
+		((physx::PxRigidDynamic*)m_pxActor)->setActorFlag(flag, value);
+	}
+
+	bool RigidDynamicComponent::getFlag(physx::PxActorFlag::Enum flag) {
+		return (flag & (uint8_t)((physx::PxRigidDynamic*)m_pxActor)->getActorFlags()) == flag;
+	}
+
 	std::vector<RigidStaticComponent> RigidStaticComponent::all;
 
 	RigidStaticComponent::RigidStaticComponent(Actor* pActor, Shape shape)

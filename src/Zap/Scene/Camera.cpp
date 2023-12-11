@@ -36,7 +36,7 @@ namespace Zap {
 	glm::mat4 Camera::getView() {
 		auto transform = m_pActor->getTransform();
 		if (m_lookAtCenter) {
-			return glm::lookAt(glm::vec3(transform[3]) + glm::vec3(m_offset[3]), glm::vec3(transform[3]), glm::vec3(m_offset*transform[1]));
+			return glm::lookAt(glm::vec3(transform[3]) + glm::vec3(m_offset[3]), glm::vec3(transform[3]), glm::vec3(m_offset[1]));
 		}
 		else {
 			return glm::lookAt(glm::vec3(transform[3]) + glm::vec3(m_offset[3]), glm::vec3(transform[3]) + glm::vec3(m_offset[3]) + glm::vec3(transform[2]), glm::vec3(m_offset*transform[1]));
