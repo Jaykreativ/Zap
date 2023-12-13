@@ -11,6 +11,7 @@ namespace Zap {
 	}
 
 	void Scene::simulate(float elapsedTime) {
+		if (elapsedTime <= 0) return;
 		auto base = Base::getBase();
 		base->m_pxScene->simulate(elapsedTime);
 		base->m_pxScene->fetchResults(true);

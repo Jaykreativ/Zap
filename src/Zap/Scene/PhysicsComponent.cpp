@@ -1,12 +1,23 @@
 #include "Zap/Scene/PhysicsComponent.h"
 #include "Zap/Scene/Shape.h"
 
-physx::PxTransform convertGlmMat(glm::mat4 glmt) {
-	glmt[0] = glm::vec4(glm::normalize(glm::vec3(glmt[0])), glmt[0].w);
-	glmt[1] = glm::vec4(glm::normalize(glm::vec3(glmt[1])), glmt[1].w);
-	glmt[2] = glm::vec4(glm::normalize(glm::vec3(glmt[2])), glmt[2].w);
+#include "glm/gtx/string_cast.hpp"
+#include "glm/gtx/quaternion.hpp"
 
-	return physx::PxTransform(*(physx::PxMat44*)(&glmt));
+physx::PxTransform convertGlmMat(glm::mat4 glmt) {
+	glm::vec3 scale = { 0, 0, 0 };
+	scale.x = sqrt(glmt[0].x * glmt[0].x + glmt[1].x * glmt[1].x + glmt[2].x * glmt[2].x);
+	scale.y = sqrt(glmt[0].y * glmt[0].y + glmt[1].y * glmt[1].y + glmt[2].y * glmt[2].y);
+	scale.z = sqrt(glmt[0].z * glmt[0].z + glmt[1].z * glmt[1].z + glmt[2].z * glmt[2].z);
+
+	glmt[0] = glm::vec4(glm::vec3(glmt[0])/scale, 0);
+	glmt[1] = glm::vec4(glm::vec3(glmt[1])/scale, 0);
+	glmt[2] = glm::vec4(glm::vec3(glmt[2])/scale, 0);
+
+	auto pos = *((physx::PxVec3*)&glm::vec3(glmt[3]));
+	auto quat = *((physx::PxQuat*)&glm::quat_cast(glm::mat3(glmt)));
+
+	return physx::PxTransform(pos, quat);
 }
 
 namespace Zap {
@@ -17,6 +28,11 @@ namespace Zap {
 	RigidBodyComponent::RigidBodyComponent(Actor* pActor, Shape shape)
 		: PhysicsComponent(pActor)
 	{}
+
+	void RigidBodyComponent::updatePose(bool autowake) {
+		auto t = convertGlmMat(m_pActor->getTransform());
+		((physx::PxRigidBody*)m_pxActor)->setGlobalPose(t, autowake);
+	}
 
 	std::vector<RigidDynamicComponent> RigidDynamicComponent::all;
 
@@ -31,6 +47,7 @@ namespace Zap {
 		cmp->m_pxActor = base->m_pxPhysics->createRigidDynamic(convertGlmMat(m_pActor->getTransform()));
 		cmp->m_pxActor->userData = (void*)m_id;
 		((physx::PxRigidDynamic*)(cmp->m_pxActor))->attachShape(*shape.m_pxShape);
+		cmp->m_pxActor->setActorFlag(physx::PxActorFlag::eSEND_SLEEP_NOTIFIES, true);
 		base->m_pxScene->addActor(*cmp->m_pxActor);
 	}
 

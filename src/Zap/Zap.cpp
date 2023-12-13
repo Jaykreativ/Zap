@@ -2,26 +2,33 @@
 #include "Zap/Scene/MeshComponent.h"
 #include "Zap/Scene/PhysicsComponent.h"
 
-void SimulationCallbacks::onConstraintBreak(physx::PxConstraintInfo* constraints, physx::PxU32 count) {
+class SimulationCallbacks : public physx::PxSimulationEventCallback {// TODO put this in scene class
+	void onConstraintBreak(physx::PxConstraintInfo* constraints, physx::PxU32 count) {
+		PX_UNUSED(constraints); PX_UNUSED(count);
+	}
 
-}
-void SimulationCallbacks::onWake(physx::PxActor** actors, physx::PxU32 count) {
-	std::cout << count << " :WakeCount\n";
-}
-void SimulationCallbacks::onSleep(physx::PxActor** actors, physx::PxU32 count) {
+	void onWake(physx::PxActor** actors, physx::PxU32 count) {
+		PX_UNUSED(actors); PX_UNUSED(count);
+	}
 
-}
-void SimulationCallbacks::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs) {
+	void onSleep(physx::PxActor** actors, physx::PxU32 count) {
+		PX_UNUSED(actors); PX_UNUSED(count);
+	}
 
-}
-void SimulationCallbacks::onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) {
+	void onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs) {
+		PX_UNUSED(pairHeader); PX_UNUSED(pairs); PX_UNUSED(nbPairs);
+	}
 
-}
-void SimulationCallbacks::onAdvance(const physx::PxRigidBody* const* bodyBuffer, const physx::PxTransform* poseBuffer, const physx::PxU32 count) {
+	void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) {
+		PX_UNUSED(pairs); PX_UNUSED(count);
+	}
 
-}
+	void onAdvance(const physx::PxRigidBody* const* bodyBuffer, const physx::PxTransform* poseBuffer, const physx::PxU32 count) {
+		PX_UNUSED(bodyBuffer); PX_UNUSED(poseBuffer); PX_UNUSED(count);
+	}
+};
 
-SimulationCallbacks simulationCallbacks = SimulationCallbacks();
+SimulationCallbacks simulationCallbacks;
 
 namespace Zap {
 	namespace GlobalSettings {
@@ -80,9 +87,9 @@ namespace Zap {
 		physx::PxSceneDesc sceneDesc(m_pxPhysics->getTolerancesScale());
 		sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
 		sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
-		sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
+		sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
 		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
-		sceneDesc.simulationEventCallback = &simulationCallbacks;
+		//sceneDesc.simulationEventCallback = &simulationCallbacks;
 		m_pxScene = m_pxPhysics->createScene(sceneDesc);
 		if (!m_pxScene) {
 			std::cerr << "ERROR: createScene failed\n";
