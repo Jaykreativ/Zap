@@ -44,9 +44,7 @@ namespace Zap {
 	}
 
 	void Transform::setScale(glm::vec3 scale) {
-		m_transform[0] = m_transform[0] * glm::vec4(scale, 1);
-		m_transform[1] = m_transform[1] * glm::vec4(scale, 1);
-		m_transform[2] = m_transform[2] * glm::vec4(scale, 1);
+		m_transform = glm::scale(m_transform, scale);
 	}
 
 	void Transform::setScale(float x, float y, float z) {

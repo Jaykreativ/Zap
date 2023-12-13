@@ -6,13 +6,13 @@
 
 physx::PxTransform convertGlmMat(glm::mat4 glmt) {
 	glm::vec3 scale = { 0, 0, 0 };
-	scale.x = sqrt(glmt[0].x * glmt[0].x + glmt[1].x * glmt[1].x + glmt[2].x * glmt[2].x);
-	scale.y = sqrt(glmt[0].y * glmt[0].y + glmt[1].y * glmt[1].y + glmt[2].y * glmt[2].y);
-	scale.z = sqrt(glmt[0].z * glmt[0].z + glmt[1].z * glmt[1].z + glmt[2].z * glmt[2].z);
+	scale.x = glm::length(glmt[0]);
+	scale.y = glm::length(glmt[1]);
+	scale.z = glm::length(glmt[2]);
 
-	glmt[0] = glm::vec4(glm::vec3(glmt[0])/scale, 0);
-	glmt[1] = glm::vec4(glm::vec3(glmt[1])/scale, 0);
-	glmt[2] = glm::vec4(glm::vec3(glmt[2])/scale, 0);
+	glmt[0] = glmt[0]/scale.x, 0;
+	glmt[1] = glmt[1]/scale.y, 0;
+	glmt[2] = glmt[2]/scale.z, 0;
 
 	auto pos = *((physx::PxVec3*)&glm::vec3(glmt[3]));
 	auto quat = *((physx::PxQuat*)&glm::quat_cast(glm::mat3(glmt)));
