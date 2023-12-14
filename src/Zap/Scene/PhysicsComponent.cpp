@@ -1,22 +1,15 @@
 #include "Zap/Scene/PhysicsComponent.h"
 #include "Zap/Scene/Shape.h"
-
-#include "glm/gtx/string_cast.hpp"
 #include "glm/gtx/quaternion.hpp"
 
 physx::PxTransform convertGlmMat(glm::mat4 glmt) {
-	glm::vec3 scale = { 0, 0, 0 };
-	scale.x = glm::length(glmt[0]);
-	scale.y = glm::length(glmt[1]);
-	scale.z = glm::length(glmt[2]);
-
-	glmt[0] = glmt[0]/scale.x, 0;
-	glmt[1] = glmt[1]/scale.y, 0;
-	glmt[2] = glmt[2]/scale.z, 0;
+	glmt[0] = glm::normalize(glmt[0]);
+	glmt[1] = glm::normalize(glmt[1]);
+	glmt[2] = glm::normalize(glmt[2]);
 
 	auto pos = *((physx::PxVec3*)&glm::vec3(glmt[3]));
 	auto quat = *((physx::PxQuat*)&glm::quat_cast(glm::mat3(glmt)));
-
+ 
 	return physx::PxTransform(pos, quat);
 }
 

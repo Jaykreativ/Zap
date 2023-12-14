@@ -10,6 +10,41 @@ namespace Zap {
 
 	}
 
+	bool Scene::raycast(glm::vec3 origin, glm::vec3 unitDir, uint32_t maxDistance, RaycastOutput* out, physx::PxQueryFilterCallback* filterCallback) {
+		auto base = Base::getBase();
+
+		physx::PxRaycastBuffer hit;
+
+		auto filterData = physx::PxQueryFilterData();
+		filterData.flags |= physx::PxQueryFlag::ePREFILTER;
+		
+
+		if (!base->m_pxScene->raycast(
+			*((physx::PxVec3*)&origin),
+			*((physx::PxVec3*)&unitDir),
+			maxDistance,
+			hit,
+			physx::PxHitFlag::eDEFAULT,
+			filterData,
+			filterCallback
+		)) return false;
+
+		switch (hit.block.actor->getType()) {
+		case physx::PxActorType::eRIGID_DYNAMIC: {
+			out->pActor = RigidDynamicComponent::all[(uint64_t)hit.block.actor->userData].m_pActor;
+		}
+		case physx::PxActorType::eRIGID_STATIC: {
+			out->pActor = RigidStaticComponent::all[(uint64_t)hit.block.actor->userData].m_pActor;
+		}
+		}
+		
+		out->distance = hit.block.distance;
+		out->normal = *((glm::vec3*)&hit.block.normal);
+		out->position = *((glm::vec3*)&hit.block.position);
+
+		return true;
+	}
+
 	void Scene::simulate(float elapsedTime) {
 		if (elapsedTime <= 0) return;
 		auto base = Base::getBase();
