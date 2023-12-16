@@ -1,10 +1,10 @@
 #pragma once
 
 #include "glm.hpp"
-#include "Zap.h"
+#include "Zap/Zap.h"
 #include "Window.h"
-#include "Vertex.h"
-#include "Scene/Camera.h"
+#include "Zap/Vertex.h"
+#include "Zap/Scene/Camera.h"
 
 namespace Zap {
 	class Renderer

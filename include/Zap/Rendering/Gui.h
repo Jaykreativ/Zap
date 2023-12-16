@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Zap/Renderer.h"
+#include "Zap/Rendering/Renderer.h"
 
 namespace Zap {
     class Gui : public Renderer {

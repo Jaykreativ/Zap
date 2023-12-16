@@ -1,4 +1,4 @@
-#include "Zap/SimpleRenderer.h"
+#include "Zap/Rendering/SimpleRenderer.h"
 
 namespace Zap {
 	SimpleRenderer::SimpleRenderer(Window& window)

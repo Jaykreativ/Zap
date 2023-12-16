@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Renderer.h"
-#include "Zap.h"
-#include "Window.h"
+#include "Zap/Zap.h"
+#include "Zap/Rendering/Renderer.h"
+#include "Zap/Rendering/Window.h"
 
 namespace Zap {
 	class SimpleRenderer : public Renderer

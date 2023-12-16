@@ -1,4 +1,4 @@
-#include "Zap/PBRenderer.h"
+#include "Zap/Rendering/PBRenderer.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Transform.h"
 #include "Zap/Scene/MeshComponent.h"

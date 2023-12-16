@@ -8,6 +8,10 @@ file(GLOB Zap_Scene_SRC
     "src/Zap/Scene/*.cpp"
     "include/Zap/Scene/*.h"
 )
+file(GLOB Zap_Rendering_SRC
+    "src/Zap/Rendering/*.cpp"
+    "include/Zap/Rendering/*.h"
+)
 file(GLOB_RECURSE Zap_Shader_SRC
     "Shader/*"
 )
@@ -24,10 +28,11 @@ file(GLOB PhysX_libs
     "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.md/${PHYSX_BUILD_TYPE}/*.lib"
 )
 
-add_library(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Imgui_SRC})
+add_library(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Zap_Rendering_SRC} ${Imgui_SRC})
 
 source_group("Source" FILES ${Zap_SRC})
 source_group("Source/Scene" FILES ${Zap_Scene_SRC})
+source_group("Source/Rendering" FILES ${Zap_Rendering_SRC})
 source_group("Shader" FILES ${Zap_Shader_SRC})
 source_group("Imgui" FILES ${Imgui_SRC})
 

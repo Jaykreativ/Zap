@@ -1,6 +1,6 @@
-#include "Zap/Window.h"
-#include "Zap/Renderer.h"
-#include "Zap/PBRenderer.h"
+#include "Zap/Rendering/Window.h"
+#include "Zap/Rendering/Renderer.h"
+#include "Zap/Rendering/PBRenderer.h"
 #include "VulkanUtils.h"
 
 void resizeCallback(GLFWwindow* window, int width, int height) {
