@@ -1,4 +1,5 @@
 #include "Zap/Rendering/PBRenderer.h"
+#include "Zap/Rendering/Renderer.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Transform.h"
 #include "Zap/Scene/MeshComponent.h"
@@ -6,19 +7,13 @@
 #include "Zap/Scene/Camera.h"
 
 namespace Zap {
-	PBRenderer::PBRenderer(Window& window)
-		: Renderer(window) {}
-	PBRenderer::~PBRenderer() {
+	PBRenderer::PBRenderer(Renderer& renderer)
+		: m_renderer(renderer)
+	{}
+
+	PBRenderer::~PBRenderer() {//TODO Cleanup the destructors with .destroy() or external destruction
 		if (!m_isInit) return;
 		m_isInit = false;
-
-		vk::allQueuesWaitIdle();
-
-		vk::destroyFence(m_renderComplete);
-
-		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
-			m_commandBuffers[i].free();
-		}
 
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
@@ -36,10 +31,10 @@ namespace Zap {
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		m_lightBuffer = vk::Buffer(sizeof(LightData)*std::max<size_t>(Light::all.size(), 1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		m_lightBuffer = vk::Buffer(sizeof(LightData) * std::max<size_t>(Light::all.size(), 1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		m_perMeshBuffer = vk::Buffer(sizeof(PerMeshData)*MeshComponent::all.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		m_perMeshBuffer = vk::Buffer(sizeof(PerMeshData) * MeshComponent::all.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_perMeshBuffer.init(); m_perMeshBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		/*DescriptorPool*/ {
@@ -87,9 +82,111 @@ namespace Zap {
 			m_descriptorPool.init();
 		}
 
+		/*Depth Image*/
+		m_depthImage = vk::Image();
+		m_depthImage.setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+		m_depthImage.setExtent({ m_renderer.m_window.m_width, m_renderer.m_window.m_height, 1 });//TODO try with viewport scale
+		m_depthImage.setFormat(Zap::GlobalSettings::getDepthStencilFormat());
+		m_depthImage.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+		m_depthImage.setType(VK_IMAGE_TYPE_2D);
+		m_depthImage.setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		m_depthImage.setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_depthImage.init();
+		m_depthImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_depthImage.initView();
+
+		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+
+		/*RenderPass*/
+		{
+			VkAttachmentDescription colorAttachment;// Color Attachment
+			colorAttachment.flags = 0;
+			colorAttachment.format = Zap::GlobalSettings::getColorFormat();
+			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;//TODO lookup what this means
+			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			m_renderPass.addAttachmentDescription(colorAttachment);
+
+			VkAttachmentReference* pColorAttachmentReference;
+			{
+				VkAttachmentReference tmp;
+				tmp.attachment = 0;
+				tmp.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				pColorAttachmentReference = &tmp;
+
+				m_renderPass.addAttachmentReference(&pColorAttachmentReference);
+			}
+
+			VkAttachmentDescription depthStencilAttachment;// Depth Stencil Attachment
+			depthStencilAttachment.flags = 0;
+			depthStencilAttachment.format = Zap::GlobalSettings::getDepthStencilFormat();
+			depthStencilAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			depthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			depthStencilAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			depthStencilAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			depthStencilAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			depthStencilAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			m_renderPass.addAttachmentDescription(depthStencilAttachment);
+
+			VkAttachmentReference* pDepthStencilAttachmentReference;
+			{
+				VkAttachmentReference tmp;
+				tmp.attachment = 1;
+				tmp.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				pDepthStencilAttachmentReference = &tmp;
+
+				m_renderPass.addAttachmentReference(&pDepthStencilAttachmentReference);
+			}
+
+			VkSubpassDescription subpassDescription;
+			subpassDescription.flags = 0;
+			subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpassDescription.inputAttachmentCount = 0;
+			subpassDescription.pInputAttachments = nullptr;
+			subpassDescription.colorAttachmentCount = 1;
+			subpassDescription.pColorAttachments = pColorAttachmentReference;
+			subpassDescription.pResolveAttachments = nullptr;
+			subpassDescription.pDepthStencilAttachment = pDepthStencilAttachmentReference;
+			subpassDescription.preserveAttachmentCount = 0;
+			subpassDescription.pPreserveAttachments = nullptr;
+
+			m_renderPass.addSubpassDescription(subpassDescription);
+
+			VkSubpassDependency subpassDependency;
+			subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+			subpassDependency.dstSubpass = 0;
+			subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			subpassDependency.srcAccessMask = 0;
+			subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			subpassDependency.dependencyFlags = 0;
+
+			m_renderPass.addSubpassDependency(subpassDependency);
+
+			m_renderPass.init();
+		}
+
+		/*Framebuffer*/
+		m_framebuffers.resize(m_renderer.m_swapchain.getImageCount());
+		for (int i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
+			m_framebuffers[i].setWidth(m_renderer.m_window.m_width);
+			m_framebuffers[i].setHeight(m_renderer.m_window.m_height);
+			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
+			m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
+			m_framebuffers[i].setRenderPass(m_renderPass);
+			m_framebuffers[i].init();
+		}
+
 		/*Shader*/
 #ifdef _DEBUG
-		vk::Shader::compile("../Zap/Shader/src/", {"PBRShader.vert", "PBRShader.frag"}, {"./"});
+		vk::Shader::compile("../Zap/Shader/src/", { "PBRShader.vert", "PBRShader.frag" }, { "./" });
 #endif
 
 		m_vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
@@ -114,7 +211,7 @@ namespace Zap {
 		m_pipeline.addDynamicState(VK_DYNAMIC_STATE_SCISSOR);
 		m_pipeline.addViewport(m_viewport);
 		m_pipeline.addScissor(m_scissor);
-		m_pipeline.setRenderPass(*m_window.getRenderPass());
+		m_pipeline.setRenderPass(m_renderPass);
 		m_pipeline.enableDepthTest();
 
 		VkPushConstantRange pushConstantRange{};
@@ -123,89 +220,70 @@ namespace Zap {
 		pushConstantRange.size = sizeof(uint32_t);
 
 		m_pipeline.addPushConstantRange(pushConstantRange);
-		
+
 		m_pipeline.init();
-
-		m_commandBufferCount = m_window.m_swapchain.getImageCount();
-		m_commandBuffers = new vk::CommandBuffer[m_commandBufferCount];
-		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
-			m_commandBuffers[i].allocate();
-		}
-
-		recordCommandBuffers();
-
-		vk::createFence(&m_renderComplete);
 	}
 
-	void PBRenderer::recordCommandBuffers() {
-		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
-			vk::CommandBuffer* cmd = &m_commandBuffers[i];
-			cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+	void PBRenderer::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {
+		VkRenderPassBeginInfo renderPassBeginInfo;
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.pNext = nullptr;
+		renderPassBeginInfo.renderPass = m_renderPass;
+		renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
+		VkRect2D renderArea{};
+		int32_t restX = m_renderer.m_window.m_width - (m_scissor.extent.width + m_scissor.offset.x);
+		renderArea.offset.x = std::max<int32_t>(0, m_renderer.m_window.m_width - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
+		renderArea.extent.width = std::min<int32_t>(m_renderer.m_window.m_width - (m_scissor.offset.x + restX), m_renderer.m_window.m_width);
+		int32_t restY = m_renderer.m_window.m_height - (m_scissor.extent.height + m_scissor.offset.y);
+		renderArea.offset.y = std::max<int32_t>(0, m_renderer.m_window.m_height - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
+		renderArea.extent.height = std::min<int32_t>(m_renderer.m_window.m_height - (m_scissor.offset.y + restY), m_renderer.m_window.m_height);
+		renderPassBeginInfo.renderArea = renderArea;
+		VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
+		VkClearValue depthClearValue = { 1.0f, 0 };
+		std::vector<VkClearValue> clearValues = {
+			clearValue,
+			depthClearValue
+		};
+		renderPassBeginInfo.clearValueCount = clearValues.size();
+		renderPassBeginInfo.pClearValues = clearValues.data();
 
-			VkRenderPassBeginInfo renderPassBeginInfo;
-			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassBeginInfo.pNext = nullptr;
-			renderPassBeginInfo.renderPass = *m_window.getRenderPass();
-			renderPassBeginInfo.framebuffer = *m_window.getFramebuffer(i);
-			VkRect2D renderArea{};
-			int32_t restX = m_window.getWidth() - (m_scissor.extent.width + m_scissor.offset.x);
-			renderArea.offset.x = std::max<int32_t>(0, m_window.getWidth() - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
-			renderArea.extent.width = std::min<int32_t>(m_window.getWidth() - (m_scissor.offset.x + restX), m_window.getWidth());
-			int32_t restY = m_window.getHeight() - (m_scissor.extent.height + m_scissor.offset.y);
-			renderArea.offset.y = std::max<int32_t>(0, m_window.getHeight() - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
-			renderArea.extent.height = std::min<int32_t>(m_window.getHeight() - (m_scissor.offset.y + restY), m_window.getHeight());
-			renderPassBeginInfo.renderArea = renderArea;
-			VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
-			VkClearValue depthClearValue = { 1.0f, 0 };
-			std::vector<VkClearValue> clearValues = {
-				clearValue,
-				depthClearValue
-			};
-			renderPassBeginInfo.clearValueCount = clearValues.size();
-			renderPassBeginInfo.pClearValues = clearValues.data();
+		vkCmdBeginRenderPass(*cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			vkCmdBeginRenderPass(*cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 
-			vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+		VkViewport renderAreaViewport{};
+		renderAreaViewport.x = renderArea.offset.x;
+		renderAreaViewport.y = renderArea.offset.y;
+		renderAreaViewport.width = renderArea.extent.width;
+		renderAreaViewport.height = renderArea.extent.height;
+		renderAreaViewport.minDepth = 0;
+		renderAreaViewport.maxDepth = 1;
 
-			VkViewport renderAreaViewport{};
-			renderAreaViewport.x = renderArea.offset.x;
-			renderAreaViewport.y = renderArea.offset.y;
-			renderAreaViewport.width = renderArea.extent.width;
-			renderAreaViewport.height = renderArea.extent.height;
-			renderAreaViewport.minDepth = 0;
-			renderAreaViewport.maxDepth = 1;
+		vkCmdSetViewport(*cmd, 0, 1, &renderAreaViewport);
+		vkCmdSetScissor(*cmd, 0, 1, &renderArea);
 
-			vkCmdSetViewport(*cmd, 0, 1, &renderAreaViewport);
-			vkCmdSetScissor(*cmd, 0, 1, &renderArea);
+		for (MeshComponent& meshCmp : MeshComponent::all) {
+			Mesh* mesh = &Mesh::all[meshCmp.m_mesh];
 
-			for (MeshComponent& meshCmp : MeshComponent::all) {
-				Mesh* mesh = &Mesh::all[meshCmp.m_mesh];
+			VkDeviceSize offsets[] = { 0 };
+			VkBuffer vertexBuffer = mesh->m_vertexBuffer;
+			vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
+			vkCmdBindIndexBuffer(*cmd, mesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-				VkDeviceSize offsets[] = { 0 };
-				VkBuffer vertexBuffer = mesh->m_vertexBuffer;
-				vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
-				vkCmdBindIndexBuffer(*cmd, mesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
+			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
 
-				VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
-				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
+			vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &meshCmp.m_id);
 
-				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &meshCmp.m_id);
-
-				vkCmdDrawIndexed(*cmd, mesh->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
-			}
-
-			vkCmdEndRenderPass(*cmd);
-
-			cmd->end();
+			vkCmdDrawIndexed(*cmd, mesh->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
 		}
+
+		vkCmdEndRenderPass(*cmd);
 	}
 
-	void PBRenderer::render(uint32_t cam) {
-		if (glfwGetWindowAttrib(m_window.getGLFWwindow(), GLFW_ICONIFIED)) return;
-
-		m_ubo.view = Camera::all[cam].getView();
-		m_ubo.perspective = Camera::all[cam].getPerspective(m_viewport.width / m_viewport.height);
+	void PBRenderer::updateBuffers(uint32_t camera) {
+		m_ubo.view = Camera::all[camera].getView();
+		m_ubo.perspective = Camera::all[camera].getPerspective(m_viewport.width / m_viewport.height);
 		m_ubo.lightCount = Light::all.size();
 
 		void* rawData; m_uniformBuffer.map(&rawData);
@@ -235,13 +313,19 @@ namespace Zap {
 			}
 		}
 		m_perMeshBuffer.unmap();
+	}
 
-		vk::changeImageLayout(m_window.m_swapchain.getImage(m_window.m_currentImageIndex), m_window.m_swapchain.getImageSubresourceRange(),
-			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-		);
+	void PBRenderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
+		m_viewport.x = x;
+		m_viewport.y = y;
+		m_viewport.width = width;
+		m_viewport.height = height;
+		m_viewport.minDepth = 0;
+		m_viewport.maxDepth = 1;
 
-		m_commandBuffers[m_window.m_currentImageIndex].submit(m_renderComplete);
-		vk::waitForFence(m_renderComplete);
+		m_scissor.offset.x = x;
+		m_scissor.offset.y = y;
+		m_scissor.extent.width = width;
+		m_scissor.extent.height = height;
 	}
 }

@@ -1,20 +1,27 @@
 #pragma once
 
-#include "Zap/Rendering/Renderer.h"
+#include "Zap/Zap.h"
+#include "Zap/Rendering/RenderTemplate.h"
 
 namespace Zap {
-    class Gui : public Renderer {
+    class Gui {
     public:
-        Gui(Window& window);
+        Gui(Renderer& renderer);
         ~Gui();
 
         void init();
 
-        void recordCommandBuffers(){}
-
-        void render(uint32_t cam);
+        void render();
 
     private:
+        bool m_isInit = false;
+
+        Renderer& m_renderer;
+
         VkDescriptorPool m_imguiPool;
+
+        vk::RenderPass m_renderPass = vk::RenderPass();
+        uint32_t m_framebufferCount = 0;
+        vk::Framebuffer* m_framebuffers = nullptr;
     };
 }
