@@ -16,6 +16,8 @@ namespace Zap {
 	
 		void init();
 
+		void destroy();
+
 		//!Render all rendertemplates to the screen
 		void render();
 

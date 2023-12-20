@@ -14,6 +14,7 @@ namespace Zap {
         void render();
 
     private:
+
         bool m_isInit = false;
 
         Renderer& m_renderer;

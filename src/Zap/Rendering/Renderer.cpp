@@ -6,7 +6,12 @@ namespace Zap {
 		: m_window(window)
 	{}
 
-	Renderer::~Renderer() {
+	Renderer::~Renderer() {}
+
+	void Renderer::destroy() {
+		for (RenderTemplate* renderTemplate : m_renderTemplates) {
+			renderTemplate->destroy();
+		}
 		vk::destroyFence(m_renderComplete);
 		vk::destroyFence(m_imageAvailable);
 	}

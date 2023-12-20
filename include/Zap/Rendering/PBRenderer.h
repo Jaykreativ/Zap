@@ -68,6 +68,8 @@ namespace Zap {
 
 		void init();
 
+		void destroy();
+
 		void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex);
 	};
 }

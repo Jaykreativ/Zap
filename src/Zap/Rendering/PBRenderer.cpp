@@ -11,17 +11,7 @@ namespace Zap {
 		: m_renderer(renderer)
 	{}
 
-	PBRenderer::~PBRenderer() {//TODO Cleanup the destructors with .destroy() or external destruction
-		if (!m_isInit) return;
-		m_isInit = false;
-
-		m_pipeline.~Pipeline();
-		m_fragmentShader.~Shader();
-		m_vertexShader.~Shader();
-		m_uniformBuffer.destroy();
-		m_lightBuffer.destroy();
-		m_perMeshBuffer.destroy();
-	}
+	PBRenderer::~PBRenderer() {}
 
 	void PBRenderer::init() {
 		if (m_isInit) return;
@@ -222,6 +212,18 @@ namespace Zap {
 		m_pipeline.addPushConstantRange(pushConstantRange);
 
 		m_pipeline.init();
+	}
+
+	void PBRenderer::destroy() {
+		if (!m_isInit) return;
+		m_isInit = false;
+
+		m_pipeline.~Pipeline();
+		m_fragmentShader.~Shader();
+		m_vertexShader.~Shader();
+		m_uniformBuffer.destroy();
+		m_lightBuffer.destroy();
+		m_perMeshBuffer.destroy();
 	}
 
 	void PBRenderer::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {
