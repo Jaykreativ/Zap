@@ -7,6 +7,7 @@
 //TODO add standart renderer for windows with no renderer
 namespace Zap {
     class Window;
+    class Renderer;
 
     class Base {
     public:
@@ -47,7 +48,7 @@ namespace Zap {
     };
 
     namespace objects {
-        static std::vector<Window*> windows;
+        static std::vector<Window*> windows;// fix global variables
     }
 
     namespace GlobalSettings {

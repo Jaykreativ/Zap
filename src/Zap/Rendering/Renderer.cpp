@@ -9,14 +9,21 @@ namespace Zap {
 	Renderer::~Renderer() {}
 
 	void Renderer::destroy() {
+		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
+			m_commandBuffers[i].free();
+		}
 		for (RenderTemplate* renderTemplate : m_renderTemplates) {
 			renderTemplate->destroy();
 		}
+		m_swapchain.~Swapchain();
+		m_surface.~Surface();
 		vk::destroyFence(m_renderComplete);
 		vk::destroyFence(m_imageAvailable);
 	}
 
 	void Renderer::init() {
+		m_window.m_renderer = this;
+
 		/*Surface*/
 		m_surface.setGLFWwindow(m_window.m_window);
 
@@ -58,9 +65,19 @@ namespace Zap {
 	void Renderer::render() {
 		if (glfwGetWindowAttrib(m_window.m_window, GLFW_ICONIFIED)) return;
 
+		for (RenderTemplate* renderTemplate : m_renderTemplates) {
+			renderTemplate->beforeRender();
+		}
+
+		// Render
 		m_commandBuffers[m_currentImageIndex].submit(m_renderComplete);
 		vk::waitForFence(m_renderComplete);
 
+		for (RenderTemplate* renderTemplate : m_renderTemplates) {
+			renderTemplate->afterRender();
+		}
+
+		// Present swapchain image
 		vk::changeImageLayout(m_swapchain.getImage(m_currentImageIndex), m_swapchain.getImageSubresourceRange(),
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
@@ -93,5 +110,25 @@ namespace Zap {
 
 			cmd->end();
 		}
+	}
+
+	void Renderer::resize(int width, int height) {
+		m_swapchain.setWidth(width);
+		m_swapchain.setHeight(height);
+		m_swapchain.update();
+
+		for (uint32_t i = 0; i < m_swapchain.getImageCount(); i++) {
+			vk::changeImageLayout(m_swapchain.getImage(i), m_swapchain.getImageSubresourceRange(),
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+			);
+		}
+		
+		for (RenderTemplate* renderTemplate : m_renderTemplates) renderTemplate->resize(width, height);
+
+		recordCommandBuffers();
+		
+		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
+		vk::waitForFence(m_imageAvailable);
 	}
 }

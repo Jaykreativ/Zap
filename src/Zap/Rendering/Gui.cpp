@@ -10,17 +10,7 @@ namespace Zap {
 		: m_renderer(renderer)
 	{}
 
-	Gui::~Gui(){
-		if (!m_isInit) return;
-		m_isInit = false;
-
-		ImGui::EndFrame();
-
-		ImGui_ImplVulkan_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-
-		vkDestroyDescriptorPool(vk::getDevice(), m_imguiPool, nullptr);
-	}
+	Gui::~Gui(){}
 
 	void Gui::init() {
 		if (m_isInit) return;
@@ -138,8 +128,25 @@ namespace Zap {
 		ImGui::NewFrame();
 	}
 
-	void Gui::render() {
-		if (glfwGetWindowAttrib(m_renderer.m_window.m_window, GLFW_ICONIFIED)) return;
+	void Gui::destroy() {
+		if (!m_isInit) return;
+		m_isInit = false;
+
+		ImGui::EndFrame();
+
+		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+
+		for (uint32_t i = 0; i < m_framebufferCount; i++) {
+			m_framebuffers[i].destroy();
+		}
+		m_renderPass.~RenderPass();
+		vkDestroyDescriptorPool(vk::getDevice(), m_imguiPool, nullptr);
+	}
+
+	void Gui::beforeRender(){}
+
+	void Gui::afterRender() {
 		if (m_renderer.m_window.m_width <= 0 || m_renderer.m_window.m_height <= 0) return;
 
 		ImGui::Render();
@@ -170,5 +177,18 @@ namespace Zap {
 		ImGui_ImplGlfw_NewFrame();
 
 		ImGui::NewFrame();
+
+	}
+
+	void Gui::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {}
+
+	void Gui::resize(int width, int height) {
+		for (uint32_t i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
+			m_framebuffers[i].setWidth(width);
+			m_framebuffers[i].setHeight(height);
+			m_framebuffers[i].delAttachment(0);
+			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
+			m_framebuffers[i].update();
+		}
 	}
 }

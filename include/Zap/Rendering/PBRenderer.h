@@ -70,7 +70,13 @@ namespace Zap {
 
 		void destroy();
 
+		void beforeRender();
+
+		void afterRender();
+
 		void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex);
+
+		void resize(int width, int height);
 	};
 }
 

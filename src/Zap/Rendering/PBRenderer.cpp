@@ -221,10 +221,18 @@ namespace Zap {
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
+		for (vk::Framebuffer framebuffer : m_framebuffers) framebuffer.destroy();
+		m_renderPass.~RenderPass();
+		m_depthImage.~Image();
+		m_descriptorPool.~DescriptorPool();
 		m_uniformBuffer.destroy();
 		m_lightBuffer.destroy();
 		m_perMeshBuffer.destroy();
 	}
+
+	void PBRenderer::beforeRender() {}
+
+	void PBRenderer::afterRender() {}
 
 	void PBRenderer::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {
 		VkRenderPassBeginInfo renderPassBeginInfo;
@@ -281,6 +289,24 @@ namespace Zap {
 		}
 
 		vkCmdEndRenderPass(*cmd);
+	}
+
+	void PBRenderer::resize(int width, int height) {
+		m_depthImage.setWidth(width);
+		m_depthImage.setHeight(height);
+		m_depthImage.update();
+		
+		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+
+		for (uint32_t i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
+			m_framebuffers[i].setWidth(width);
+			m_framebuffers[i].setHeight(height);
+			m_framebuffers[i].delAttachment(0);
+			m_framebuffers[i].delAttachment(0);
+			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
+			m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
+			m_framebuffers[i].update();
+		}
 	}
 
 	void PBRenderer::updateBuffers(uint32_t camera) {

@@ -21,7 +21,6 @@ namespace Zap {
 		Zap::objects::windows.push_back(this);
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		//glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 		m_window = glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
 
@@ -55,12 +54,12 @@ namespace Zap {
 	void Window::resizeCallback(GLFWwindow* window, int width, int height) {
 		for (uint32_t i = 0; i < Zap::objects::windows.size(); i++) {
 			if (Zap::objects::windows[i]->m_window == window) {
-				Zap::objects::windows[i]->resizeVk(window, width, height);
+				Zap::objects::windows[i]->resize(window, width, height);
 			}
 		}
 	}
 
-	void Window::resizeVk(GLFWwindow* window, int width, int height) {
+	void Window::resize(GLFWwindow* window, int width, int height) {
 		m_width = width;
 		m_height = height;
 
@@ -72,36 +71,7 @@ namespace Zap {
 			m_sizeCallback(m_window, width, height);
 		}
 
-		/*
-		m_swapchain.setWidth(width);
-		m_swapchain.setHeight(height);
-		m_swapchain.update();
-
-		m_depthImage.setWidth(width);
-		m_depthImage.setHeight(height);
-		m_depthImage.update();
-
-		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-
-		for (uint32_t i = 0; i < m_swapchain.getImageCount(); i++) {
-			m_framebuffers[i].setWidth(width);
-			m_framebuffers[i].setHeight(height);
-			m_framebuffers[i].delAttachment(0);
-			m_framebuffers[i].delAttachment(0);
-			m_framebuffers[i].addAttachment(m_swapchain.getImageView(i));
-			m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
-			m_framebuffers[i].update();
-		}
-
-		recordClearCommandBuffers();
-		recordClearDepthStencilCommandBuffer();
-
-		for (Renderer* renderer : m_renderers) {
-			renderer->recordCommandBuffers();
-		}
-
-		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
-		vk::waitForFence(m_imageAvailable);*/
+		m_renderer->resize(width, height);
 	}
 
 	/*Getter*/

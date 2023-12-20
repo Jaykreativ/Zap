@@ -4,6 +4,8 @@
 
 namespace Zap
 {
+	class Renderer;
+
 	class Window
 	{
 	public:
@@ -41,7 +43,9 @@ namespace Zap
 		GLFWwindow *m_window;
 		GLFWwindowsizefun m_sizeCallback = nullptr;
 
-		void resizeVk(GLFWwindow* window, int width, int height);
+		Renderer* m_renderer = nullptr;
+
+		void resize(GLFWwindow* window, int width, int height);
 
 		static void resizeCallback(GLFWwindow* window, int width, int height);
 

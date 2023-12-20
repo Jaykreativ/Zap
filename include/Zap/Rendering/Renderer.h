@@ -45,6 +45,9 @@ namespace Zap {
 
 		void recordCommandBuffers();
 
+		void resize(int width, int height);
+
+		friend class Window;
 		friend class PBRenderer;//TODO add rendertoolkit for userdefined rendertemplates
 		friend class Gui;
 	};
