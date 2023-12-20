@@ -1,5 +1,6 @@
 #pragma once
 #define GLM_FORCE_LEFT_HANDED
+#define GLM_FORCE_QUAT_DATA_XYZW
 #include "VulkanFramework.h"
 #include "PxPhysicsAPI.h"
 

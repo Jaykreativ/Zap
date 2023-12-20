@@ -1,24 +1,33 @@
 #pragma once
 
 #include "Zap/Zap.h"
-#include "Zap/Renderer.h"
-#include "Zap/Window.h"
+#include "Zap/Rendering/RenderTemplate.h"
+#include "glm.hpp"
 
 namespace Zap {
-	class PBRenderer : public Renderer
+	class PBRenderer : public RenderTemplate
 	{
 	public:
-		PBRenderer(Window& window);
+		PBRenderer(Renderer& renderer);
 		~PBRenderer();
 
-		void init();
+		void updateBuffers(uint32_t camera);
 
-		void recordCommandBuffers();
-
-		void render(uint32_t cam);
+		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 
 	private:
-		uint32_t m_id;// id to identify commandBuffers in Meshes
+		bool m_isInit = false;
+
+		Renderer& m_renderer;
+
+		VkViewport m_viewport;
+		VkRect2D m_scissor;
+
+		vk::RenderPass m_renderPass = vk::RenderPass();
+
+		vk::Image m_depthImage;
+
+		std::vector<vk::Framebuffer> m_framebuffers;
 
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 
@@ -29,13 +38,7 @@ namespace Zap {
 		//Semaphores
 		VkSemaphore m_semaphoreRenderComplete;
 
-		//Fences
-		VkFence m_renderComplete;
-
 		//Buffers
-		uint32_t m_commandBufferCount;
-		vk::CommandBuffer* m_commandBuffers;
-
 		struct UniformBufferObject {// definition of the uniform buffer layout
 			glm::mat4 model;
 			glm::mat4 modelNormal;
@@ -62,6 +65,10 @@ namespace Zap {
 		};
 
 		vk::Buffer m_perMeshBuffer;
+
+		void init();
+
+		void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex);
 	};
 }
 

@@ -19,6 +19,8 @@ namespace Zap {
 	class RigidBodyComponent : public PhysicsComponent {
 	public:
 		RigidBodyComponent(Actor* pActor, Shape shape);
+
+		void updatePose(bool autowake = true);
 	};
 
 	class RigidDynamicComponent : public RigidBodyComponent {
