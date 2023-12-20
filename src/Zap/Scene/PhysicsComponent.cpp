@@ -35,7 +35,7 @@ namespace Zap {
 	}
 
 	void RigidDynamicComponent::addForce(const glm::vec3& force) {
-		((physx::PxRigidDynamic*)m_pxActor)->addForce(*((physx::PxVec3*)&force), physx::PxForceMode::eFORCE, true);
+		((physx::PxRigidDynamic*)m_pxActor)->addForce(*((physx::PxVec3*)&force), physx::PxForceMode::eIMPULSE, true);
 	}
 
 	void RigidDynamicComponent::clearForce() {
@@ -43,7 +43,7 @@ namespace Zap {
 	}
 
 	void RigidDynamicComponent::addTorque(const glm::vec3& torque) {
-		((physx::PxRigidDynamic*)m_pxActor)->addTorque(*((physx::PxVec3*)&torque), physx::PxForceMode::eFORCE, true);
+		((physx::PxRigidDynamic*)m_pxActor)->addTorque(*((physx::PxVec3*)&torque), physx::PxForceMode::eIMPULSE, true);
 	}
 
 	void RigidDynamicComponent::clearTorque() {
