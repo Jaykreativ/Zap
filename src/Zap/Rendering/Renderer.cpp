@@ -95,6 +95,10 @@ namespace Zap {
 
 	}
 
+	void Renderer::update() {
+		recordCommandBuffers();
+	}
+
 	void Renderer::addRenderTemplate(RenderTemplate* renderTemplate) {
 		m_renderTemplates.push_back(renderTemplate);
 	}

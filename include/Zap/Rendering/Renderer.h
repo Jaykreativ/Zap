@@ -21,6 +21,8 @@ namespace Zap {
 		//!Render all rendertemplates to the screen
 		void render();
 
+		void update();
+
 		void addRenderTemplate(RenderTemplate* renderTemplate);
 
 	private:

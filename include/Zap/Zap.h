@@ -6,53 +6,53 @@
 
 //TODO add standart renderer for windows with no renderer
 namespace Zap {
-    class Window;
-    class Renderer;
+	class Window;
+	class Renderer;
 
-    class Base {
-    public:
-        void init();
+	class Base {
+	public:
+		void init();
 
-        void terminate();
+		void terminate();
 
-        static Base* createBase(const char* applicationName);
+		static Base* createBase(const char* applicationName);
 
-        static void releaseBase();
+		static void releaseBase();
 
-        static Base* getBase();
+		static Base* getBase();
 
-    private:
-        Base(std::string applicationName);
-        ~Base();
+	private:
+		Base(std::string applicationName);
+		~Base();
 
-        bool m_isInit;
+		bool m_isInit;
 
-        std::string m_applicationName;
+		std::string m_applicationName;
 
-        //physx variables
-        physx::PxFoundation* m_pxFoundation;
-        physx::PxPvd* m_pxPvd;
-        physx::PxPhysics* m_pxPhysics;
-        physx::PxScene* m_pxScene;
+		//physx variables
+		physx::PxFoundation* m_pxFoundation;
+		physx::PxPvd* m_pxPvd;
+		physx::PxPhysics* m_pxPhysics;
+		physx::PxScene* m_pxScene;
 
-        static Base m_engineBase;
-        static bool m_exists;
+		static Base m_engineBase;
+		static bool m_exists;
 
-        friend class Scene;
-        friend class PhysicsComponent;
-        friend class RigidBodyComponent;
-        friend class RigidDynamicComponent;
-        friend class RigidStaticComponent;
-        friend class Shape;
-        friend class PhysicsMaterial;
-    };
+		friend class Scene;
+		friend class PhysicsComponent;
+		friend class RigidBodyComponent;
+		friend class RigidDynamicComponent;
+		friend class RigidStaticComponent;
+		friend class Shape;
+		friend class PhysicsMaterial;
+	};
 
-    namespace objects {
-        static std::vector<Window*> windows;// fix global variables
-    }
+	namespace objects {
+		static std::vector<Window*> windows;// fix global variables
+	}
 
-    namespace GlobalSettings {
-        VkFormat getColorFormat();
-        VkFormat getDepthStencilFormat();
-    }
+	namespace GlobalSettings {
+		VkFormat getColorFormat();
+		VkFormat getDepthStencilFormat();
+	}
 }
