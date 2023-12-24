@@ -3,6 +3,7 @@
 #define GLM_FORCE_QUAT_DATA_XYZW
 #include "VulkanFramework.h"
 #include "PxPhysicsAPI.h"
+#include <unordered_map>
 
 //TODO add standart renderer for windows with no renderer
 namespace Zap {
@@ -14,6 +15,8 @@ namespace Zap {
 		void init();
 
 		void terminate();
+
+		Scene createScene();
 
 		static Base* createBase(const char* applicationName);
 
