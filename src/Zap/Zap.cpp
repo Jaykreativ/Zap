@@ -1,4 +1,5 @@
 #include "Zap/Zap.h"
+#include "Zap/Scene/Scene.h"
 #include "Zap/Scene/MeshComponent.h"
 #include "Zap/Scene/PhysicsComponent.h"
 
@@ -46,7 +47,7 @@ namespace Zap {
 	Base::Base(std::string applicationName) {
 
 		m_applicationName = applicationName;
-	};
+	}
 
 	Base::~Base() {}
 
@@ -83,26 +84,6 @@ namespace Zap {
 			std::cerr << "ERROR: PxCreatePhysics failed\n";
 			throw std::runtime_error("ERROR: PxCreatePhysics failed");
 		}
-
-		physx::PxSceneDesc sceneDesc(m_pxPhysics->getTolerancesScale());
-		sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
-		sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
-		sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
-		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
-		//sceneDesc.simulationEventCallback = &simulationCallbacks;
-		m_pxScene = m_pxPhysics->createScene(sceneDesc);
-		if (!m_pxScene) {
-			std::cerr << "ERROR: createScene failed\n";
-			throw std::runtime_error("ERROR: createScene failed");
-		}
-
-		physx::PxPvdSceneClient* pvdClient = m_pxScene->getScenePvdClient();
-		if (pvdClient)
-		{
-			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
-			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
-			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
-		}
 	}
 
 	void Base::terminate() {
@@ -117,21 +98,28 @@ namespace Zap {
 		glfwTerminate();
 	}
 
+	Scene Base::createScene() {
+		UUID sceneID = UUID();
+		Scene scene = Scene(sceneID);
+		m_scenes[sceneID] = SceneData{};
+		return scene;
+	}
+
 	Base* Base::createBase(const char* applicationName) {
-		m_engineBase = Base(applicationName);
+		m_engineBase = new Base(applicationName);
 		m_exists = true;
-		return &m_engineBase;
+		return m_engineBase;
 	}
 
 	void Base::releaseBase() {
-		m_engineBase.~Base();
+		delete m_engineBase;
 		m_exists = false;
 	}
 
 	Base* Base::getBase() {
-		return &m_engineBase;
+		return m_engineBase;
 	}
 
-	Base Base::m_engineBase = Base("");
+	Base* Base::m_engineBase;
 	bool Base::m_exists;
 }

@@ -1,6 +1,7 @@
 #pragma once
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_QUAT_DATA_XYZW
+#include "Zap/UUID.h"
 #include "VulkanFramework.h"
 #include "PxPhysicsAPI.h"
 #include <unordered_map>
@@ -9,6 +10,11 @@
 namespace Zap {
 	class Window;
 	class Renderer;
+	class Scene;
+
+	struct SceneData {
+		physx::PxScene* m_pxScene;
+	};
 
 	class Base {
 	public:
@@ -32,13 +38,14 @@ namespace Zap {
 
 		std::string m_applicationName;
 
+		std::unordered_map<UUID, SceneData> m_scenes = {};
+
 		//physx variables
 		physx::PxFoundation* m_pxFoundation;
 		physx::PxPvd* m_pxPvd;
 		physx::PxPhysics* m_pxPhysics;
-		physx::PxScene* m_pxScene;
 
-		static Base m_engineBase;
+		static Base* m_engineBase;
 		static bool m_exists;
 
 		friend class Scene;

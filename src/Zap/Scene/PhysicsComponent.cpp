@@ -29,7 +29,7 @@ namespace Zap {
 
 	std::vector<RigidDynamicComponent> RigidDynamicComponent::all;
 
-	RigidDynamicComponent::RigidDynamicComponent(Actor* pActor, Shape shape)
+	RigidDynamicComponent::RigidDynamicComponent(Actor* pActor, Shape shape, Scene scene) //TODO add to scene of actor automatically
 		: RigidBodyComponent(pActor, shape)
 	{
 		m_id = all.size();
@@ -41,7 +41,7 @@ namespace Zap {
 		cmp->m_pxActor->userData = (void*)m_id;
 		((physx::PxRigidDynamic*)(cmp->m_pxActor))->attachShape(*shape.m_pxShape);
 		cmp->m_pxActor->setActorFlag(physx::PxActorFlag::eSEND_SLEEP_NOTIFIES, true);
-		base->m_pxScene->addActor(*cmp->m_pxActor);
+		base->m_scenes.at(scene.m_dataHandle).m_pxScene->addActor(*cmp->m_pxActor);
 	}
 
 	void RigidDynamicComponent::addForce(const glm::vec3& force) {
@@ -74,7 +74,7 @@ namespace Zap {
 
 	std::vector<RigidStaticComponent> RigidStaticComponent::all;
 
-	RigidStaticComponent::RigidStaticComponent(Actor* pActor, Shape shape)
+	RigidStaticComponent::RigidStaticComponent(Actor* pActor, Shape shape, Scene scene)
 		: RigidBodyComponent(pActor, shape)
 	{
 		m_id = all.size();
@@ -85,7 +85,7 @@ namespace Zap {
 		cmp->m_pxActor = base->m_pxPhysics->createRigidStatic(convertGlmMat(m_pActor->getTransform()));
 		cmp->m_pxActor->userData = (void*)m_id;
 		((physx::PxRigidStatic*)(cmp->m_pxActor))->attachShape(*shape.m_pxShape);
-		base->m_pxScene->addActor(*cmp->m_pxActor);
+		base->m_scenes.at(scene.m_dataHandle).m_pxScene->addActor(*cmp->m_pxActor);
 	}
 }
 

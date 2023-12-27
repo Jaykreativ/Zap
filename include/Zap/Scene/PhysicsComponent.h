@@ -3,6 +3,7 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Component.h"
 #include "Zap/Scene/Actor.h"
+#include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Transform.h"
 
 namespace Zap {
@@ -25,7 +26,7 @@ namespace Zap {
 
 	class RigidDynamicComponent : public RigidBodyComponent {
 	public:
-		RigidDynamicComponent(Actor* pActor, Shape shape);
+		RigidDynamicComponent(Actor* pActor, Shape shape, Scene scene);
 
 		void addForce(const glm::vec3& force);
 
@@ -51,7 +52,7 @@ namespace Zap {
 
 	class RigidStaticComponent : public RigidBodyComponent {
 	public:
-		RigidStaticComponent(Actor* pActor, Shape shape);
+		RigidStaticComponent(Actor* pActor, Shape shape, Scene scene);
 
 	private:
 		static std::vector<RigidStaticComponent> all;

@@ -41,14 +41,14 @@ namespace Zap {
 		return returnVal;
 	}
 	
-	bool Actor::addRigidDynamic(Shape shape) {
-		uint32_t id = RigidDynamicComponent(this, shape).getID();
+	bool Actor::addRigidDynamic(Shape shape, Scene scene) {
+		uint32_t id = RigidDynamicComponent(this, shape, scene).getID();
 		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_RIGID_DYNAMIC, id });
 		return true;
 	}
 
-	bool Actor::addRigidStatic(Shape shape) {
-		uint32_t id = RigidStaticComponent(this, shape).getID();
+	bool Actor::addRigidStatic(Shape shape, Scene scene) {
+		uint32_t id = RigidStaticComponent(this, shape, scene).getID();
 		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_RIGID_STATIC, id });
 		return true;
 	}

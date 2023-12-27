@@ -11,6 +11,10 @@ namespace Zap {
 		: m_renderer(renderer)
 	{}
 
+	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
+		: m_renderer(pbrenderer.m_renderer)
+	{}
+
 	PBRenderer::~PBRenderer() {}
 
 	void PBRenderer::init() {

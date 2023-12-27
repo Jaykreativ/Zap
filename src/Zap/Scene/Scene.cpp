@@ -2,16 +2,44 @@
 #include "Zap/Scene/PhysicsComponent.h"
 
 namespace Zap {
-	Scene::Scene() {
+	Scene::Scene() {}
 
-	}
+	Scene::Scene(UUID handle)
+		: m_dataHandle(handle)
+	{}
 
 	Scene::~Scene() {
 
 	}
 
+	void Scene::init() {
+		auto base = Base::getBase();
+		SceneData* data = &base->m_scenes.at(m_dataHandle);
+
+		physx::PxSceneDesc sceneDesc(base->m_pxPhysics->getTolerancesScale());
+		sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
+		sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
+		sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
+		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
+		//sceneDesc.simulationEventCallback = &simulationCallbacks;
+		data->m_pxScene = base->m_pxPhysics->createScene(sceneDesc);
+		if (!data->m_pxScene) {
+			std::cerr << "ERROR: createScene failed\n";
+			throw std::runtime_error("ERROR: createScene failed");
+		}
+
+		physx::PxPvdSceneClient* pvdClient = data->m_pxScene->getScenePvdClient();
+		if (pvdClient)
+		{
+			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
+			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
+			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
+		}
+	}
+
 	bool Scene::raycast(glm::vec3 origin, glm::vec3 unitDir, uint32_t maxDistance, RaycastOutput* out, physx::PxQueryFilterCallback* filterCallback) {
 		auto base = Base::getBase();
+		SceneData* data = &base->m_scenes.at(m_dataHandle);
 
 		physx::PxRaycastBuffer hit;
 
@@ -19,7 +47,7 @@ namespace Zap {
 		filterData.flags |= physx::PxQueryFlag::ePREFILTER;
 		
 
-		if (!base->m_pxScene->raycast(
+		if (!data->m_pxScene->raycast(
 			*((physx::PxVec3*)&origin),
 			*((physx::PxVec3*)&unitDir),
 			maxDistance,
@@ -48,10 +76,12 @@ namespace Zap {
 	void Scene::simulate(float elapsedTime) {
 		if (elapsedTime <= 0) return;
 		auto base = Base::getBase();
-		base->m_pxScene->simulate(elapsedTime);
-		base->m_pxScene->fetchResults(true);
+		SceneData* data = &base->m_scenes.at(m_dataHandle);
+
+		data->m_pxScene->simulate(elapsedTime);
+		data->m_pxScene->fetchResults(true);
 		uint32_t numActors = 0;
-		auto actors = base->m_pxScene->getActiveActors(numActors);
+		auto actors = data->m_pxScene->getActiveActors(numActors);
 		for (uint32_t i = 0; i < numActors; i++) {
 			auto pxActor = actors[i];
 			switch (pxActor->getType()) {

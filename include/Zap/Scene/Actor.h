@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Component.h"
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Shape.h"
@@ -22,8 +23,8 @@ namespace Zap {
 		bool addTransform(glm::mat4 transform);
 		bool addMesh(uint32_t mesh);
 		bool addMeshes(std::vector<uint32_t> meshes);
-		bool addRigidDynamic(Shape shape);
-		bool addRigidStatic(Shape shape);
+		bool addRigidDynamic(Shape shape, Scene scene);
+		bool addRigidStatic(Shape shape, Scene scene);
 		bool addLight(glm::vec3 color);
 		bool addCamera(glm::vec3 offset);
 

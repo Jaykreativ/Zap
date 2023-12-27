@@ -9,6 +9,7 @@ namespace Zap {
 	{
 	public:
 		PBRenderer(Renderer& renderer);
+		PBRenderer(const PBRenderer& pbrenderer);
 		~PBRenderer();
 
 		void updateBuffers(uint32_t camera);
