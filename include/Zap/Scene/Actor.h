@@ -1,13 +1,11 @@
 #pragma once
 
-#include "Zap/Zap.h"
-#include "Zap/Scene/Scene.h"
-#include "Zap/Scene/Component.h"
-#include "Zap/Scene/Mesh.h"
+#include "Zap/UUID.h"
 #include "Zap/Scene/Shape.h"
 #include "glm.hpp"
 
 namespace Zap {
+	class Scene;
 	class Transform;
 	class MeshComponent;
 	class PhysicsComponent;
@@ -18,41 +16,89 @@ namespace Zap {
 	{
 	public:
 		Actor();
-		~Actor();
+		~Actor(); 
 
-		bool addTransform(glm::mat4 transform);
+		/* Transform */
+		void addTransform(glm::mat4 transform); //TODO reduce components to be only databuckets using structs
+
+		void cmpTransform_translate(glm::vec3 pos);
+		void cmpTransform_translate(float x, float y, float z);//TODO add faster functions with pointer to component as argument
+
+		void cmpTransform_setPos(glm::vec3 pos);
+		void cmpTransform_setPos(float x, float y, float z);
+
+		void cmpTransform_rotateX(float angle);
+		void cmpTransform_rotateY(float angle);
+		void cmpTransform_rotateZ(float angle);
+		void cmpTransform_rotate(float angle, glm::vec3 axis);
+
+		void cmpTransform_setScale(glm::vec3 scale);
+		void cmpTransform_setScale(float x, float y, float z);
+
+		void cmpTransform_setTransform(glm::mat4& transform);
+
+		glm::vec3 cmpTransform_getPos();
+
+		glm::mat4 cmpTransform_getTransform();
+
 		bool addMesh(uint32_t mesh);
+
 		bool addMeshes(std::vector<uint32_t> meshes);
+
+		/* RigidDynamic */
 		bool addRigidDynamic(Shape shape, Scene scene);
+
+		void cmpRigidDynamic_addForce(const glm::vec3& force);
+
+		void cmpRigidDynamic_clearForce();
+
+		void cmpRigidDynamic_addTorque(const glm::vec3& torque);
+
+		void cmpRigidDynamic_clearTorque();
+
+		void cmpRigidDynamic_wakeUp();
+
+		void cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value);
+
+		bool cmpRigidDynamic_getFlag(physx::PxActorFlag::Enum flag);
+
+		/* RigidStatic */
 		bool addRigidStatic(Shape shape, Scene scene);
+
+		/* Light */
 		bool addLight(glm::vec3 color);
-		bool addCamera(glm::vec3 offset);
 
-		glm::mat4 getTransform();
+		void cmpLight_setColor(glm::vec3 color);
 
-		void setTransform(glm::mat4 transform);
+		glm::vec3 cmpLight_getColor();
 
-		std::vector<uint32_t> getComponentIDs(ComponentType type);
+		/* Camera */
+		bool addCamera(glm::mat4 offset = glm::mat4(1));
 
-		Component* getComponent(ComponentType type, uint32_t index);
+		void cmpCamera_lookAtCenter();
 
-		Transform* getTransformComponent();
-		MeshComponent* getMeshComponent(uint32_t index);
-		RigidDynamicComponent* getRigidDynamic(uint32_t index);
-		RigidStaticComponent* getRigidStatic(uint32_t index);
-		Light* getLightComponent(uint32_t index);
-		Camera* getCameraComponent(uint32_t index);
+		void cmpCamera_lookAtFront();
+
+		void cmpCamera_setOffset(glm::mat4 offset);
+
+		glm::mat4 cmpCamera_getOffset();
+
+		glm::mat4 cmpCamera_getView();
+
+		glm::mat4 cmpCamera_getPerspective(float aspect);
 
 	private:
-		enum TransformState {
-			TRANSFORM_STATE_NONE = 0,
-			TRANSFORM_STATE_COMPONENT = 1,
-			TRANSFORM_STATE_PHYSICS = 2
-		};
+		Transform* getTransform();
+		MeshComponent* getMesh();// TODO rework mesh system with models
+		RigidDynamicComponent* getRigidDynamic();
+		RigidStaticComponent* getRigidStatic();
+		Light* getLight();
+		Camera* getCamera();
 
-		TransformState m_transformState = TRANSFORM_STATE_NONE;
+		UUID m_handle;
+		Scene* m_pScene;
 
-		std::vector<ComponentAccess> m_components;
+		friend class Scene;
 	};
 }
 

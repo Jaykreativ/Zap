@@ -1,4 +1,11 @@
 #pragma once
+
+#define ZP_ASSERT(val, str)\
+			if (!val){\
+				std::cerr << str << "\n";\
+				throw std::runtime_error(str);\
+			} 
+
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_QUAT_DATA_XYZW
 #include "Zap/UUID.h"
@@ -12,8 +19,22 @@ namespace Zap {
 	class Renderer;
 	class Scene;
 
-	struct SceneData {
-		physx::PxScene* m_pxScene;
+	enum PhysicsType {
+		PHYSICS_TYPE_UNDEFINED = 0,
+		PHYSICS_TYPE_NONE = 1,
+		PHYSICS_TYPE_RIGID_DYNAMIC = 2,
+		PHYSICS_TYPE_RIGID_STATIC = 3,
+		PHYSICS_TYPE_RIGID_BODY = 4
+	};
+
+	enum ComponentType {
+		COMPONENT_TYPE_NONE = 0,
+		COMPONENT_TYPE_TRANSFORM = 1,
+		COMPONENT_TYPE_MESH = 2,
+		COMPONENT_TYPE_RIGID_DYNAMIC = 3,
+		COMPONENT_TYPE_RIGID_STATIC = 4,
+		COMPONENT_TYPE_LIGHT = 5,
+		COMPONENT_TYPE_CAMERA = 6
 	};
 
 	class Base {
@@ -38,8 +59,6 @@ namespace Zap {
 
 		std::string m_applicationName;
 
-		std::unordered_map<UUID, SceneData> m_scenes = {};
-
 		//physx variables
 		physx::PxFoundation* m_pxFoundation;
 		physx::PxPvd* m_pxPvd;
@@ -49,6 +68,7 @@ namespace Zap {
 		static bool m_exists;
 
 		friend class Scene;
+		friend class Actor;
 		friend class PhysicsComponent;
 		friend class RigidBodyComponent;
 		friend class RigidDynamicComponent;

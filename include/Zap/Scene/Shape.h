@@ -51,6 +51,7 @@ namespace Zap {
 
         physx::PxShape* m_pxShape;
 
+        friend class Actor;
         friend class PhysicsComponent;
         friend class RigidBodyComponent;
         friend class RigidDynamicComponent;
