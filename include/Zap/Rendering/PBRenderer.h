@@ -1,18 +1,24 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Scene/Actor.h"
 #include "Zap/Rendering/RenderTemplate.h"
+
 #include "glm.hpp"
 
 namespace Zap {
+	class Scene;
+
 	class PBRenderer : public RenderTemplate
 	{
 	public:
-		PBRenderer(Renderer& renderer);
+		PBRenderer(Renderer& renderer, Scene* pScene);
 		PBRenderer(const PBRenderer& pbrenderer);
 		~PBRenderer();
 
-		void updateBuffers(uint32_t camera);
+		void updateBuffers(Actor camera);
+
+		void changeScene(Scene* pScene); // TODO implement
 
 		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 
@@ -20,6 +26,7 @@ namespace Zap {
 		bool m_isInit = false;
 
 		Renderer& m_renderer;
+		Scene* m_pScene;
 
 		VkViewport m_viewport;
 		VkRect2D m_scissor;

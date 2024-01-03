@@ -1,7 +1,7 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/Model.h"
 #include "Zap/Scene/PhysicsComponent.h"
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Camera.h"
@@ -24,15 +24,21 @@ physx::PxTransform convertGlmMat(glm::mat4 glmt) {
 namespace Zap {
 	Actor::Actor(){}
 
+	Actor::Actor(UUID uuid, Scene* pScene)
+		: m_handle(uuid), m_pScene(pScene)
+	{}
+
 	Actor::~Actor(){}
 	
 	/* Transform */
 	void Actor::addTransform(glm::mat4 transform) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_transformComponents.count(m_handle), "Actor can't have multiple transforms");
 		m_pScene->m_transformComponents[m_handle] = Transform{ transform };
 	}
 
 	void Actor::cmpTransform_translate(glm::vec3 vec) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
 		cmp->transform = glm::translate(cmp->transform, vec);
 	}
@@ -46,6 +52,7 @@ namespace Zap {
 	}
 
 	void Actor::cmpTransform_setPos(glm::vec3 pos) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
 		cmp->transform[3] = glm::vec4(pos, 1);
 	}
@@ -63,11 +70,13 @@ namespace Zap {
 	}
 
 	void Actor::cmpTransform_rotate(float angle, glm::vec3 axis) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
 		cmp->transform = glm::rotate(cmp->transform, glm::radians<float>(angle), axis);
 	}
 
 	void Actor::cmpTransform_setScale(glm::vec3 scale) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
 		cmp->transform = glm::scale(cmp->transform, scale);
 	}
@@ -77,34 +86,37 @@ namespace Zap {
 	}
 
 	void Actor::cmpTransform_setTransform(glm::mat4& transform) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
 		cmp->transform = transform;
 	}
 
 	glm::vec3 Actor::cmpTransform_getPos() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
 		return glm::vec3(cmp->transform[3]);
 	}
 
 	glm::mat4 Actor::cmpTransform_getTransform() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
 		return cmp->transform;
 	}
-
-	bool Actor::addMesh(uint32_t mesh) {
-		ZP_ASSERT(!m_pScene->m_meshComponents.count(m_handle), "Actor can't have multiple meshes");
-		m_pScene->m_meshComponents[m_handle] = Mesh{};
-	}
-
-	bool Actor::addMeshes(std::vector<uint32_t> meshes) {
-		bool returnVal = true;
-		for (uint32_t mesh : meshes) {
-			returnVal &= addMesh(mesh);
-		}
-		return returnVal;
-	}
 	
-	bool Actor::addRigidDynamic(Shape shape, Scene scene) {
+	bool Actor::addModel(std::vector<uint32_t> meshes) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_modelComponents.count(m_handle), "Actor can't have multiple RigidDynamics");
+		Model* cmp = &(m_pScene->m_modelComponents[m_handle] = Model{});
+		cmp->m_Materials.resize(meshes.size());
+		cmp->m_meshes.resize(meshes.size());
+		for (uint32_t i = 0; i < meshes.size(); i++) {
+			cmp->m_Materials[i] = Material();
+			cmp->m_meshes[i] = meshes[i];
+		}
+	}
+
+	bool Actor::addRigidDynamic(Shape shape) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_rigidDynamicComponents.count(m_handle), "Actor can't have multiple RigidDynamics");
 		auto base = Base::getBase();
 		RigidDynamicComponent* cmp = &(m_pScene->m_rigidDynamicComponents[m_handle] = RigidDynamicComponent{});
@@ -115,41 +127,49 @@ namespace Zap {
 	}
 
 	void Actor::cmpRigidDynamic_addForce(const glm::vec3& force) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
 		cmp->pxActor->addForce(*((physx::PxVec3*)&force), physx::PxForceMode::eIMPULSE, true);
 	}
 
 	void Actor::cmpRigidDynamic_clearForce() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
 		cmp->pxActor->clearForce();
 	}
 
 	void Actor::cmpRigidDynamic_addTorque(const glm::vec3& torque) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
 		cmp->pxActor->addTorque(*((physx::PxVec3*)&torque), physx::PxForceMode::eIMPULSE, true);
 	}
 
 	void Actor::cmpRigidDynamic_clearTorque() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
 		cmp->pxActor->clearTorque();
 	}
 
 	void Actor::cmpRigidDynamic_wakeUp() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
 		cmp->pxActor->wakeUp();
 	}
 
 	void Actor::cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value) { // TODO Make own enum
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
 		cmp->pxActor->setActorFlag(flag, value);
 	}
 
 	bool Actor::cmpRigidDynamic_getFlag(physx::PxActorFlag::Enum flag) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
 		return (flag & (uint8_t)cmp->pxActor->getActorFlags()) == flag;
 	}
 
-	bool Actor::addRigidStatic(Shape shape, Scene scene) {
+	bool Actor::addRigidStatic(Shape shape) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_rigidStaticComponents.count(m_handle), "Actor can't have multiple RigidStatics");
 		auto base = Base::getBase();
 		RigidStaticComponent* cmp = &(m_pScene->m_rigidStaticComponents[m_handle] = RigidStaticComponent{});
@@ -160,46 +180,55 @@ namespace Zap {
 	}
 
 	bool Actor::addLight(glm::vec3 color) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_lightComponents.count(m_handle), "Actor can't have multiple lights");
 		m_pScene->m_lightComponents[m_handle] = Light{ color };
 	}
 
 	void Actor::cmpLight_setColor(glm::vec3 color) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
 		cmp->color = color;
 	}
 
 	glm::vec3 Actor::cmpLight_getColor() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
 		return cmp->color;
 	}
 
-	bool Actor::addCamera(glm::mat4 offset = glm::mat4(1)) {
+	bool Actor::addCamera(glm::mat4 offset) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_cameraComponents.count(m_handle), "Actor can't have multiple cameras");
 		m_pScene->m_cameraComponents[m_handle] = Camera{ false, offset };
 	}
 
 	void Actor::cmpCamera_lookAtCenter() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
 		cmp->lookAtCenter = true;
 	}
 
 	void Actor::cmpCamera_lookAtFront() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
 		cmp->lookAtCenter = false;
 	}
 
 	void Actor::cmpCamera_setOffset(glm::mat4 offset) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
 		cmp->offset = offset;
 	}
 
 	glm::mat4 Actor::cmpCamera_getOffset() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
 		return cmp->offset;
 	}
 
 	glm::mat4 Actor::cmpCamera_getView() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
 		glm::mat4 transform = m_pScene->m_transformComponents.at(m_handle).transform;
 		if (cmp->lookAtCenter) {
@@ -215,26 +244,32 @@ namespace Zap {
 	}
 
 	Transform* Actor::getTransform() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		return &m_pScene->m_transformComponents.at(m_handle);
 	}
 
-	MeshComponent* Actor::getMesh() {
-		return &m_pScene->m_meshComponents.at(m_handle);
+	Model* Actor::getModel() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		return &m_pScene->m_modelComponents.at(m_handle);
 	}
 
 	RigidDynamicComponent* Actor::getRigidDynamic() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		return &m_pScene->m_rigidDynamicComponents.at(m_handle);
 	}
 
 	RigidStaticComponent* Actor::getRigidStatic() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		return &m_pScene->m_rigidStaticComponents.at(m_handle);
 	}
 
 	Light* Actor::getLight() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		return &m_pScene->m_lightComponents.at(m_handle);
 	}
 
 	Camera* Actor::getCamera() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		return &m_pScene->m_cameraComponents.at(m_handle);
 	}
 }

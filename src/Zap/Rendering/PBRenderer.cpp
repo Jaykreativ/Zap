@@ -1,14 +1,15 @@
 #include "Zap/Rendering/PBRenderer.h"
 #include "Zap/Rendering/Renderer.h"
+#include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Transform.h"
-#include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/Model.h"
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Camera.h"
 
 namespace Zap {
-	PBRenderer::PBRenderer(Renderer& renderer)
-		: m_renderer(renderer)
+	PBRenderer::PBRenderer(Renderer& renderer, Scene* pScene)
+		: m_renderer(renderer), m_pScene(pScene)
 	{}
 
 	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
@@ -25,11 +26,15 @@ namespace Zap {
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		m_lightBuffer = vk::Buffer(sizeof(LightData) * std::max<size_t>(Light::all.size(), 1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		m_lightBuffer = vk::Buffer(sizeof(LightData) * std::max<size_t>(m_pScene->m_lightComponents.size(), 1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		m_perMeshBuffer = vk::Buffer(sizeof(PerMeshData) * MeshComponent::all.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-		m_perMeshBuffer.init(); m_perMeshBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		{
+			uint32_t meshCount = 0;
+			for (auto const& x : m_pScene->m_modelComponents) meshCount += x.second.m_meshes.size();
+			m_perMeshBuffer = vk::Buffer(sizeof(PerMeshData) * meshCount, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+			m_perMeshBuffer.init(); m_perMeshBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		}
 
 		/*DescriptorPool*/ {
 			m_descriptorPool.addDescriptorSet();
@@ -276,20 +281,24 @@ namespace Zap {
 		vkCmdSetViewport(*cmd, 0, 1, &renderAreaViewport);
 		vkCmdSetScissor(*cmd, 0, 1, &renderArea);
 
-		for (MeshComponent& meshCmp : MeshComponent::all) {
-			Mesh* mesh = &Mesh::all[meshCmp.m_mesh];
+		uint32_t i = 0;
+		for (auto const& modelPair : m_pScene->m_modelComponents) {
+			for (uint32_t id : modelPair.second.m_meshes) {
+				Mesh* mesh = &Mesh::all[id];
 
-			VkDeviceSize offsets[] = { 0 };
-			VkBuffer vertexBuffer = mesh->m_vertexBuffer;
-			vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
-			vkCmdBindIndexBuffer(*cmd, mesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+				VkDeviceSize offsets[] = { 0 };
+				VkBuffer vertexBuffer = mesh->m_vertexBuffer;
+				vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
+				vkCmdBindIndexBuffer(*cmd, mesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-			VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
-			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
+				VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
+				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
 
-			vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &meshCmp.m_id);
+				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &i);
 
-			vkCmdDrawIndexed(*cmd, mesh->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
+				vkCmdDrawIndexed(*cmd, mesh->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
+				i++;
+			}
 		}
 
 		vkCmdEndRenderPass(*cmd);
@@ -313,22 +322,24 @@ namespace Zap {
 		}
 	}
 
-	void PBRenderer::updateBuffers(uint32_t camera) {
-		m_ubo.view = Camera::all[camera].getView();
-		m_ubo.perspective = Camera::all[camera].getPerspective(m_viewport.width / m_viewport.height);
-		m_ubo.lightCount = Light::all.size();
+	void PBRenderer::updateBuffers(Actor camera) {
+		m_ubo.view = camera.cmpCamera_getView();
+		m_ubo.perspective = camera.cmpCamera_getPerspective(m_viewport.width / m_viewport.height);
+		m_ubo.lightCount = m_pScene->m_lightComponents.size();
 
 		void* rawData; m_uniformBuffer.map(&rawData);
 		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
 		m_uniformBuffer.unmap();
 
-		if (Light::all.size() > 0) {
+		if (m_pScene->m_lightComponents.size() > 0) {
 			m_lightBuffer.map(&rawData);
 			{
 				LightData* lightData = (LightData*)(rawData);
-				for (uint32_t i = 0; i < Light::all.size(); i++) {
-					lightData[i].pos = Light::all[i].m_pActor->getTransformComponent()->getPos();
-					lightData[i].color = Light::all[i].getColor();
+				uint32_t i = 0;
+				for (auto const& lightPair : m_pScene->m_lightComponents) {
+					lightData[i].pos = m_pScene->m_transformComponents.at(lightPair.first).transform[3];
+					lightData[i].color = lightPair.second.color;
+					i++;
 				}
 
 			}
@@ -338,13 +349,22 @@ namespace Zap {
 		m_perMeshBuffer.map(&rawData);
 		{
 			PerMeshData* perMeshData = (PerMeshData*)(rawData);
-			for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
-				perMeshData[i].transform = MeshComponent::all[i].m_pActor->getTransform();
-				perMeshData[i].normalTransform = glm::transpose(glm::inverse(perMeshData[i].transform));
-				perMeshData[i].color = glm::vec4(MeshComponent::all[i].m_material.m_AlbedoColor, 0);
+			uint32_t i = 0;
+			for (auto const& modelPair : m_pScene->m_modelComponents) {
+				uint32_t j = 0;
+				for (uint32_t id : modelPair.second.m_meshes) {
+					perMeshData[i].transform = m_pScene->m_transformComponents.at(modelPair.first).transform;
+					perMeshData[i].normalTransform = glm::transpose(glm::inverse(perMeshData[i].transform));
+					perMeshData[i].color = glm::vec4(modelPair.second.m_Materials[j].m_AlbedoColor, 0);
+					j++; i++;
+				}
 			}
 		}
 		m_perMeshBuffer.unmap();
+	}
+
+	void PBRenderer::changeScene(Scene* pScene) {
+
 	}
 
 	void PBRenderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {

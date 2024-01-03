@@ -1,6 +1,5 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
-#include "Zap/Scene/MeshComponent.h"
 #include "Zap/Scene/PhysicsComponent.h"
 
 class SimulationCallbacks : public physx::PxSimulationEventCallback {// TODO put this in scene class
@@ -88,21 +87,12 @@ namespace Zap {
 
 	void Base::terminate() {
 		for (Mesh mesh : Mesh::all) mesh.destroy();
-
-		for (PhysicsComponent& pc : RigidDynamicComponent::all) pc.m_pxActor->release();
 		
 		m_pxPhysics->release();
 		m_pxFoundation->release();
 
 		terminateVulkan();
 		glfwTerminate();
-	}
-
-	Scene Base::createScene() {
-		UUID sceneID = UUID();
-		Scene scene = Scene(sceneID);
-		m_scenes[sceneID] = SceneData{};
-		return scene;
 	}
 
 	Base* Base::createBase(const char* applicationName) {

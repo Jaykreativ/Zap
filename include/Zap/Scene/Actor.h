@@ -7,7 +7,7 @@
 namespace Zap {
 	class Scene;
 	class Transform;
-	class MeshComponent;
+	class Model;
 	class PhysicsComponent;
 	class Light;
 	class Camera;
@@ -41,12 +41,10 @@ namespace Zap {
 
 		glm::mat4 cmpTransform_getTransform();
 
-		bool addMesh(uint32_t mesh);
-
-		bool addMeshes(std::vector<uint32_t> meshes);
+		bool addModel(std::vector<uint32_t> meshes);
 
 		/* RigidDynamic */
-		bool addRigidDynamic(Shape shape, Scene scene);
+		bool addRigidDynamic(Shape shape);
 
 		void cmpRigidDynamic_addForce(const glm::vec3& force);
 
@@ -63,7 +61,7 @@ namespace Zap {
 		bool cmpRigidDynamic_getFlag(physx::PxActorFlag::Enum flag);
 
 		/* RigidStatic */
-		bool addRigidStatic(Shape shape, Scene scene);
+		bool addRigidStatic(Shape shape);
 
 		/* Light */
 		bool addLight(glm::vec3 color);
@@ -88,17 +86,27 @@ namespace Zap {
 		glm::mat4 cmpCamera_getPerspective(float aspect);
 
 	private:
+
+#ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
+	public:
+#endif
+		Actor(UUID uuid, Scene* pScene);
+
 		Transform* getTransform();
-		MeshComponent* getMesh();// TODO rework mesh system with models
+		Model* getModel();// TODO rework mesh system with models
 		RigidDynamicComponent* getRigidDynamic();
 		RigidStaticComponent* getRigidStatic();
 		Light* getLight();
 		Camera* getCamera();
 
-		UUID m_handle;
-		Scene* m_pScene;
+		UUID m_handle = UUID();
+		Scene* m_pScene = nullptr;
+#ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
+	private:
+#endif
 
 		friend class Scene;
+		friend class PBRenderer;
 	};
 }
 

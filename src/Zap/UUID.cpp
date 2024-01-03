@@ -1,7 +1,11 @@
 #include "Zap/UUID.h"
+#include <random>
+
 namespace Zap {
 	UUID::UUID() {
-		m_uuid = 1;// TODO random number generator
+		std::random_device rd;
+		std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
+		m_uuid = dist(rd);
 	}
 
 	UUID::UUID(uint64_t id)

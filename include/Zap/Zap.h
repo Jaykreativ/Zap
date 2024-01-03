@@ -43,8 +43,6 @@ namespace Zap {
 
 		void terminate();
 
-		Scene createScene();
-
 		static Base* createBase(const char* applicationName);
 
 		static void releaseBase();
