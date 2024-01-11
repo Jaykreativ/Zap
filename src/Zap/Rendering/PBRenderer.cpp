@@ -380,4 +380,11 @@ namespace Zap {
 		m_scissor.extent.width = width;
 		m_scissor.extent.height = height;
 	}
+
+	void PBRenderer::getViewport(uint32_t& width, uint32_t& height, uint32_t& x, uint32_t& y) {
+		width = m_viewport.width;
+		height = m_viewport.height;
+		x = m_viewport.x;
+		y = m_viewport.y;
+	}
 }

@@ -180,7 +180,20 @@ namespace Zap {
 
 	}
 
-	void Gui::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {}
+	void Gui::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {
+		vk::cmdChangeImageLayout(*cmd, 
+			m_renderer.m_swapchain.getImage(imageIndex), m_renderer.m_swapchain.getImageSubresourceRange(), 
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+		);
+		VkClearColorValue clearColor = {0, 0, 0, 1};
+		vkCmdClearColorImage(*cmd, m_renderer.m_swapchain.getImage(imageIndex), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &m_renderer.m_swapchain.getImageSubresourceRange());
+		vk::cmdChangeImageLayout(*cmd,
+			m_renderer.m_swapchain.getImage(imageIndex), m_renderer.m_swapchain.getImageSubresourceRange(),
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+		);
+	}
 
 	void Gui::resize(int width, int height) {
 		for (uint32_t i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
