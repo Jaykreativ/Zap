@@ -110,6 +110,10 @@ namespace Zap {
 
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+		ImGuiStyle& style = ImGui::GetStyle();
+
+		style.DisplayWindowPadding = ImVec2(0, 0);
+
 		ImGui_ImplVulkan_InitInfo imguiInitInfo{};
 		imguiInitInfo.Instance = vk::getInstance();
 		imguiInitInfo.PhysicalDevice = vk::getPhysicalDevice();
