@@ -46,7 +46,7 @@ namespace Zap {
 			colorAttachment.flags = 0;
 			colorAttachment.format = Zap::GlobalSettings::getColorFormat();
 			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -106,6 +106,10 @@ namespace Zap {
 
 		ImGui::CreateContext();
 
+		ImGuiIO& io = ImGui::GetIO();
+
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
 		ImGui_ImplVulkan_InitInfo imguiInitInfo{};
 		imguiInitInfo.Instance = vk::getInstance();
 		imguiInitInfo.PhysicalDevice = vk::getPhysicalDevice();
@@ -144,9 +148,7 @@ namespace Zap {
 		vkDestroyDescriptorPool(vk::getDevice(), m_imguiPool, nullptr);
 	}
 
-	void Gui::beforeRender(){}
-
-	void Gui::afterRender() {
+	void Gui::beforeRender(){
 		if (m_renderer.m_window.m_width <= 0 || m_renderer.m_window.m_height <= 0) return;
 
 		ImGui::Render();
@@ -160,8 +162,9 @@ namespace Zap {
 		renderPassBeginInfo.renderPass = m_renderPass;
 		renderPassBeginInfo.framebuffer = m_framebuffers[m_renderer.m_currentImageIndex];
 		renderPassBeginInfo.renderArea = { 0, 0, m_renderer.m_window.m_width, m_renderer.m_window.m_height };
-		renderPassBeginInfo.clearValueCount = 0;
-		renderPassBeginInfo.pClearValues = nullptr;
+		VkClearValue clearColor = { 0, 0, 0, 1 };
+		renderPassBeginInfo.clearValueCount = 1;
+		renderPassBeginInfo.pClearValues = &clearColor;
 
 		vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -177,23 +180,13 @@ namespace Zap {
 		ImGui_ImplGlfw_NewFrame();
 
 		ImGui::NewFrame();
+	}
+
+	void Gui::afterRender() {
 
 	}
 
-	void Gui::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {
-		vk::cmdChangeImageLayout(*cmd, 
-			m_renderer.m_swapchain.getImage(imageIndex), m_renderer.m_swapchain.getImageSubresourceRange(), 
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-		);
-		VkClearColorValue clearColor = {0, 0, 0, 1};
-		vkCmdClearColorImage(*cmd, m_renderer.m_swapchain.getImage(imageIndex), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &m_renderer.m_swapchain.getImageSubresourceRange());
-		vk::cmdChangeImageLayout(*cmd,
-			m_renderer.m_swapchain.getImage(imageIndex), m_renderer.m_swapchain.getImageSubresourceRange(),
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-		);
-	}
+	void Gui::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {}
 
 	void Gui::resize(int width, int height) {
 		for (uint32_t i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {

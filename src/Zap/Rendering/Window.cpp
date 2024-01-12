@@ -31,6 +31,10 @@ namespace Zap {
 		return glfwWindowShouldClose(m_window);
 	}
 
+	bool Window::isIconified() {
+		return glfwGetWindowAttrib(m_window, GLFW_ICONIFIED);
+	}
+
 	void Window::show() {
 		glfwShowWindow(m_window);
 	}

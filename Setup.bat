@@ -2,7 +2,7 @@ mkdir Dependencies
 cd Dependencies
 git clone -b save https://github.com/Jaykreativ/VulkanFramework --recursive
 git clone https://github.com/glfw/glfw --recursive
-git clone https://github.com/ocornut/imgui --recursive
+git clone -b docking https://github.com/ocornut/imgui --recursive
 git clone https://github.com/g-truc/glm --recursive
 git clone https://github.com/assimp/assimp --recursive
 git clone https://github.com/NVIDIA-Omniverse/PhysX --recursive

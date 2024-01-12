@@ -16,6 +16,8 @@ namespace Zap
 
 		bool shouldClose();
 
+		bool isIconified();
+
 		void show();
 
 		void setKeyCallback(GLFWkeyfun callback);
