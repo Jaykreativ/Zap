@@ -150,6 +150,12 @@ namespace Zap {
 		cmp->pxActor->clearTorque();
 	}
 
+	void Actor::cmpRigidDynamic_updatePose() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		cmp->pxActor->setGlobalPose(convertGlmMat(m_pScene->m_transformComponents.at(m_handle).transform));
+	}
+
 	void Actor::cmpRigidDynamic_wakeUp() {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);

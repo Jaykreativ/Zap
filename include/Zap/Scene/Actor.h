@@ -54,6 +54,8 @@ namespace Zap {
 
 		void cmpRigidDynamic_clearTorque();
 
+		void cmpRigidDynamic_updatePose();
+
 		void cmpRigidDynamic_wakeUp();
 
 		void cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value);
