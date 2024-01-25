@@ -94,7 +94,7 @@ namespace Zap {
 		m_depthImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		m_depthImage.initView();
 
-		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
 		/*RenderPass*/
 		{
@@ -232,7 +232,7 @@ namespace Zap {
 		m_vertexShader.~Shader();
 		for (vk::Framebuffer framebuffer : m_framebuffers) framebuffer.destroy();
 		m_renderPass.~RenderPass();
-		m_depthImage.~Image();
+		m_depthImage.destroy();
 		m_descriptorPool.~DescriptorPool();
 		m_uniformBuffer.destroy();
 		m_lightBuffer.destroy();
@@ -309,7 +309,7 @@ namespace Zap {
 		m_depthImage.setHeight(height);
 		m_depthImage.update();
 		
-		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
 		for (uint32_t i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
 			m_framebuffers[i].setWidth(width);

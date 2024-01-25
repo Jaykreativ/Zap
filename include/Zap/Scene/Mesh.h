@@ -19,7 +19,6 @@ namespace Zap {
 
         void load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices);
         void load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray);
-        void load(const char* modelPath);
 
         uint32_t getId();
 
@@ -45,6 +44,7 @@ namespace Zap {
         friend class Base;
         friend class Renderer;
         friend class PBRenderer;
+        friend class RaytracingRenderer;
         friend class ModelLoader;
     };
 }

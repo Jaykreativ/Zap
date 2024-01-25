@@ -47,12 +47,13 @@ namespace Zap {
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 	public:
 #endif
-		std::unordered_map<UUID, Camera> m_cameraComponents;// TODO rework access system
-		std::unordered_map<UUID, Light> m_lightComponents;
-		std::unordered_map<UUID, Model> m_modelComponents;
-		std::unordered_map<UUID, RigidDynamicComponent> m_rigidDynamicComponents;
-		std::unordered_map<UUID, RigidStaticComponent> m_rigidStaticComponents;
-		std::unordered_map<UUID, Transform> m_transformComponents;
+		std::unordered_map<UUID, Camera>                   m_cameraComponents;// TODO rework access system
+		std::unordered_map<UUID, Light>                    m_lightComponents;
+		std::unordered_map<UUID, Model>                    m_modelComponents;
+		std::vector<uint32_t>                              m_meshReferences;
+		std::unordered_map<UUID, RigidDynamicComponent>    m_rigidDynamicComponents;
+		std::unordered_map<UUID, RigidStaticComponent>     m_rigidStaticComponents;
+		std::unordered_map<UUID, Transform>                m_transformComponents;
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 	private:
 #endif
@@ -62,6 +63,7 @@ namespace Zap {
 		friend class RigidDynamicComponent;
 		friend class RigidStaticComponent;
 		friend class PBRenderer;
+		friend class RaytracingRenderer;
 	};
 }
 

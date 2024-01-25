@@ -41,6 +41,7 @@ namespace Zap {
 
 		glm::mat4 cmpTransform_getTransform();
 
+		/* Model */
 		bool addModel(std::vector<uint32_t> meshes);
 
 		/* RigidDynamic */

@@ -105,13 +105,20 @@ namespace Zap {
 	
 	bool Actor::addModel(std::vector<uint32_t> meshes) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
-		ZP_ASSERT(!m_pScene->m_modelComponents.count(m_handle), "Actor can't have multiple RigidDynamics");
+		ZP_ASSERT(!m_pScene->m_modelComponents.count(m_handle), "Actor can't have multiple Models");
 		Model* cmp = &(m_pScene->m_modelComponents[m_handle] = Model{});
 		cmp->m_Materials.resize(meshes.size());
 		cmp->m_meshes.resize(meshes.size());
 		for (uint32_t i = 0; i < meshes.size(); i++) {
 			cmp->m_Materials[i] = Material();
 			cmp->m_meshes[i] = meshes[i];
+		}
+		for (uint32_t reference : meshes) {
+			bool exist = false;
+			for (uint32_t controlID : m_pScene->m_meshReferences) {
+				exist |= reference == controlID;
+			}
+			m_pScene->m_meshReferences.push_back(reference);
 		}
 	}
 

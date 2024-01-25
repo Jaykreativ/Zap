@@ -10,6 +10,7 @@ CMakeCache*
 CMakeFiles
 *.sln
 *.cmake
+*.spv
 
 # User-specific files
 *.rsuser
