@@ -37,6 +37,10 @@ namespace Zap {
 		m_pScene->m_transformComponents[m_handle] = Transform{ transform };
 	}
 
+	bool Actor::hasTransform() {
+		return m_pScene->m_transformComponents.count(m_handle);
+	}
+
 	void Actor::cmpTransform_translate(glm::vec3 vec) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
@@ -122,7 +126,11 @@ namespace Zap {
 		}
 	}
 
-	bool Actor::addRigidDynamic(Shape shape) {
+	bool Actor::hasModel() {
+		return m_pScene->m_modelComponents.count(m_handle);
+	}
+
+	void Actor::addRigidDynamic(Shape shape) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_rigidDynamicComponents.count(m_handle), "Actor can't have multiple RigidDynamics");
 		auto base = Base::getBase();
@@ -131,6 +139,10 @@ namespace Zap {
 		cmp->pxActor->userData = (void*)(uint64_t)m_handle;
 		cmp->pxActor->attachShape(*shape.m_pxShape);
 		m_pScene->m_pxScene->addActor(*cmp->pxActor);
+	}
+
+	bool Actor::hasRigidDynamic() {
+		return m_pScene->m_rigidDynamicComponents.count(m_handle);
 	}
 
 	void Actor::cmpRigidDynamic_addForce(const glm::vec3& force) {
@@ -157,6 +169,12 @@ namespace Zap {
 		cmp->pxActor->clearTorque();
 	}
 
+	void Actor::cmpRigidDynamic_updatePose() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		cmp->pxActor->setGlobalPose(convertGlmMat(m_pScene->m_transformComponents.at(m_handle).transform));
+	}
+
 	void Actor::cmpRigidDynamic_wakeUp() {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		RigidDynamicComponent* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
@@ -175,7 +193,7 @@ namespace Zap {
 		return (flag & (uint8_t)cmp->pxActor->getActorFlags()) == flag;
 	}
 
-	bool Actor::addRigidStatic(Shape shape) {
+	void Actor::addRigidStatic(Shape shape) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_rigidStaticComponents.count(m_handle), "Actor can't have multiple RigidStatics");
 		auto base = Base::getBase();
@@ -186,10 +204,18 @@ namespace Zap {
 		m_pScene->m_pxScene->addActor(*cmp->pxActor);
 	}
 
-	bool Actor::addLight(glm::vec3 color) {
+	bool Actor::hasRigidStatic() {
+		return m_pScene->m_rigidStaticComponents.count(m_handle);
+	}
+
+	void Actor::addLight(glm::vec3 color) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_lightComponents.count(m_handle), "Actor can't have multiple lights");
 		m_pScene->m_lightComponents[m_handle] = Light{ color };
+	}
+
+	bool Actor::hasLight() {
+		return m_pScene->m_lightComponents.count(m_handle);
 	}
 
 	void Actor::cmpLight_setColor(glm::vec3 color) {
@@ -204,10 +230,14 @@ namespace Zap {
 		return cmp->color;
 	}
 
-	bool Actor::addCamera(glm::mat4 offset) {
+	void Actor::addCamera(glm::mat4 offset) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_cameraComponents.count(m_handle), "Actor can't have multiple cameras");
 		m_pScene->m_cameraComponents[m_handle] = Camera{ false, offset };
+	}
+
+	bool Actor::hasCamera() {
+		return m_pScene->m_cameraComponents.count(m_handle);
 	}
 
 	void Actor::cmpCamera_lookAtCenter() {

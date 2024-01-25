@@ -21,6 +21,8 @@ namespace Zap {
 		/* Transform */
 		void addTransform(glm::mat4 transform); //TODO reduce components to be only databuckets using structs
 
+		bool hasTransform();
+
 		void cmpTransform_translate(glm::vec3 pos);
 		void cmpTransform_translate(float x, float y, float z);//TODO add faster functions with pointer to component as argument
 
@@ -44,8 +46,13 @@ namespace Zap {
 		/* Model */
 		bool addModel(std::vector<uint32_t> meshes);
 
+		bool hasModel();
+
 		/* RigidDynamic */
-		bool addRigidDynamic(Shape shape);
+
+		void addRigidDynamic(Shape shape);
+
+		bool hasRigidDynamic();
 
 		void cmpRigidDynamic_addForce(const glm::vec3& force);
 
@@ -55,6 +62,8 @@ namespace Zap {
 
 		void cmpRigidDynamic_clearTorque();
 
+		void cmpRigidDynamic_updatePose();
+
 		void cmpRigidDynamic_wakeUp();
 
 		void cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value);
@@ -62,17 +71,23 @@ namespace Zap {
 		bool cmpRigidDynamic_getFlag(physx::PxActorFlag::Enum flag);
 
 		/* RigidStatic */
-		bool addRigidStatic(Shape shape);
+		void addRigidStatic(Shape shape);
+
+		bool hasRigidStatic();
 
 		/* Light */
-		bool addLight(glm::vec3 color);
+		void addLight(glm::vec3 color);
+
+		bool hasLight();
 
 		void cmpLight_setColor(glm::vec3 color);
 
 		glm::vec3 cmpLight_getColor();
 
 		/* Camera */
-		bool addCamera(glm::mat4 offset = glm::mat4(1));
+		void addCamera(glm::mat4 offset = glm::mat4(1));
+
+		bool hasCamera();
 
 		void cmpCamera_lookAtCenter();
 
