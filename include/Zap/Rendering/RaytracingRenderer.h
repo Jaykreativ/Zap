@@ -12,6 +12,8 @@ namespace Zap {
 
 		void setExtent(glm::vec2 extent);
 
+		vk::Image& getOutputImage();
+
 	private:
 		Renderer& m_renderer;
 		Scene* m_pScene = nullptr;

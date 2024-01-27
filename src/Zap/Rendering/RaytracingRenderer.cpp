@@ -14,6 +14,7 @@ namespace Zap {
 	void RaytracingRenderer::init() {
 		for (uint32_t id : m_pScene->m_meshReferences) {
 			Mesh& mesh = Mesh::all[id];
+			if (m_blasVector.count(id)) continue;
 			vk::AccelerationStructure& accelerationStructure = m_blasVector[id] = vk::AccelerationStructure();
 			accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
 			accelerationStructure.addGeometry(mesh.m_vertexBuffer, sizeof(Vertex), mesh.m_indexBuffer);
@@ -34,7 +35,7 @@ namespace Zap {
 
 		m_rtOutImage.setFormat(VK_USED_SCREENCOLOR_FORMAT);
 		m_rtOutImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-		m_rtOutImage.setUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+		m_rtOutImage.setUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 		m_rtOutImage.setInitialLayout(VK_IMAGE_LAYOUT_PREINITIALIZED);
 		m_rtOutImage.setWidth(m_extent.x);
 		m_rtOutImage.setHeight(m_extent.y);
@@ -74,15 +75,15 @@ namespace Zap {
 
 		m_rtPipeline.addGroup(group);
 
-		group.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
-		group.generalShader = VK_SHADER_UNUSED_KHR;
-		group.closestHitShader = 1;
-
-		m_rtPipeline.addGroup(group);
-
 		group.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
 		group.generalShader = 2;
 		group.closestHitShader = VK_SHADER_UNUSED_KHR;
+
+		m_rtPipeline.addGroup(group);
+
+		group.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+		group.generalShader = VK_SHADER_UNUSED_KHR;
+		group.closestHitShader = 1;
 
 		m_rtPipeline.addGroup(group);
 
@@ -152,10 +153,14 @@ namespace Zap {
 	}
 
 	void RaytracingRenderer::resize(int width, int height) {
-		m_extent = { width, height };
+		//m_extent = { width, height };
 	}
 
 	void RaytracingRenderer::setExtent(glm::vec2 extent) {
 		m_extent = extent;
+	}
+
+	vk::Image& RaytracingRenderer::getOutputImage() {
+		return m_rtOutImage;
 	}
 }
