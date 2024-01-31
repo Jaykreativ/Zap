@@ -37,8 +37,6 @@ namespace Zap {
 		}
 
 		/*DescriptorPool*/ {
-			m_descriptorPool.addDescriptorSet();
-
 			VkDescriptorBufferInfo uniformBufferInfo;
 			uniformBufferInfo.buffer = m_uniformBuffer;
 			uniformBufferInfo.offset = 0;
@@ -50,7 +48,7 @@ namespace Zap {
 			uniformBufferDescriptor.binding = 0;
 			uniformBufferDescriptor.pBufferInfo = &uniformBufferInfo;
 
-			m_descriptorPool.addDescriptor(uniformBufferDescriptor, 0);
+			m_descriptorSet.addDescriptor(uniformBufferDescriptor);
 
 			VkDescriptorBufferInfo lightBufferInfo;
 			lightBufferInfo.buffer = m_lightBuffer;
@@ -63,7 +61,7 @@ namespace Zap {
 			lightBufferDescriptor.binding = 1;
 			lightBufferDescriptor.pBufferInfo = &lightBufferInfo;
 
-			m_descriptorPool.addDescriptor(lightBufferDescriptor, 0);
+			m_descriptorSet.addDescriptor(lightBufferDescriptor);
 
 			VkDescriptorBufferInfo perMeshBufferInfo;
 			perMeshBufferInfo.buffer = m_perMeshBuffer;
@@ -76,9 +74,14 @@ namespace Zap {
 			perMeshBufferDescriptor.binding = 2;
 			perMeshBufferDescriptor.pBufferInfo = &perMeshBufferInfo;
 
-			m_descriptorPool.addDescriptor(perMeshBufferDescriptor, 0);
+			m_descriptorSet.addDescriptor(perMeshBufferDescriptor);
 
+			m_descriptorPool.addDescriptorSet(m_descriptorSet);
 			m_descriptorPool.init();
+
+			m_descriptorSet.init();
+			m_descriptorSet.allocate();
+			m_descriptorSet.update();
 		}
 
 		/*Depth Image*/
@@ -201,7 +204,7 @@ namespace Zap {
 		m_pipeline.addShader(m_vertexShader.getShaderStage());
 		m_pipeline.addShader(m_fragmentShader.getShaderStage());
 
-		m_pipeline.addDescriptorSetLayout(m_descriptorPool.getVkDescriptorSetLayout(0));
+		m_pipeline.addDescriptorSetLayout(m_descriptorSet.getVkDescriptorSetLayout());
 		for (auto attributeDescription : Vertex::getVertexInputAttributeDescriptions()) {
 			m_pipeline.addVertexInputAttrubuteDescription(attributeDescription);
 		}
@@ -233,7 +236,8 @@ namespace Zap {
 		for (vk::Framebuffer framebuffer : m_framebuffers) framebuffer.destroy();
 		m_renderPass.~RenderPass();
 		m_depthImage.destroy();
-		m_descriptorPool.~DescriptorPool();
+		m_descriptorSet.destroy();
+		m_descriptorPool.destroy();
 		m_uniformBuffer.destroy();
 		m_lightBuffer.destroy();
 		m_perMeshBuffer.destroy();
@@ -291,8 +295,8 @@ namespace Zap {
 				vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
 				vkCmdBindIndexBuffer(*cmd, mesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-				VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
-				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
+				VkDescriptorSet boundSets[] = { m_descriptorSet };
+				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, boundSets, 0, nullptr);
 
 				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &i);
 
@@ -304,7 +308,7 @@ namespace Zap {
 		vkCmdEndRenderPass(*cmd);
 	}
 
-	void PBRenderer::resize(int width, int height) {
+	void PBRenderer::onWindowResize(int width, int height) {
 		m_depthImage.setWidth(width);
 		m_depthImage.setHeight(height);
 		m_depthImage.update();

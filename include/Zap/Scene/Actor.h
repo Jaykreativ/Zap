@@ -87,7 +87,7 @@ namespace Zap {
 		/* Camera */
 		void addCamera(glm::mat4 offset = glm::mat4(1));
 
-		bool hasCamera();
+		bool hasCamera() const;
 
 		void cmpCamera_lookAtCenter();
 
@@ -95,11 +95,11 @@ namespace Zap {
 
 		void cmpCamera_setOffset(glm::mat4 offset);
 
-		glm::mat4 cmpCamera_getOffset();
+		glm::mat4 cmpCamera_getOffset() const;
 
-		glm::mat4 cmpCamera_getView();
+		glm::mat4 cmpCamera_getView() const;
 
-		glm::mat4 cmpCamera_getPerspective(float aspect);
+		glm::mat4 cmpCamera_getPerspective(float aspect) const;
 
 	private:
 

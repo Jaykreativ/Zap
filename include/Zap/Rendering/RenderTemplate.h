@@ -15,7 +15,7 @@ namespace Zap {
 
         virtual void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) = 0;
 
-        virtual void resize(int width, int height) = 0;
+        virtual void onWindowResize(int width, int height) = 0;
 
         friend class Renderer;
     };

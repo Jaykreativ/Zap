@@ -75,7 +75,7 @@ namespace Zap {
 			m_sizeCallback(m_window, width, height);
 		}
 
-		m_renderer->resize(width, height);
+		m_renderer->onWindowResize(width, height);
 	}
 
 	/*Getter*/

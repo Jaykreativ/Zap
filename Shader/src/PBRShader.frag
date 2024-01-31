@@ -44,6 +44,5 @@ void main(){
 
         light += lambertian(lights.data[i]);
     }
-    vec4 test = vec4(1, 0, 0, 0) * ubo.model;
     outColor = vec4(fragColor*light, 1);
 }

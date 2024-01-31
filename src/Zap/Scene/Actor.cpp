@@ -236,7 +236,7 @@ namespace Zap {
 		m_pScene->m_cameraComponents[m_handle] = Camera{ false, offset };
 	}
 
-	bool Actor::hasCamera() {
+	bool Actor::hasCamera() const {
 		return m_pScene->m_cameraComponents.count(m_handle);
 	}
 
@@ -258,13 +258,13 @@ namespace Zap {
 		cmp->offset = offset;
 	}
 
-	glm::mat4 Actor::cmpCamera_getOffset() {
+	glm::mat4 Actor::cmpCamera_getOffset() const {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
 		return cmp->offset;
 	}
 
-	glm::mat4 Actor::cmpCamera_getView() {
+	glm::mat4 Actor::cmpCamera_getView() const {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
 		glm::mat4 transform = m_pScene->m_transformComponents.at(m_handle).transform;
@@ -276,7 +276,7 @@ namespace Zap {
 		}
 	}
 
-	glm::mat4 Actor::cmpCamera_getPerspective(float aspect) {
+	glm::mat4 Actor::cmpCamera_getPerspective(float aspect) const {
 		return glm::perspective<float>(glm::radians<float>(60), aspect, 0.01, 1000);
 	}
 

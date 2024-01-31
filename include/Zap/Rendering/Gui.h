@@ -30,6 +30,6 @@ namespace Zap {
 
         void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex);
 
-        void resize(int width, int height);
+        void onWindowResize(int width, int height);
     };
 }

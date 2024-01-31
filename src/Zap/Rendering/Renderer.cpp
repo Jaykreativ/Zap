@@ -116,7 +116,7 @@ namespace Zap {
 		}
 	}
 
-	void Renderer::resize(int width, int height) {
+	void Renderer::onWindowResize(int width, int height) {
 		m_swapchain.setWidth(width);
 		m_swapchain.setHeight(height);
 		m_swapchain.update();
@@ -128,7 +128,7 @@ namespace Zap {
 			);
 		}
 		
-		for (RenderTemplate* renderTemplate : m_renderTemplates) renderTemplate->resize(width, height);
+		for (RenderTemplate* renderTemplate : m_renderTemplates) renderTemplate->onWindowResize(width, height);
 
 		recordCommandBuffers();
 		

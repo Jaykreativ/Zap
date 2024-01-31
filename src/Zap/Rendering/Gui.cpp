@@ -152,7 +152,9 @@ namespace Zap {
 		vkDestroyDescriptorPool(vk::getDevice(), m_imguiPool, nullptr);
 	}
 
-	void Gui::beforeRender(){
+	void Gui::beforeRender(){}
+
+	void Gui::afterRender() {
 		if (m_renderer.m_window.m_width <= 0 || m_renderer.m_window.m_height <= 0) return;
 
 		ImGui::Render();
@@ -186,13 +188,9 @@ namespace Zap {
 		ImGui::NewFrame();
 	}
 
-	void Gui::afterRender() {
-
-	}
-
 	void Gui::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {}
 
-	void Gui::resize(int width, int height) {
+	void Gui::onWindowResize(int width, int height) {
 		for (uint32_t i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
 			m_framebuffers[i].setWidth(width);
 			m_framebuffers[i].setHeight(height);

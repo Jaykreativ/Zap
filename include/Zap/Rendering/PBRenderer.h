@@ -40,6 +40,7 @@ namespace Zap {
 		std::vector<vk::Framebuffer> m_framebuffers;
 
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
+		vk::DescriptorSet m_descriptorSet = vk::DescriptorSet();
 
 		vk::Shader m_vertexShader = vk::Shader();
 		vk::Shader m_fragmentShader = vk::Shader();
@@ -86,7 +87,7 @@ namespace Zap {
 
 		void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex);
 
-		void resize(int width, int height);
+		void onWindowResize(int width, int height);
 	};
 }
 
