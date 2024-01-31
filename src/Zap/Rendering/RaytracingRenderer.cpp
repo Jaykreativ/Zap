@@ -56,6 +56,7 @@ namespace Zap {
 		m_tlas.addGeometry(instanceVector);
 		m_tlas.init();
 
+
 		m_rtOutImage.setFormat(VK_USED_SCREENCOLOR_FORMAT);
 		m_rtOutImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
 		m_rtOutImage.setUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
@@ -303,6 +304,7 @@ namespace Zap {
 				instanceVector.back().setCustomIndex(idMap.at(id));
 			}
 		}
+
 		m_tlas.updateGeometry(instanceVector);
 		m_tlas.update();
 	}
