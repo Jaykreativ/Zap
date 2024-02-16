@@ -39,7 +39,7 @@ vec3 lambertian(LightData light){
 }
 
 void main(){
-    vec3 light = vec3(0.1, 0.1, 0.1);
+    vec3 light = vec3(0, 0, 0);
     for(uint i=0; i<ubo.lightCount; i++){
 
         light += lambertian(lights.data[i]);

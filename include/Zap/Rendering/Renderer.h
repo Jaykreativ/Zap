@@ -18,12 +18,20 @@ namespace Zap {
 
 		void destroy();
 
-		//!Render all rendertemplates to the screen
+		//Render all rendertemplates
 		void render();
 
 		void update();
 
-		void addRenderTemplate(RenderTemplate* renderTemplate);
+		void beginRecord();
+
+		void endRecord();
+
+		void recRenderTemplate(RenderTemplate* pRenderTemplate);
+
+		void recChangeImageLayout(Image* pImage, VkImageLayout layout, VkAccessFlags accessMask);
+
+		void addRenderTemplate(RenderTemplate* pRenderTemplate);
 
 	private:
 		bool m_isInit = false;
@@ -35,7 +43,7 @@ namespace Zap {
 		uint32_t m_currentImageIndex = 0;
 		vk::Swapchain m_swapchain = vk::Swapchain();
 
-		//CommandBuffers
+		//CommandBuffers 
 		uint32_t m_commandBufferCount;
 		vk::CommandBuffer* m_commandBuffers;
 
@@ -44,6 +52,15 @@ namespace Zap {
 		VkFence m_renderComplete = VK_NULL_HANDLE;
 
 		std::vector<RenderTemplate*> m_renderTemplates;
+
+		//Recording
+		enum FunctionType {
+			eRENDER_TEMPLATE = 0,
+			eCHANGE_IMAGE_LAYOUT = 1
+		};
+
+		std::vector<FunctionType> m_recordedFunctions;
+		std::vector<char> m_recordedParams = {};
 
 		void recordCommandBuffers();
 
@@ -54,4 +71,3 @@ namespace Zap {
 		friend class Gui;
 	};
 }
-

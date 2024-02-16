@@ -19,6 +19,8 @@ namespace Zap {
 	class Renderer;
 	class Scene;
 
+	typedef vk::Image Image;
+
 	enum PhysicsType {
 		PHYSICS_TYPE_UNDEFINED = 0,
 		PHYSICS_TYPE_NONE = 1,

@@ -20,6 +20,16 @@ namespace Zap {
 
 		void changeScene(Scene* pScene); // TODO implement
 
+		// Resizes framebuffers
+		// Works only when rendering to a custom target
+		void resize();
+
+		void setRenderTarget(Image* target);
+
+		void setDefaultRenderTarget();
+
+		Image* getRenderTarget();
+
 		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 
 		void getViewport(uint32_t& width, uint32_t& height, uint32_t& x, uint32_t& y);
@@ -28,7 +38,8 @@ namespace Zap {
 		bool m_isInit = false;
 
 		Renderer& m_renderer;
-		Scene* m_pScene;
+		Scene* m_pScene = nullptr;
+		Image* m_pTarget = nullptr;
 
 		VkViewport m_viewport;
 		VkRect2D m_scissor;
@@ -77,7 +88,7 @@ namespace Zap {
 
 		vk::Buffer m_perMeshBuffer;
 
-		void init();
+		void onRendererInit();
 
 		void destroy();
 

@@ -4,32 +4,34 @@
 #include "Zap/Rendering/RenderTemplate.h"
 
 namespace Zap {
-    class Gui : public RenderTemplate {
-    public:
-        Gui(Renderer& renderer);
-        ~Gui();
+	class Gui : public RenderTemplate {
+	public:
+		Gui(Renderer& renderer);
+		~Gui();
 
-    private:
-        bool m_isInit = false;
+		void init();
 
-        Renderer& m_renderer;
+	private:
+		bool m_isInit = false;
 
-        VkDescriptorPool m_imguiPool;
+		Renderer& m_renderer;
 
-        vk::RenderPass m_renderPass = vk::RenderPass();
-        uint32_t m_framebufferCount = 0;
-        vk::Framebuffer* m_framebuffers = nullptr;
+		VkDescriptorPool m_imguiPool;
 
-        void init();
+		vk::RenderPass m_renderPass = vk::RenderPass();
+		uint32_t m_framebufferCount = 0;
+		vk::Framebuffer* m_framebuffers = nullptr;
 
-        void destroy();
+		void onRendererInit();
 
-        void beforeRender();
+		void destroy();
 
-        void afterRender();
+		void beforeRender();
 
-        void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex);
+		void afterRender();
 
-        void onWindowResize(int width, int height);
-    };
+		void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex);
+
+		void onWindowResize(int width, int height);
+	};
 }

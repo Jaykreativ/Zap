@@ -44,7 +44,7 @@ namespace Zap {
 		}
 
 		for (RenderTemplate* renderTemplate : m_renderTemplates) {
-			renderTemplate->init();
+			renderTemplate->onRendererInit();
 		}
 
 		m_commandBufferCount = m_swapchain.getImageCount();
@@ -63,19 +63,19 @@ namespace Zap {
 	}
 
 	void Renderer::render() {
-		if (glfwGetWindowAttrib(m_window.m_window, GLFW_ICONIFIED)) return;
-
 		for (RenderTemplate* renderTemplate : m_renderTemplates) {
 			renderTemplate->beforeRender();
 		}
 
 		// Render
 		m_commandBuffers[m_currentImageIndex].submit(m_renderComplete);
-		vk::waitForFence(m_renderComplete);
+		vk::waitForFence(m_renderComplete); // TODO use semaphores for parallelization
 
 		for (RenderTemplate* renderTemplate : m_renderTemplates) {
 			renderTemplate->afterRender();
 		}
+
+		if (glfwGetWindowAttrib(m_window.m_window, GLFW_ICONIFIED)) return;
 
 		// Present swapchain image
 		vk::changeImageLayout(m_swapchain.getImage(m_currentImageIndex), m_swapchain.getImageSubresourceRange(),
@@ -92,11 +92,34 @@ namespace Zap {
 
 		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
 		vk::waitForFence(m_imageAvailable);
-
 	}
 
 	void Renderer::update() {
 		recordCommandBuffers();
+	}
+
+	void Renderer::beginRecord() {
+		m_recordedFunctions.clear();
+		m_recordedParams.clear();
+	}
+
+	void Renderer::endRecord() {
+		recordCommandBuffers();
+	}
+
+	void Renderer::recRenderTemplate(RenderTemplate* renderTemplate) {
+		m_recordedFunctions.push_back(eRENDER_TEMPLATE);
+		m_recordedParams.resize(m_recordedParams.size()+sizeof(RenderTemplate*));
+		memcpy(&m_recordedParams[m_recordedParams.size()-sizeof(RenderTemplate*)], &renderTemplate, sizeof(RenderTemplate*));
+	}
+
+	void Renderer::recChangeImageLayout(Image* pImage, VkImageLayout layout, VkAccessFlags accessMask) {
+		m_recordedFunctions.push_back(eCHANGE_IMAGE_LAYOUT);
+		uint32_t oldSize = m_recordedParams.size();
+		m_recordedParams.resize(m_recordedParams.size() + sizeof(Image*) + sizeof(VkImageLayout) + sizeof(VkAccessFlags));
+		memcpy(&m_recordedParams[oldSize], &pImage, sizeof(Image*));
+		memcpy(&m_recordedParams[oldSize+sizeof(Image*)], &layout, sizeof(VkImageLayout));
+		memcpy(&m_recordedParams[oldSize+sizeof(Image*)+sizeof(VkImageLayout)], &accessMask, sizeof(VkAccessFlags));
 	}
 
 	void Renderer::addRenderTemplate(RenderTemplate* renderTemplate) {
@@ -104,12 +127,40 @@ namespace Zap {
 	}
 
 	void Renderer::recordCommandBuffers() {
+		if (!m_recordedFunctions.size()) return;
+
 		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
 			vk::CommandBuffer* cmd = &m_commandBuffers[i];
 			cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
-			for (RenderTemplate* renderTemplate : m_renderTemplates) {
-				renderTemplate->recordCommands(cmd, i);
+			char* currentParam = &m_recordedParams[0];
+			for (FunctionType function : m_recordedFunctions) {
+				switch (function)
+				{
+				case eRENDER_TEMPLATE:
+					RenderTemplate* pRenderTemplate;
+					memcpy(&pRenderTemplate, currentParam, sizeof(RenderTemplate*));
+					currentParam += sizeof(RenderTemplate*);
+					pRenderTemplate->recordCommands(cmd, i);
+					break;
+				case eCHANGE_IMAGE_LAYOUT:
+					Image* pImage;
+					memcpy(&pImage, currentParam, sizeof(Image*));
+					currentParam += sizeof(Image*);
+
+					VkImageLayout layout;
+					memcpy(&layout, currentParam, sizeof(VkImageLayout));
+					currentParam += sizeof(VkImageLayout);
+
+					VkAccessFlags accessMask;
+					memcpy(&accessMask, currentParam, sizeof(VkAccessFlags));
+					currentParam += sizeof(VkAccessFlags);
+					pImage->cmdChangeLayout(*cmd, layout, accessMask);
+					break;
+				default:
+					ZP_ASSERT(false, "Unknown function type");
+					break;
+				}
 			}
 
 			cmd->end();

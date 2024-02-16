@@ -5,7 +5,7 @@
 namespace Zap {
     class RenderTemplate {
     private:
-        virtual void init() = 0;
+        virtual void onRendererInit() = 0;
 
         virtual void destroy() = 0;
 

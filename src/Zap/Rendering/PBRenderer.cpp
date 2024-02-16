@@ -13,14 +13,18 @@ namespace Zap {
 	{}
 
 	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
-		: m_renderer(pbrenderer.m_renderer)
+		: m_renderer(pbrenderer.m_renderer), m_pScene(pbrenderer.m_pScene)
 	{}
 
 	PBRenderer::~PBRenderer() {}
 
-	void PBRenderer::init() {
+	void PBRenderer::onRendererInit() {
 		if (m_isInit) return;
 		m_isInit = true;
+
+		if (m_pTarget) {
+			m_pTarget->changeLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+		}
 
 		/*UniformBuffers*/
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
@@ -176,14 +180,25 @@ namespace Zap {
 		}
 
 		/*Framebuffer*/
-		m_framebuffers.resize(m_renderer.m_swapchain.getImageCount());
-		for (int i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
-			m_framebuffers[i].setWidth(m_renderer.m_window.m_width);
-			m_framebuffers[i].setHeight(m_renderer.m_window.m_height);
-			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
-			m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
-			m_framebuffers[i].setRenderPass(m_renderPass);
-			m_framebuffers[i].init();
+		if (m_pTarget) {
+			m_framebuffers.resize(1);
+			m_framebuffers[0].setWidth(m_pTarget->getExtent().width);
+			m_framebuffers[0].setHeight(m_pTarget->getExtent().height);
+			m_framebuffers[0].addAttachment(m_pTarget->getVkImageView());
+			m_framebuffers[0].addAttachment(m_depthImage.getVkImageView());
+			m_framebuffers[0].setRenderPass(m_renderPass);
+			m_framebuffers[0].init();
+		}
+		else {
+			m_framebuffers.resize(m_renderer.m_swapchain.getImageCount());
+			for (int i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
+				m_framebuffers[i].setWidth(m_renderer.m_window.m_width);
+				m_framebuffers[i].setHeight(m_renderer.m_window.m_height);
+				m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
+				m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
+				m_framebuffers[i].setRenderPass(m_renderPass);
+				m_framebuffers[i].init();
+			}
 		}
 
 		/*Shader*/
@@ -252,21 +267,45 @@ namespace Zap {
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
 		renderPassBeginInfo.renderPass = m_renderPass;
-		renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
+
+		if (m_pTarget) {// bind framebuffer
+			m_pTarget->cmdChangeLayout(*cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+			renderPassBeginInfo.framebuffer = m_framebuffers[0];
+		}
+		else {
+			renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
+		}
+
 		VkRect2D renderArea{};
-		int32_t restX = m_renderer.m_window.m_width - (m_scissor.extent.width + m_scissor.offset.x);
-		renderArea.offset.x = std::max<int32_t>(0, m_renderer.m_window.m_width - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
-		renderArea.extent.width = std::min<int32_t>(m_renderer.m_window.m_width - (m_scissor.offset.x + restX), m_renderer.m_window.m_width);
-		int32_t restY = m_renderer.m_window.m_height - (m_scissor.extent.height + m_scissor.offset.y);
-		renderArea.offset.y = std::max<int32_t>(0, m_renderer.m_window.m_height - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
-		renderArea.extent.height = std::min<int32_t>(m_renderer.m_window.m_height - (m_scissor.offset.y + restY), m_renderer.m_window.m_height);
+		int32_t restX, restY;
+		uint32_t maxWidth, maxHeight;// render area cant be larger then the image to write to
+		if (m_pTarget) {
+			maxWidth = m_pTarget->getExtent().width;
+			maxHeight = m_pTarget->getExtent().height;
+		}
+		else {
+			maxWidth = m_renderer.m_window.m_width;
+			maxHeight = m_renderer.m_window.m_height;
+		}
+
+		restX = maxWidth - (m_scissor.extent.width + m_scissor.offset.x);
+		restY = maxHeight - (m_scissor.extent.height + m_scissor.offset.y);
+
+		renderArea.offset.x = std::max<int32_t>(0, maxWidth - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
+		renderArea.offset.y = std::max<int32_t>(0, maxHeight - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
+
+		renderArea.extent.width = std::min<int32_t>(maxWidth - (m_scissor.offset.x + restX), maxWidth);
+		renderArea.extent.height = std::min<int32_t>(maxHeight - (m_scissor.offset.y + restY), maxHeight);
+
 		renderPassBeginInfo.renderArea = renderArea;
+
 		VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
-		VkClearValue depthClearValue = { 1.0f, 0 };
+		VkClearValue depthClearValue = { 1.0f, 0.0f };
 		std::vector<VkClearValue> clearValues = {
 			clearValue,
 			depthClearValue
 		};
+
 		renderPassBeginInfo.clearValueCount = clearValues.size();
 		renderPassBeginInfo.pClearValues = clearValues.data();
 
@@ -309,6 +348,8 @@ namespace Zap {
 	}
 
 	void PBRenderer::onWindowResize(int width, int height) {
+		if (m_pTarget) return;
+
 		m_depthImage.setWidth(width);
 		m_depthImage.setHeight(height);
 		m_depthImage.update();
@@ -324,6 +365,24 @@ namespace Zap {
 			m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
 			m_framebuffers[i].update();
 		}
+	}
+
+	void PBRenderer::resize() {
+		if (!m_pTarget) return;
+		m_depthImage.setWidth(m_pTarget->getExtent().width);
+		m_depthImage.setHeight(m_pTarget->getExtent().height);
+		m_depthImage.update();
+
+		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+
+		m_framebuffers[0].setWidth(m_pTarget->getExtent().width);
+		m_framebuffers[0].setHeight(m_pTarget->getExtent().height);
+		m_framebuffers[0].delAttachment(0);
+		m_framebuffers[0].delAttachment(0);
+		m_framebuffers[0].addAttachment(m_pTarget->getVkImageView());
+		m_framebuffers[0].addAttachment(m_depthImage.getVkImageView());
+		m_framebuffers[0].update();
+
 	}
 
 	void PBRenderer::updateBuffers(Actor camera) {
@@ -369,6 +428,18 @@ namespace Zap {
 
 	void PBRenderer::changeScene(Scene* pScene) {
 
+	}
+
+	void PBRenderer::setRenderTarget(Image* target) {
+		m_pTarget = target;
+	}
+
+	void PBRenderer::setDefaultRenderTarget() {
+		m_pTarget = nullptr;
+	}
+
+	Image* PBRenderer::getRenderTarget() {
+		return m_pTarget;
 	}
 
 	void PBRenderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {

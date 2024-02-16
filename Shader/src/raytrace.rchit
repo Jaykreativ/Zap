@@ -9,6 +9,9 @@
 hitAttributeEXT vec2 attribs;
 
 layout(location = 0) rayPayloadInEXT vec3 prd;
+layout(location = 1) rayPayloadEXT bool isShadowed;
+
+layout(set = 0, binding = 0) uniform accelerationStructureEXT accelerationStructure;
 
 const int vertexSize = 6; // in floats
 struct Vertex {
@@ -40,14 +43,11 @@ layout(set=1, binding = 0) uniform CamUBO{
 	uint lightCount;
 } camUBO;
 
-vec3 lambertian(LightData light, vec3 pos, vec3 normal){
-		vec3 vL = light.pos - pos;
-		vec3 n = normal;
-		vec3 E = light.color/pow(length(vL), 2)*dot(n, vL);
-		vec3 L = 1/PI*E;
-		if(L.x<0) L.x=0;
-		if(L.y<0) L.y=0;
-		if(L.z<0) L.z=0;
+vec3 lambertian(LightData light, vec3 vL, vec3 normal){
+		vec3 n        = normal;
+		vec3 E        = light.color/pow(length(vL), 2)*dot(n, vL);
+		vec3 L        = 1/PI*E;
+		L = max(L, vec3(0));
 		return L;
 }
 
@@ -55,7 +55,7 @@ void main() {
 	PerMeshData meshData = perMesh.i[gl_InstanceCustomIndexEXT];
 	Vertices vertices    = Vertices(meshData.vertexAddress);
 	Indices indices      = Indices(meshData.indexAddress);
-
+	
 	uint ind0 = indices.i[gl_PrimitiveID*3+0];
 	uint ind1 = indices.i[gl_PrimitiveID*3+1];
 	uint ind2 = indices.i[gl_PrimitiveID*3+2];
@@ -83,10 +83,31 @@ void main() {
 	const vec3 normal      = v0.normal * barycentrics.x + v1.normal * barycentrics.y + v2.normal * barycentrics.z;
 	const vec3 worldNormal = normalize(vec3(normal * gl_WorldToObjectEXT));  // Transforming the normal to world space
 
-	vec3 light = vec3(0.1, 0.1, 0.1);
-	for(uint i=0; i<camUBO.lightCount; i++){
-		if(false) continue;
-		light += lambertian(lights.l[i], worldPos, worldNormal);
+	uint rayFlags = gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT;
+	float tMin = 0.001f;
+
+	vec3 light = vec3(0, 0, 0);
+	for(uint i=0; i<camUBO.lightCount; i++){ // loop through all lights
+		isShadowed = true;
+		vec3 L = lights.l[i].pos - worldPos;
+		vec3 direction = normalize(L);
+		if(dot(worldNormal, direction) > 0){
+			float tMax = length(L);
+			traceRayEXT(accelerationStructure,    // acceleration structure
+				        rayFlags,                 // rayFlags
+				        0xFF,                     // cullMask
+				        0,                        // sbtRecordOffset
+				        0,                        // sbtRecordStride
+				        1,                        // missIndex
+				        worldPos,                 // ray origin
+				        tMin,                     // ray min range
+				        direction,                // ray direction
+				        tMax,                     // ray max range
+				        1                         // payload (location = 0)
+			);
+		}
+		if(isShadowed) continue;
+		light += lambertian(lights.l[i], L, worldNormal);
 	}
 	prd = vec3(light);
 }

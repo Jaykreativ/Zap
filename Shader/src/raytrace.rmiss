@@ -4,5 +4,5 @@
 layout(location = 0) rayPayloadInEXT vec3 prd;
 
 void main() {
-    prd = vec3(0.1, 0.1, 0.1);
+    prd = vec3(0, 0, 0);
 }

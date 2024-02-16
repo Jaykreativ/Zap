@@ -13,9 +13,6 @@ namespace Zap {
 	Gui::~Gui(){}
 
 	void Gui::init() {
-		if (m_isInit) return;
-		m_isInit = true;
-
 		VkDescriptorPoolSize poolSizes[] =
 		{
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
@@ -93,17 +90,6 @@ namespace Zap {
 			m_renderPass.init();
 		}
 
-		/*Framebuffer*/
-		m_framebufferCount = m_renderer.m_swapchain.getImageCount();
-		m_framebuffers = new vk::Framebuffer[m_framebufferCount]();
-		for (int i = 0; i < m_framebufferCount; i++) {
-			m_framebuffers[i].setWidth(m_renderer.m_window.m_width);
-			m_framebuffers[i].setHeight(m_renderer.m_window.m_height);
-			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
-			m_framebuffers[i].setRenderPass(m_renderPass);
-			m_framebuffers[i].init();
-		}
-
 		ImGui::CreateContext();
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -134,6 +120,22 @@ namespace Zap {
 		ImGui_ImplGlfw_NewFrame();
 
 		ImGui::NewFrame();
+	}
+
+	void Gui::onRendererInit() {
+		if (m_isInit) return;
+		m_isInit = true;
+
+		/*Framebuffer*/
+		m_framebufferCount = m_renderer.m_swapchain.getImageCount();
+		m_framebuffers = new vk::Framebuffer[m_framebufferCount]();
+		for (int i = 0; i < m_framebufferCount; i++) {
+			m_framebuffers[i].setWidth(m_renderer.m_window.m_width);
+			m_framebuffers[i].setHeight(m_renderer.m_window.m_height);
+			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
+			m_framebuffers[i].setRenderPass(m_renderPass);
+			m_framebuffers[i].init();
+		}
 	}
 
 	void Gui::destroy() {
