@@ -1,17 +1,17 @@
 #pragma once
 
+#include "Zap/Zap.h"
 #include "Zap/Rendering/RenderTemplate.h"
 #include "glm.hpp"
 
-
 namespace Zap {
-	class Actor; //forward declaration
+	class Actor;
 
-	class RaytracingRenderer : public RenderTemplate
+	class PathTracer : public RenderTemplate
 	{
 	public:
-		RaytracingRenderer(Renderer& renderer, Scene* pScene);
-		~RaytracingRenderer();
+		PathTracer(Renderer& renderer, Scene* pScene);
+		~PathTracer();
 
 		void updateCamera(const Actor camera);
 
@@ -31,7 +31,8 @@ namespace Zap {
 
 		std::unordered_map<uint32_t, vk::AccelerationStructure> m_blasMap;
 		vk::AccelerationStructure m_tlas;
-		glm::vec2 m_extent = {1, 1};
+		vk::Image m_storageImage;
+		glm::vec2 m_extent = { 1, 1 };
 		vk::Buffer m_UBO;
 		vk::Shader m_rgenShader;
 		vk::Shader m_rchitShader;
@@ -45,13 +46,13 @@ namespace Zap {
 		void onRendererInit();
 
 		void destroy();
-
+		
 		void beforeRender();
-
+		
 		void afterRender();
-
+		
 		void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex);
-
+		
 		void onWindowResize(int width, int height);
 	};
 }

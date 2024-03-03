@@ -2,6 +2,7 @@
 
 #include "Zap/Zap.h"
 #include "Zap/Scene/Actor.h"
+#include "Zap/Scene/Material.h"
 #include "Zap/Rendering/RenderTemplate.h"
 
 #include "glm.hpp"
@@ -16,7 +17,7 @@ namespace Zap {
 		PBRenderer(const PBRenderer& pbrenderer);
 		~PBRenderer();
 
-		void updateBuffers(Actor camera);
+		void updateCamera(Actor camera);
 
 		void changeScene(Scene* pScene); // TODO implement
 
@@ -66,6 +67,7 @@ namespace Zap {
 			glm::mat4 modelNormal;
 			glm::mat4 view;
 			glm::mat4 perspective;
+			alignas(16) glm::vec3 camPos;
 			alignas(16) glm::vec3 color;
 			alignas(4) uint32_t lightCount;
 		};
@@ -83,7 +85,7 @@ namespace Zap {
 		struct PerMeshData {
 			glm::mat4 transform;
 			glm::mat4 normalTransform;
-			glm::vec4 color;
+			Material material;
 		};
 
 		vk::Buffer m_perMeshBuffer;

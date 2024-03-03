@@ -1,5 +1,8 @@
 #include "Zap/Rendering/PBRenderer.h"
 #include "Zap/Rendering/Renderer.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "Zap/Rendering/stb_image.h"
+#include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Transform.h"
@@ -35,7 +38,7 @@ namespace Zap {
 
 		{
 			uint32_t meshCount = 0;
-			for (auto const& x : m_pScene->m_modelComponents) meshCount += x.second.m_meshes.size();
+			for (auto const& x : m_pScene->m_modelComponents) meshCount += x.second.meshes.size();
 			m_perMeshBuffer = vk::Buffer(sizeof(PerMeshData) * meshCount, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 			m_perMeshBuffer.init(); m_perMeshBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		}
@@ -55,9 +58,9 @@ namespace Zap {
 			m_descriptorSet.addDescriptor(uniformBufferDescriptor);
 
 			VkDescriptorBufferInfo lightBufferInfo;
-			lightBufferInfo.buffer = m_lightBuffer;
+			lightBufferInfo.buffer = m_pScene->m_lightBuffer;
 			lightBufferInfo.offset = 0;
-			lightBufferInfo.range = m_lightBuffer.getSize();
+			lightBufferInfo.range = m_pScene->m_lightBuffer.getSize();
 
 			vk::Descriptor lightBufferDescriptor{};
 			lightBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -68,17 +71,34 @@ namespace Zap {
 			m_descriptorSet.addDescriptor(lightBufferDescriptor);
 
 			VkDescriptorBufferInfo perMeshBufferInfo;
-			perMeshBufferInfo.buffer = m_perMeshBuffer;
+			perMeshBufferInfo.buffer = m_pScene->m_perMeshInstanceBuffer;
 			perMeshBufferInfo.offset = 0;
-			perMeshBufferInfo.range = m_perMeshBuffer.getSize();
+			perMeshBufferInfo.range = m_pScene->m_perMeshInstanceBuffer.getSize();
 
 			vk::Descriptor perMeshBufferDescriptor{};
 			perMeshBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			perMeshBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT;
+			perMeshBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			perMeshBufferDescriptor.binding = 2;
 			perMeshBufferDescriptor.pBufferInfo = &perMeshBufferInfo;
 
 			m_descriptorSet.addDescriptor(perMeshBufferDescriptor);
+
+			Base* base = Base::getBase();// TODO fix errors when 0 textures are loaded
+			VkDescriptorImageInfo* albedoImageInfos = new VkDescriptorImageInfo[base->m_textures.size()];
+			for (uint32_t i = 0; i < base->m_textures.size(); i++) {
+				albedoImageInfos[i].sampler = base->m_textureSampler;
+				albedoImageInfos[i].imageView = base->m_textures[i].getVkImageView();
+				albedoImageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			}
+
+			vk::Descriptor albedoMapsDescriptor{};
+			albedoMapsDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			albedoMapsDescriptor.count = base->m_textures.size();
+			albedoMapsDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
+			albedoMapsDescriptor.binding = 3;
+			albedoMapsDescriptor.pImageInfo = albedoImageInfos;
+
+			m_descriptorSet.addDescriptor(albedoMapsDescriptor);
 
 			m_descriptorPool.addDescriptorSet(m_descriptorSet);
 			m_descriptorPool.init();
@@ -86,6 +106,8 @@ namespace Zap {
 			m_descriptorSet.init();
 			m_descriptorSet.allocate();
 			m_descriptorSet.update();
+			
+			delete[] albedoImageInfos;
 		}
 
 		/*Depth Image*/
@@ -232,7 +254,7 @@ namespace Zap {
 		m_pipeline.enableDepthTest();
 
 		VkPushConstantRange pushConstantRange{};
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(uint32_t);
 
@@ -326,7 +348,7 @@ namespace Zap {
 
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
-			for (uint32_t id : modelPair.second.m_meshes) {
+			for (uint32_t id : modelPair.second.meshes) {
 				Mesh* mesh = &Mesh::all[id];
 
 				VkDeviceSize offsets[] = { 0 };
@@ -337,9 +359,9 @@ namespace Zap {
 				VkDescriptorSet boundSets[] = { m_descriptorSet };
 				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, boundSets, 0, nullptr);
 
-				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &i);
+				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &i);
 
-				vkCmdDrawIndexed(*cmd, mesh->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
+				vkCmdDrawIndexed(*cmd, mesh->getIndexBuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
 				i++;
 			}
 		}
@@ -385,45 +407,15 @@ namespace Zap {
 
 	}
 
-	void PBRenderer::updateBuffers(Actor camera) {
+	void PBRenderer::updateCamera(Actor camera) {
 		m_ubo.view = camera.cmpCamera_getView();
 		m_ubo.perspective = camera.cmpCamera_getPerspective(m_viewport.width / m_viewport.height);
+		m_ubo.camPos = camera.cmpTransform_getPos();
 		m_ubo.lightCount = m_pScene->m_lightComponents.size();
 
 		void* rawData; m_uniformBuffer.map(&rawData);
 		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
 		m_uniformBuffer.unmap();
-
-		if (m_pScene->m_lightComponents.size() > 0) {
-			m_lightBuffer.map(&rawData);
-			{
-				LightData* lightData = (LightData*)(rawData);
-				uint32_t i = 0;
-				for (auto const& lightPair : m_pScene->m_lightComponents) {
-					lightData[i].pos = m_pScene->m_transformComponents.at(lightPair.first).transform[3];
-					lightData[i].color = lightPair.second.color;
-					i++;
-				}
-
-			}
-			m_lightBuffer.unmap();
-		}
-
-		m_perMeshBuffer.map(&rawData);
-		{
-			PerMeshData* perMeshData = (PerMeshData*)(rawData);
-			uint32_t i = 0;
-			for (auto const& modelPair : m_pScene->m_modelComponents) {
-				uint32_t j = 0;
-				for (uint32_t id : modelPair.second.m_meshes) {
-					perMeshData[i].transform = m_pScene->m_transformComponents.at(modelPair.first).transform;
-					perMeshData[i].normalTransform = glm::transpose(glm::inverse(perMeshData[i].transform));
-					perMeshData[i].color = glm::vec4(modelPair.second.m_Materials[j].m_AlbedoColor, 0);
-					j++; i++;
-				}
-			}
-		}
-		m_perMeshBuffer.unmap();
 	}
 
 	void PBRenderer::changeScene(Scene* pScene) {
@@ -443,6 +435,9 @@ namespace Zap {
 	}
 
 	void PBRenderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
+		width = std::max<uint32_t>(width, x+1);
+		height = std::max<uint32_t>(height, y+1);
+
 		m_viewport.x = x;
 		m_viewport.y = y;
 		m_viewport.width = width;

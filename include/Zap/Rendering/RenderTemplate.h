@@ -4,6 +4,13 @@
 
 namespace Zap {
     class RenderTemplate {
+    public:
+        virtual void setRenderTarget(Image* target) = 0;
+
+        virtual void setDefaultRenderTarget() = 0;
+
+        virtual Image* getRenderTarget() = 0;
+
     private:
         virtual void onRendererInit() = 0;
 

@@ -37,7 +37,7 @@ namespace Zap {
 		m_pScene->m_transformComponents[m_handle] = Transform{ transform };
 	}
 
-	bool Actor::hasTransform() {
+	bool Actor::hasTransform() const {
 		return m_pScene->m_transformComponents.count(m_handle);
 	}
 
@@ -95,39 +95,48 @@ namespace Zap {
 		cmp->transform = transform;
 	}
 
-	glm::vec3 Actor::cmpTransform_getPos() {
+	glm::vec3 Actor::cmpTransform_getPos() const {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
 		return glm::vec3(cmp->transform[3]);
 	}
 
-	glm::mat4 Actor::cmpTransform_getTransform() {
+	glm::mat4 Actor::cmpTransform_getTransform() const {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
 		return cmp->transform;
 	}
 	
-	bool Actor::addModel(std::vector<uint32_t> meshes) {
+	bool Actor::addModel(Model model) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_modelComponents.count(m_handle), "Actor can't have multiple Models");
-		Model* cmp = &(m_pScene->m_modelComponents[m_handle] = Model{});
-		cmp->m_Materials.resize(meshes.size());
-		cmp->m_meshes.resize(meshes.size());
-		for (uint32_t i = 0; i < meshes.size(); i++) {
-			cmp->m_Materials[i] = Material();
-			cmp->m_meshes[i] = meshes[i];
-		}
-		for (uint32_t reference : meshes) {
+		Model* cmp = &(m_pScene->m_modelComponents[m_handle] = model);
+		for (uint32_t reference : model.meshes) {
 			bool exist = false;
 			for (uint32_t controlID : m_pScene->m_meshReferences) {
 				exist |= reference == controlID;
 			}
 			m_pScene->m_meshReferences.push_back(reference);
 		}
+		m_pScene->m_meshInstanceCount += cmp->meshes.size();
 	}
 
 	bool Actor::hasModel() {
 		return m_pScene->m_modelComponents.count(m_handle);
+	}
+
+	void Actor::cmpModel_setMaterial(Material material) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
+		for (Material& mat : cmp->materials) {
+			mat = material;
+		}
+	}
+
+	void Actor::cmpModel_setMaterial(uint32_t meshIndex, Material material) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
+		cmp->materials[meshIndex] = material;
 	}
 
 	void Actor::addRigidDynamic(Shape shape) {

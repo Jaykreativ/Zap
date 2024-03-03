@@ -11,6 +11,15 @@ namespace Zap {
 
 		void init();
 
+		// wip
+		void setRenderTarget(Image* target) {};// TODO add target functionality to gui
+
+		// wip
+		void setDefaultRenderTarget() {};
+
+		// wip
+		Image* getRenderTarget() { return nullptr; };
+
 	private:
 		bool m_isInit = false;
 

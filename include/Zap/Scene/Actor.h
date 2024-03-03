@@ -8,6 +8,7 @@ namespace Zap {
 	class Scene;
 	class Transform;
 	class Model;
+	class Material;
 	class PhysicsComponent;
 	class Light;
 	class Camera;
@@ -21,7 +22,7 @@ namespace Zap {
 		/* Transform */
 		void addTransform(glm::mat4 transform); //TODO reduce components to be only databuckets using structs
 
-		bool hasTransform();
+		bool hasTransform() const;
 
 		void cmpTransform_translate(glm::vec3 pos);
 		void cmpTransform_translate(float x, float y, float z);//TODO add faster functions with pointer to component as argument
@@ -39,14 +40,18 @@ namespace Zap {
 
 		void cmpTransform_setTransform(glm::mat4& transform);
 
-		glm::vec3 cmpTransform_getPos();
+		glm::vec3 cmpTransform_getPos() const;
 
-		glm::mat4 cmpTransform_getTransform();
+		glm::mat4 cmpTransform_getTransform() const;
 
 		/* Model */
-		bool addModel(std::vector<uint32_t> meshes);
+		bool addModel(Model meshes);
 
 		bool hasModel();
+
+		void cmpModel_setMaterial(Material material);
+
+		void cmpModel_setMaterial(uint32_t meshIndex, Material material);
 
 		/* RigidDynamic */
 

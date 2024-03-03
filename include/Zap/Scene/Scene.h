@@ -40,6 +40,8 @@ namespace Zap {
 
 		void simulate(float elapsedTime);
 
+		void update();
+
 	private:
 		physx::PxScene* m_pxScene;
 
@@ -50,7 +52,6 @@ namespace Zap {
 		std::unordered_map<UUID, Camera>                   m_cameraComponents;// TODO rework access system
 		std::unordered_map<UUID, Light>                    m_lightComponents;
 		std::unordered_map<UUID, Model>                    m_modelComponents;
-		std::vector<uint32_t>                              m_meshReferences;
 		std::unordered_map<UUID, RigidDynamicComponent>    m_rigidDynamicComponents;
 		std::unordered_map<UUID, RigidStaticComponent>     m_rigidStaticComponents;
 		std::unordered_map<UUID, Transform>                m_transformComponents;
@@ -58,12 +59,31 @@ namespace Zap {
 	private:
 #endif
 
+		struct LightData {
+			alignas(16) glm::vec3 pos;
+			alignas(16) glm::vec3 color;
+		};
+
+		struct PerMeshInstanceData {
+			alignas(16) glm::mat4 transform;
+			alignas(16) glm::mat4 normalTransform;
+			alignas(16) Material material;
+			alignas(8) VkDeviceAddress vertexBufferAddress;
+			alignas(8) VkDeviceAddress indexBufferAddress;
+		};
+
+		uint32_t m_meshInstanceCount = 0;
+		vk::Buffer m_perMeshInstanceBuffer;
+		vk::Buffer m_lightBuffer;
+		std::vector<uint32_t> m_meshReferences;
+
 		friend class Base;
 		friend class Actor;
 		friend class RigidDynamicComponent;
 		friend class RigidStaticComponent;
 		friend class PBRenderer;
 		friend class RaytracingRenderer;
+		friend class PathTracer;
 	};
 }
 

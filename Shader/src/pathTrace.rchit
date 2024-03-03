@@ -9,8 +9,13 @@
 
 hitAttributeEXT vec2 attribs;
 
-layout(location = 0) rayPayloadInEXT vec3 prd;
-layout(location = 1) rayPayloadEXT bool isShadowed;
+layout(location = 0) rayPayloadInEXT Payload{
+	uint recursionDepth;
+	uint randomSeed;
+	vec3 rayOrigin;
+	vec3 rayDirection;
+	vec3 radiance;
+} prd;
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT accelerationStructure;
 
@@ -27,8 +32,8 @@ layout(buffer_reference) buffer Indices { uint i[]; };
 layout(set=1, binding = 0) uniform UBO{
 	mat4 inverseView;
 	mat4 inversePerspective;
-	vec3 camPos;
 	uint lightCount;
+	uint frameIndex;
 } ubo;
 
 // Shared Buffers
@@ -66,18 +71,52 @@ layout(set = 1, binding = 2) readonly buffer PerMeshInstanceBuffer {
 
 layout(set = 1, binding = 3) uniform sampler2D textures[];
 
-vec3 lambertian(LightData light, vec3 vL, vec3 normal){
-		vec3 n        = normal;
-		vec3 E        = light.color/pow(length(vL), 2)*dot(n, vL);
-		vec3 L        = 1/PI*E;
-		L = max(L, vec3(0));
-		return L;
+// Generate a random unsigned int in [0, 2^24) given the previous RNG state
+// using the Numerical Recipes linear congruential generator
+uint pcgHash(inout uint prev)
+{
+  uint state = prev * 747796405u + 2891336453u;
+  uint word = ((state >> ((state >> 28u)+4u)) ^ state) * 277803737u;
+  prev       = (word >> 22u) ^ word;
+  return prev & 0x00FFFFFF;
+}
+
+// Generate a random float in [0, 1) given the previous RNG state
+float rnd(inout uint prev)
+{
+  return (float(pcgHash(prev)) / float(0x01000000));
+}
+
+// Randomly samples from a cosine-weighted hemisphere oriented in the `z` direction.
+// From Ray Tracing Gems section 16.6.1, "Cosine-Weighted Hemisphere Oriented to the Z-Axis"
+vec3 samplingHemisphere(inout uint seed, in vec3 x, in vec3 y, in vec3 z)
+{
+#define M_PI 3.14159265
+
+  float r1 = rnd(seed);
+  float r2 = rnd(seed);
+  float sq = sqrt(r1);
+
+  vec3 direction = vec3(cos(2 * M_PI * r2) * sq, sin(2 * M_PI * r2) * sq, sqrt(1. - r1));
+  direction      = direction.x * x + direction.y * y + direction.z * z;
+
+  return direction;
+}
+
+// Return the tangent and binormal from the incoming normal
+void createCoordinateSystem(in vec3 N, out vec3 Nt, out vec3 Nb)
+{
+  if(abs(N.x) > abs(N.y))
+    Nt = vec3(N.z, 0, -N.x) / sqrt(N.x * N.x + N.z * N.z);
+  else
+    Nt = vec3(0, -N.z, N.y) / sqrt(N.y * N.y + N.z * N.z);
+  Nb = cross(N, Nt);
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
 	return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}  
+}
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -113,7 +152,6 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 	
 	return ggx1 * ggx2;
 }
-
 
 void main() {
 	PerMeshInstanceData perMeshInstanceData = perMeshInstanceBuffer.data[gl_InstanceCustomIndexEXT];
@@ -162,43 +200,59 @@ void main() {
 	float roughness = material.roughness;
 	if(material.roughnessMap < 0xFFFFFFFF)
 		roughness *= texture(textures[material.roughnessMap], texCoords).g;
+	vec4 emissive = material.emissive;
+	if(material.emissiveMap < 0xFFFFFFFF)
+		emissive *= vec4(texture(textures[material.emissiveMap], texCoords).xyz, 1);
 
 	uint rayFlags = gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT;
 	float tMin = 0.001f;
 
 	vec3 N = normalize(worldNormal);
-	vec3 V = normalize(ubo.camPos - worldPos);
+	vec3 V = -prd.rayDirection;
 
 	vec3 F0 = vec3(0.04); 
 	F0 = mix(F0, albedo, metallic);
-			   
+	
 	// reflectance equation
 	vec3 Lo = vec3(0.0);
-	for(int i = 0; i < 4; ++i) 
-	{
+	uint maxRecursionDepth = 10;
+	uint sampleCount = 1;
+	for(uint i = 0; i < sampleCount; i++){
 		// calculate per-light radiance
-		vec3 L = normalize(lightBuffer.data[i].pos - worldPos);
-		float distance    = length(lightBuffer.data[i].pos - worldPos);
-		isShadowed = true;
-		if(dot(worldNormal, L) > 0){
-			traceRayEXT(accelerationStructure,    // acceleration structure
-						rayFlags,                 // rayFlags
-						0xFF,                     // cullMask
-						0,                        // sbtRecordOffset
-						0,                        // sbtRecordStride
-						1,                        // missIndex
-						worldPos,                 // ray origin
-						tMin,                     // ray min range
-						L,                        // ray direction
-						distance,                 // ray max range
-						1                         // payload (location = 1)
+		vec3 L;
+
+		vec3 radiance;
+
+		if(prd.recursionDepth < maxRecursionDepth){
+			vec3 tangent, bitangent;
+			createCoordinateSystem(worldNormal, tangent, bitangent);
+			L = samplingHemisphere(prd.randomSeed, tangent, bitangent, worldNormal);
+
+			uint  rayFlags          = gl_RayFlagsOpaqueEXT;
+			float tMin              = 0.001;
+			float tMax              = 10000.0;
+
+			prd.rayOrigin             = worldPos;
+			prd.rayDirection          = L;
+
+			prd.recursionDepth++;
+			traceRayEXT(
+				accelerationStructure,    // acceleration structure
+				rayFlags,                 // rayFlags
+				0xFF,                     // cullMask
+				0,                        // sbtRecordOffset
+				0,                        // sbtRecordStride
+				0,                        // missIndex
+				prd.rayOrigin,            // ray origin
+				tMin,                     // ray min range
+				prd.rayDirection,         // ray direction
+				tMax,                     // ray max range
+				0                         // payload (location = 0)
 			);
+			radiance = prd.radiance;
 		}
-		if(isShadowed) continue;
-		
+
 		vec3 H = normalize(V + L);
-		float attenuation = 1.0 / (distance * distance);
-		vec3 radiance     = lightBuffer.data[i].color * attenuation;        
 		
 		// cook-torrance brdf
 		float NDF = DistributionGGX(N, H, roughness);        
@@ -214,14 +268,10 @@ void main() {
 		vec3 specular     = numerator / denominator;  
 			
 		// add to outgoing radiance Lo
-		float NdotL = max(dot(N, L), 0.0);                
-		Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
+		float NdotL = max(dot(N, L), 0.0);
+		vec3 BRDF = kD * albedo / PI + specular;
+		Lo += emissive.xyz*emissive.w + (BRDF * radiance * NdotL);
 	}
 
-	vec3 color = Lo;
-	
-	color = color / (color + vec3(1.0));
-	color = pow(color, vec3(1.0/2.2));  
-
-	prd = color;
+	prd.radiance  = Lo;
 }

@@ -67,6 +67,9 @@ namespace Zap {
 		initVulkan(initInfo);
 		printStats();
 
+		m_textureSampler = vk::Sampler();
+		m_textureSampler.init();
+
 		//init physx
 		m_pxFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gDefaultErrorCallback);
 		if (!m_pxFoundation) {
@@ -90,6 +93,10 @@ namespace Zap {
 		
 		m_pxPhysics->release();
 		m_pxFoundation->release();
+
+		for (auto image : m_textures) 
+			image.destroy();
+		m_textureSampler.destroy();
 
 		terminateVulkan();
 		glfwTerminate();

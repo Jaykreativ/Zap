@@ -1,5 +1,6 @@
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
+#include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/PhysicsComponent.h"
 
 namespace Zap {
@@ -31,9 +32,17 @@ namespace Zap {
 			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
 			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
 		}
+
+		m_perMeshInstanceBuffer = vk::Buffer(std::max<size_t>(m_meshInstanceCount, 1)*sizeof(PerMeshInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		m_perMeshInstanceBuffer.init(); m_perMeshInstanceBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+		m_lightBuffer = vk::Buffer(std::max<size_t>(m_lightComponents.size(), 1)*sizeof(LightData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
 
 	void Scene::destroy() {
+		m_perMeshInstanceBuffer.destroy();
+		m_lightBuffer.destroy();
 		for (auto const& x : m_rigidDynamicComponents) x.second.pxActor->release();
 		for (auto const& x : m_rigidStaticComponents) x.second.pxActor->release();
 	}
@@ -92,5 +101,62 @@ namespace Zap {
 			}
 			}
 		}
+	}
+
+	void Scene::update() {
+		if (std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData) != m_lightBuffer.getSize()) {
+			m_lightBuffer.destroy();
+			m_lightBuffer.resize(std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData));
+			m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		}
+
+		void* rawData;
+		m_lightBuffer.map(&rawData);// TODO add system for automatically updating dependencies like descriptors etc.
+		{
+			LightData* lightData = (LightData*)(rawData);
+			uint32_t i = 0;
+			for (auto const& lightPair : m_lightComponents) {
+				lightData[i].pos = m_transformComponents.at(lightPair.first).transform[3];
+				lightData[i].color = lightPair.second.color;
+				i++;
+			}
+		}
+		m_lightBuffer.unmap();
+
+		if (std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData) != m_perMeshInstanceBuffer.getSize()) {
+			m_perMeshInstanceBuffer.destroy();
+			m_perMeshInstanceBuffer.resize(std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData));
+			m_perMeshInstanceBuffer.init(); m_perMeshInstanceBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			m_perMeshInstanceBuffer.map(&rawData);
+			{
+				PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
+				uint32_t i = 0;
+				for (auto const& modelPair : m_modelComponents) {
+					for (uint32_t id : modelPair.second.meshes) {
+						auto mesh = Mesh::all[id];
+						perMeshInstance[i].vertexBufferAddress = mesh.getVertexBuffer()->getVkDeviceAddress();
+						perMeshInstance[i].indexBufferAddress = mesh.getIndexBuffer()->getVkDeviceAddress();
+						i++;
+					}
+				}
+			}
+			m_perMeshInstanceBuffer.unmap();
+		}
+
+		m_perMeshInstanceBuffer.map(&rawData);
+		{
+			PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
+			uint32_t i = 0;
+			for (auto const& modelPair : m_modelComponents) {
+				uint32_t j = 0;
+				for (uint32_t id : modelPair.second.meshes) {
+					perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform;
+					perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
+					perMeshInstance[i].material = modelPair.second.materials[j];
+					j++; i++;
+				}
+			}
+		}
+		m_perMeshInstanceBuffer.unmap();
 	}
 }

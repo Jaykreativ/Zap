@@ -26,7 +26,7 @@ namespace Zap {
 
         vk::Buffer* getVertexBuffer();
 
-        vk::Buffer* getIndexbuffer();
+        vk::Buffer* getIndexBuffer();
 
         static Mesh* createMesh();
 
@@ -42,9 +42,11 @@ namespace Zap {
         static std::vector<Mesh> all;
 
         friend class Base;
+        friend class Scene;
         friend class Renderer;
         friend class PBRenderer;
         friend class RaytracingRenderer;
+        friend class PathTracer;
         friend class ModelLoader;
     };
 }

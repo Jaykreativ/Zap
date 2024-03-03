@@ -5,7 +5,7 @@
 
 namespace Zap {
 	struct Model {
-		std::vector<Material> m_Materials;
-		std::vector<uint32_t> m_meshes;
+		std::vector<Material> materials;
+		std::vector<uint32_t> meshes;
 	};
 }

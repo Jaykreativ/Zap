@@ -50,7 +50,7 @@ namespace Zap {
 		return &m_vertexBuffer;
 	}
 
-	vk::Buffer* Mesh::getIndexbuffer() {
+	vk::Buffer* Mesh::getIndexBuffer() {
 		return &m_indexBuffer;
 	}
 

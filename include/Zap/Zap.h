@@ -4,7 +4,9 @@
 			if (!val){\
 				std::cerr << str << "\n";\
 				throw std::runtime_error(str);\
-			} 
+			}
+
+#define ZP_IS_FLAG_ENABLED(val, flag) ((val & flag) == flag)
 
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_QUAT_DATA_XYZW
@@ -64,11 +66,18 @@ namespace Zap {
 		physx::PxPvd* m_pxPvd;
 		physx::PxPhysics* m_pxPhysics;
 
+		vk::Sampler m_textureSampler;
+		std::vector<vk::Image> m_textures = {};
+
 		static Base* m_engineBase;
 		static bool m_exists;
 
 		friend class Scene;
 		friend class Actor;
+		friend class PBRenderer;
+		friend class RaytracingRenderer;
+		friend class PathTracer;
+		friend class ModelLoader;
 		friend class PhysicsComponent;
 		friend class RigidBodyComponent;
 		friend class RigidDynamicComponent;
