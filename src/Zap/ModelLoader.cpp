@@ -16,7 +16,7 @@ namespace Zap {
 
 	}
 
-	Model ModelLoader::load(const char* modelPath, uint32_t flags) { // TODO add support for .obj materials
+	Model ModelLoader::load(const char* modelPath, uint32_t flags) { // TODO add support for better .obj materials
 		std::vector<Material> materials;
 		std::vector<uint32_t> meshIds;
 
@@ -25,6 +25,8 @@ namespace Zap {
 
 		auto pathSeperate = std::string(modelPath);
 		pathSeperate.erase(pathSeperate.find_last_of("/")+1);
+
+		ZP_ASSERT(scene, "Scene can't be loaded, check the filepath");
 
 #ifdef _DEBUG
 		std::cout << modelPath << " -> NumMeshes: " << scene->mNumMeshes << "\n";
@@ -38,6 +40,9 @@ namespace Zap {
 			material.albedoColor = glm::vec3(aDiffuse.r, aDiffuse.g, aDiffuse.b);
 			aiGetMaterialFloat(aMaterial, AI_MATKEY_METALLIC_FACTOR, &material.metallic);
 			aiGetMaterialFloat(aMaterial, AI_MATKEY_ROUGHNESS_FACTOR, &material.roughness);
+			aiColor4D aEmissive; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_EMISSIVE, &aEmissive);
+			material.emissive = glm::vec4(aEmissive.r, aEmissive.g, aEmissive.b, 0);
+			aiGetMaterialFloat(aMaterial, AI_MATKEY_EMISSIVE_INTENSITY, &material.emissive.w);
 			if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE) > 0) {
 				aiString diffuseTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
 				auto embeddedTexture = scene->GetEmbeddedTexture(diffuseTexturePath.C_Str());

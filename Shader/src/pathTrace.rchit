@@ -47,12 +47,12 @@ layout(set=1, binding=1) readonly buffer LightBuffer {
 } lightBuffer;
 
 struct Material {
-    vec3 albedo;
-    uint albedoMap;
+	vec3 albedo;
+	uint albedoMap;
 	float metallic;
-    uint metallicMap;
+	uint metallicMap;
 	float roughness;
-    uint roughnessMap;
+	uint roughnessMap;
 	vec4 emissive;
 	uint emissiveMap;
 };
@@ -89,28 +89,33 @@ float rnd(inout uint prev)
 
 // Randomly samples from a cosine-weighted hemisphere oriented in the `z` direction.
 // From Ray Tracing Gems section 16.6.1, "Cosine-Weighted Hemisphere Oriented to the Z-Axis"
-vec3 samplingHemisphere(inout uint seed, in vec3 x, in vec3 y, in vec3 z)
+vec3 samplingFacetNormal(inout uint seed, in vec3 x, in vec3 y, in vec3 z, in float roughness)
 {
-#define M_PI 3.14159265
-
-  float r1 = rnd(seed);
-  float r2 = rnd(seed);
-  float sq = sqrt(r1);
-
-  vec3 direction = vec3(cos(2 * M_PI * r2) * sq, sin(2 * M_PI * r2) * sq, sqrt(1. - r1));
-  direction      = direction.x * x + direction.y * y + direction.z * z;
-
-  return direction;
+	float r1 = rnd(seed);
+	float r2 = rnd(seed);
+	float a  = roughness*roughness;
+	
+	float theta = atan(a*sqrt(r1/(1-r1)));
+	float phi = (r2*2-1)*PI;
+	
+	vec3 direction = vec3(
+		sin(theta)*cos(phi),
+		sin(theta)*sin(phi),
+		cos(theta)
+	);
+	direction = direction.x * x + direction.y * y + direction.z * z;
+	
+	return direction;
 }
 
 // Return the tangent and binormal from the incoming normal
 void createCoordinateSystem(in vec3 N, out vec3 Nt, out vec3 Nb)
 {
-  if(abs(N.x) > abs(N.y))
-    Nt = vec3(N.z, 0, -N.x) / sqrt(N.x * N.x + N.z * N.z);
-  else
-    Nt = vec3(0, -N.z, N.y) / sqrt(N.y * N.y + N.z * N.z);
-  Nb = cross(N, Nt);
+	if(abs(N.x) > abs(N.y))
+		Nt = vec3(N.z, 0, -N.x) / sqrt(N.x * N.x + N.z * N.z);
+	else
+		Nt = vec3(0, -N.z, N.y) / sqrt(N.y * N.y + N.z * N.z);
+	Nb = cross(N, Nt);
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
@@ -214,8 +219,8 @@ void main() {
 	F0 = mix(F0, albedo, metallic);
 	
 	// reflectance equation
-	vec3 Lo = vec3(0.0);
-	uint maxRecursionDepth = 10;
+	vec3 Lo = vec3(0);
+	uint maxRecursionDepth = 5;
 	uint sampleCount = 1;
 	for(uint i = 0; i < sampleCount; i++){
 		// calculate per-light radiance
@@ -226,7 +231,7 @@ void main() {
 		if(prd.recursionDepth < maxRecursionDepth){
 			vec3 tangent, bitangent;
 			createCoordinateSystem(worldNormal, tangent, bitangent);
-			L = samplingHemisphere(prd.randomSeed, tangent, bitangent, worldNormal);
+			L = reflect(-V, samplingFacetNormal(prd.randomSeed, tangent, bitangent, worldNormal, roughness));
 
 			uint  rayFlags          = gl_RayFlagsOpaqueEXT;
 			float tMin              = 0.001;
@@ -249,6 +254,7 @@ void main() {
 				tMax,                     // ray max range
 				0                         // payload (location = 0)
 			);
+			prd.recursionDepth--;
 			radiance = prd.radiance;
 		}
 
@@ -263,15 +269,17 @@ void main() {
 		vec3 kD = vec3(1.0) - kS;
 		kD *= 1.0 - metallic;
 		
-		vec3 numerator    = NDF * G * F;
+		vec3 numerator    = G * F;
 		float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
 		vec3 specular     = numerator / denominator;  
 			
 		// add to outgoing radiance Lo
 		float NdotL = max(dot(N, L), 0.0);
 		vec3 BRDF = kD * albedo / PI + specular;
-		Lo += emissive.xyz*emissive.w + (BRDF * radiance * NdotL);
+		float PDFh = NDF*max(dot(N, H), 0.0);
+		float PDF = PDFh/4*max(dot(V, H), 0.0);
+		Lo += emissive.xyz*emissive.w + max((BRDF * radiance * NdotL), 0.0);///max(PDF, 0.0001);
 	}
 
-	prd.radiance  = Lo;
+	prd.radiance  = Lo/sampleCount;
 }

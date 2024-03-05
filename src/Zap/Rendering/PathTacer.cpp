@@ -106,6 +106,7 @@ namespace Zap {
 		m_storageImage.setHeight(m_extent.y);
 		m_storageImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
 		m_storageImage.setUsage(VK_IMAGE_USAGE_STORAGE_BIT);
+		m_storageImage.setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
 		
 		m_storageImage.init();
 		m_storageImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
