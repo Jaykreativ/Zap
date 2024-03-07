@@ -162,6 +162,9 @@ void main() {
 	float roughness = material.roughness;
 	if(material.roughnessMap < 0xFFFFFFFF)
 		roughness *= texture(textures[material.roughnessMap], texCoords).g;
+	vec4 emissive = material.emissive;
+	if(material.emissiveMap < 0xFFFFFFFF)
+		emissive *= vec4(texture(textures[material.emissiveMap], texCoords).xyz, 1);
 
 	uint rayFlags = gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT;
 	float tMin = 0.001f;
@@ -173,7 +176,7 @@ void main() {
 	F0 = mix(F0, albedo, metallic);
 			   
 	// reflectance equation
-	vec3 Lo = vec3(0.0);
+	vec3 Lo = vec3(0);
 	for(int i = 0; i < 4; ++i) 
 	{
 		// calculate per-light radiance
@@ -194,6 +197,7 @@ void main() {
 						1                         // payload (location = 1)
 			);
 		}
+		Lo += emissive.xyz * emissive.w;
 		if(isShadowed) continue;
 		
 		vec3 H = normalize(V + L);

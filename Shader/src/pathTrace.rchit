@@ -108,6 +108,18 @@ vec3 samplingFacetNormal(inout uint seed, in vec3 x, in vec3 y, in vec3 z, in fl
 	return direction;
 }
 
+vec3 samplingHemisphere(inout uint seed, in vec3 x, in vec3 y, in vec3 z)
+{
+  float r1 = rnd(seed);
+  float r2 = rnd(seed);
+  float sq = sqrt(r1);
+
+  vec3 direction = vec3(cos(2 * PI * r2) * sq, sin(2 * PI * r2) * sq, sqrt(1. - r1));
+  direction      = direction.x * x + direction.y * y + direction.z * z;
+
+  return direction;
+}
+
 // Return the tangent and binormal from the incoming normal
 void createCoordinateSystem(in vec3 N, out vec3 Nt, out vec3 Nb)
 {
@@ -228,10 +240,25 @@ void main() {
 
 		vec3 radiance;
 
+		bool isDiffuse = false;
+		vec3 F    = fresnelSchlick(max(dot(N, V), 0.0), F0);       
+		
+		vec3 kS = F;
+		vec3 kD = vec3(1.0) - kS;
+		kD *= 1.0 - metallic;
 		if(prd.recursionDepth < maxRecursionDepth){
 			vec3 tangent, bitangent;
 			createCoordinateSystem(worldNormal, tangent, bitangent);
-			L = reflect(-V, samplingFacetNormal(prd.randomSeed, tangent, bitangent, worldNormal, roughness));
+
+			if(rnd(prd.randomSeed)<0.5){
+				isDiffuse = true;
+				L = samplingHemisphere(prd.randomSeed, tangent, bitangent, N);
+			}
+			else{
+				isDiffuse = false;
+				L = reflect(-V, samplingFacetNormal(prd.randomSeed, tangent, bitangent, N, roughness));
+			}
+
 
 			uint  rayFlags          = gl_RayFlagsOpaqueEXT;
 			float tMin              = 0.001;
@@ -257,25 +284,24 @@ void main() {
 			prd.recursionDepth--;
 			radiance = prd.radiance;
 		}
-
+		
 		vec3 H = normalize(V + L);
-		
+
 		// cook-torrance brdf
-		float NDF = DistributionGGX(N, H, roughness);        
-		float G   = GeometrySmith(N, V, L, roughness);      
-		vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
-		
-		vec3 kS = F;
-		vec3 kD = vec3(1.0) - kS;
-		kD *= 1.0 - metallic;
+		float NDF = DistributionGGX(N, H, roughness);
+		float G   = GeometrySmith(N, V, L, roughness);
 		
 		vec3 numerator    = G * F;
 		float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
 		vec3 specular     = numerator / denominator;  
-			
+
 		// add to outgoing radiance Lo
 		float NdotL = max(dot(N, L), 0.0);
-		vec3 BRDF = kD * albedo / PI + specular;
+		vec3 BRDF = vec3(0);
+		if(isDiffuse)
+			BRDF = kD * albedo / PI;
+		else
+			BRDF = specular;
 		float PDFh = NDF*max(dot(N, H), 0.0);
 		float PDF = PDFh/4*max(dot(V, H), 0.0);
 		Lo += emissive.xyz*emissive.w + max((BRDF * radiance * NdotL), 0.0);///max(PDF, 0.0001);

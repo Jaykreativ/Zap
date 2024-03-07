@@ -111,6 +111,10 @@ void main(){
 	float roughness = material.roughness;
 	if(material.roughnessMap < 0xFFFFFFFF)
 		roughness *= texture(textures[material.roughnessMap], fragTexCoords).g;
+	vec4 emissive = material.emissive;
+	if(material.emissiveMap < 0xFFFFFFFF)
+		emissive *= vec4(texture(textures[material.emissiveMap], fragTexCoords).xyz, 1);
+
 
 	vec3 N = normalize(fragNormal);
 	vec3 V = normalize(ubo.camPos - fragPos);
@@ -144,7 +148,7 @@ void main(){
 			
 		// add to outgoing radiance Lo
 		float NdotL = max(dot(N, L), 0.0);
-		Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
+		Lo += emissive.xyz * emissive.w + (kD * albedo / PI + specular) * radiance * NdotL; 
 	}   
   
 	vec3 color = Lo;
