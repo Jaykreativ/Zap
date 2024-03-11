@@ -42,12 +42,12 @@ layout(set=1, binding=1) readonly buffer LightBuffer {
 } lightBuffer;
 
 struct Material {
-    vec3 albedo;
-    uint albedoMap;
+	vec3 albedo;
+	uint albedoMap;
 	float metallic;
-    uint metallicMap;
+	uint metallicMap;
 	float roughness;
-    uint roughnessMap;
+	uint roughnessMap;
 	vec4 emissive;
 	uint emissiveMap;
 };

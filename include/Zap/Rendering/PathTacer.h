@@ -30,14 +30,16 @@ namespace Zap {
 		Image* m_pTarget = nullptr;
 
 		std::unordered_map<uint32_t, vk::AccelerationStructure> m_blasMap;
+		std::vector<vk::AccelerationStructure> m_lightBlasVector;
 		vk::AccelerationStructure m_tlas;
 		vk::Image m_storageImage;
 		glm::vec2 m_extent = { 1, 1 };
 		vk::Buffer m_UBO;
+		uint32_t m_frameIndex = 0;
 		vk::Shader m_rgenShader;
 		vk::Shader m_rchitShader;
 		vk::Shader m_rmissShader;
-		vk::Shader m_rsmissShader;
+		vk::Shader m_rintShader;
 		vk::DescriptorPool m_descriptorPool;
 		vk::DescriptorSet m_rtDescriptorSet;
 		vk::DescriptorSet m_descriptorSet;

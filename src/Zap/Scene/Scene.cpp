@@ -6,9 +6,7 @@
 namespace Zap {
 	Scene::Scene() {}
 
-	Scene::~Scene() {
-
-	}
+	Scene::~Scene() {}
 
 	void Scene::init() {
 		auto base = Base::getBase();
@@ -111,13 +109,14 @@ namespace Zap {
 		}
 
 		void* rawData;
-		m_lightBuffer.map(&rawData);// TODO add system for automatically updating dependencies like descriptors etc.
+		m_lightBuffer.map(&rawData);// TODO add registery system for automatically updating dependencies like descriptors etc.
 		{
 			LightData* lightData = (LightData*)(rawData);
 			uint32_t i = 0;
 			for (auto const& lightPair : m_lightComponents) {
 				lightData[i].pos = m_transformComponents.at(lightPair.first).transform[3];
 				lightData[i].color = lightPair.second.color;
+				lightData[i].radius = lightPair.second.radius;
 				i++;
 			}
 		}

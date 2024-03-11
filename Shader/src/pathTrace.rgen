@@ -58,7 +58,7 @@ void main(){
 
 		traceRayEXT(accelerationStructure,    // acceleration structure
 					rayFlags,                 // rayFlags
-					0xFF,                     // cullMask
+					0xF0,                     // cullMask
 					0,                        // sbtRecordOffset
 					0,                        // sbtRecordStride
 					0,                        // missIndex

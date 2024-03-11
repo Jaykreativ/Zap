@@ -171,6 +171,11 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 }
 
 void main() {
+	if(gl_HitKindEXT == 1){
+		prd.radiance = lightBuffer.data[gl_InstanceCustomIndexEXT].color;
+		return;
+	}
+
 	PerMeshInstanceData perMeshInstanceData = perMeshInstanceBuffer.data[gl_InstanceCustomIndexEXT];
 	Vertices vertices    = Vertices(perMeshInstanceData.vertexAddress);
 	Indices indices      = Indices(perMeshInstanceData.indexAddress);
@@ -229,7 +234,7 @@ void main() {
 
 	vec3 F0 = vec3(0.04); 
 	F0 = mix(F0, albedo, metallic);
-	
+
 	// reflectance equation
 	vec3 Lo = vec3(0);
 	uint maxRecursionDepth = 5;

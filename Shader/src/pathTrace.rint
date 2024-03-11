@@ -1,0 +1,46 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+
+hitAttributeEXT bool _unused;
+
+struct LightData {
+	vec3 pos;
+	vec3 color;
+	float radius;
+};
+
+layout(set=1, binding=1) readonly buffer LightBuffer {
+	LightData data[];
+} lightBuffer;
+
+// this method is documented in raytracing gems book
+vec2 gems_intersections(vec3 orig, vec3 dir, vec3 center, float radius)
+{
+	vec3 f = orig - center;
+	float a = dot(dir, dir);
+	float bi = dot(-f, dir);
+	float c = dot(f, f) - radius * radius;
+	vec3 s = f + (bi/a)*dir;
+	float discr = radius * radius - dot(s, s);
+
+	vec2 t = vec2(-1.0, -1.0);
+	if (discr >= 0) {
+		float q = bi + sign(bi) * sqrt(a*discr);
+		float t1 = c / q;
+		float t2 = q / a;
+		t = vec2(t1, t2);
+	}
+	return t;
+}
+
+void main()
+{
+	LightData sph = lightBuffer.data[gl_InstanceCustomIndexEXT];
+	vec3 orig = gl_WorldRayOriginEXT;
+	vec3 dir = gl_WorldRayDirectionEXT;
+
+	vec2 t = gems_intersections(orig, dir, sph.pos, sph.radius);
+
+	reportIntersectionEXT(t.y, 1);
+	reportIntersectionEXT(t.x, 1);
+}

@@ -62,6 +62,7 @@ namespace Zap {
 		struct LightData {
 			alignas(16) glm::vec3 pos;
 			alignas(16) glm::vec3 color;
+			alignas(4) float radius;
 		};
 
 		struct PerMeshInstanceData {
