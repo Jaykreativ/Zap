@@ -233,10 +233,22 @@ namespace Zap {
 		cmp->color = color;
 	}
 
-	glm::vec3 Actor::cmpLight_getColor() {
+	glm::vec3 Actor::cmpLight_getColor() const {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
 		return cmp->color;
+	}
+
+	void Actor::cmpLight_setStrength(float strength) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
+		cmp->strength = strength;
+	}
+
+	float Actor::cmpLight_getStrength() const {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
+		return cmp->strength;
 	}
 
 	void Actor::addCamera(glm::mat4 offset) {

@@ -64,7 +64,8 @@ namespace Zap {
 
 	void Renderer::render() {
 		for (RenderTemplate* renderTemplate : m_renderTemplates) {
-			renderTemplate->beforeRender();
+			if(renderTemplate->m_isEnabled)
+				renderTemplate->beforeRender();
 		}
 
 		// Render
@@ -72,7 +73,8 @@ namespace Zap {
 		vk::waitForFence(m_renderComplete); // TODO use semaphores for parallelization
 
 		for (RenderTemplate* renderTemplate : m_renderTemplates) {
-			renderTemplate->afterRender();
+			if (renderTemplate->m_isEnabled)
+				renderTemplate->afterRender();
 		}
 
 		if (glfwGetWindowAttrib(m_window.m_window, GLFW_ICONIFIED)) return;

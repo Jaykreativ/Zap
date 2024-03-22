@@ -5,6 +5,10 @@
 namespace Zap {
     class RenderTemplate {
     public:
+        void disable() { m_isEnabled = false; }
+
+        void enable() { m_isEnabled = true; }
+
         virtual void setRenderTarget(Image* target) = 0;
 
         virtual void setDefaultRenderTarget() = 0;
@@ -12,6 +16,8 @@ namespace Zap {
         virtual Image* getRenderTarget() = 0;
 
     private:
+        bool m_isEnabled = true;
+
         virtual void onRendererInit() = 0;
 
         virtual void destroy() = 0;

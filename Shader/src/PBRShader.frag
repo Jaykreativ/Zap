@@ -29,6 +29,8 @@ layout(binding=0) uniform UBO{
 struct LightData {
 	vec3 pos;
 	vec3 color;
+	float strength;
+	float radius;
 };
 
 layout(set=0, binding=1) readonly buffer LightBuffer{
@@ -129,9 +131,10 @@ void main(){
 		// calculate per-light radiance
 		vec3 L = normalize(lightBuffer.data[i].pos - fragPos);
 		vec3 H = normalize(V + L);
-		float distance    = length(lightBuffer.data[i].pos - fragPos);
+		float r = lightBuffer.data[i].radius;
+		float distance    = max(length(lightBuffer.data[i].pos - fragPos)-r, 0.0001);
 		float attenuation = 1.0 / (distance * distance);
-		vec3 radiance     = lightBuffer.data[i].color * attenuation;        
+		vec3 radiance     = lightBuffer.data[i].color * lightBuffer.data[i].strength * attenuation;        
 		
 		// cook-torrance brdf
 		float NDF = DistributionGGX(N, H, roughness);        

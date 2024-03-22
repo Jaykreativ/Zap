@@ -40,6 +40,8 @@ layout(set=1, binding = 0) uniform UBO{
 struct LightData {
 	vec3 pos;
 	vec3 color;
+	float strength;
+	float radius;
 };
 
 layout(set=1, binding=1) readonly buffer LightBuffer {
@@ -172,7 +174,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 void main() {
 	if(gl_HitKindEXT == 1){
-		prd.radiance = lightBuffer.data[gl_InstanceCustomIndexEXT].color;
+		prd.radiance = lightBuffer.data[gl_InstanceCustomIndexEXT].color * lightBuffer.data[gl_InstanceCustomIndexEXT].strength;
 		return;
 	}
 
@@ -237,7 +239,7 @@ void main() {
 
 	// reflectance equation
 	vec3 Lo = vec3(0);
-	uint maxRecursionDepth = 5;
+	uint maxRecursionDepth = uint(round(rnd(prd.randomSeed)*4+1));
 	uint sampleCount = 1;
 	for(uint i = 0; i < sampleCount; i++){
 		// calculate per-light radiance
@@ -255,7 +257,7 @@ void main() {
 			vec3 tangent, bitangent;
 			createCoordinateSystem(worldNormal, tangent, bitangent);
 
-			if(rnd(prd.randomSeed)<0.5){
+			if(rnd(prd.randomSeed)<(1-metallic)/2){
 				isDiffuse = true;
 				L = samplingHemisphere(prd.randomSeed, tangent, bitangent, N);
 			}
@@ -303,13 +305,12 @@ void main() {
 		// add to outgoing radiance Lo
 		float NdotL = max(dot(N, L), 0.0);
 		vec3 BRDF = vec3(0);
-		if(isDiffuse)
-			BRDF = kD * albedo / PI;
-		else
-			BRDF = specular;
-		float PDFh = NDF*max(dot(N, H), 0.0);
-		float PDF = PDFh/4*max(dot(V, H), 0.0);
-		Lo += emissive.xyz*emissive.w + max((BRDF * radiance * NdotL), 0.0);///max(PDF, 0.0001);
+		if(isDiffuse){
+			BRDF =  max(kD * albedo, 0.0);/// PI; //don't know why this should be here
+			NdotL = 1;
+		} else
+			BRDF = max(specular, 0.0);
+		Lo += emissive.xyz*emissive.w + BRDF * radiance * NdotL * 2;
 	}
 
 	prd.radiance  = Lo/sampleCount;

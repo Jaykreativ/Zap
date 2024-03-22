@@ -6,6 +6,7 @@ hitAttributeEXT bool _unused;
 struct LightData {
 	vec3 pos;
 	vec3 color;
+	float strength;
 	float radius;
 };
 

@@ -87,7 +87,11 @@ namespace Zap {
 
 		void cmpLight_setColor(glm::vec3 color);
 
-		glm::vec3 cmpLight_getColor();
+		glm::vec3 cmpLight_getColor() const;
+
+		void cmpLight_setStrength(float strength);
+
+		float cmpLight_getStrength() const;
 
 		/* Camera */
 		void addCamera(glm::mat4 offset = glm::mat4(1));

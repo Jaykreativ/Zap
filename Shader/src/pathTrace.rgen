@@ -48,7 +48,7 @@ void main(){
 	float tMin              = 0.001;
 	float tMax              = 10000.0;
 
-	uint samples = 4;
+	uint samples = 5;
 	vec3 color = vec3(0, 0, 0);
 	for(uint i = 0; i<samples; i++){
 		prd.rayOrigin           = vec3(ubo.inverseView * vec4(0, 0, 0, 1));

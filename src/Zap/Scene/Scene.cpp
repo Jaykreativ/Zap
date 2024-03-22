@@ -116,6 +116,7 @@ namespace Zap {
 			for (auto const& lightPair : m_lightComponents) {
 				lightData[i].pos = m_transformComponents.at(lightPair.first).transform[3];
 				lightData[i].color = lightPair.second.color;
+				lightData[i].strength = lightPair.second.strength;
 				lightData[i].radius = lightPair.second.radius;
 				i++;
 			}

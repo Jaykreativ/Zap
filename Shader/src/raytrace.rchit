@@ -35,6 +35,8 @@ layout(set=1, binding = 0) uniform UBO{
 struct LightData {
 	vec3 pos;
 	vec3 color;
+	float strength;
+	float radius;
 };
 
 layout(set=1, binding=1) readonly buffer LightBuffer {
@@ -167,7 +169,7 @@ void main() {
 		emissive *= vec4(texture(textures[material.emissiveMap], texCoords).xyz, 1);
 
 	uint rayFlags = gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT;
-	float tMin = 0.001f;
+	float tMin = 0.001;
 
 	vec3 N = normalize(worldNormal);
 	vec3 V = normalize(ubo.camPos - worldPos);
@@ -181,7 +183,8 @@ void main() {
 	{
 		// calculate per-light radiance
 		vec3 L = normalize(lightBuffer.data[i].pos - worldPos);
-		float distance    = length(lightBuffer.data[i].pos - worldPos);
+		float r = lightBuffer.data[i].radius;
+		float distance    = max(length(lightBuffer.data[i].pos - worldPos)-r, 0.0001);
 		isShadowed = true;
 		if(dot(worldNormal, L) > 0){
 			traceRayEXT(accelerationStructure,    // acceleration structure
@@ -202,7 +205,7 @@ void main() {
 		
 		vec3 H = normalize(V + L);
 		float attenuation = 1.0 / (distance * distance);
-		vec3 radiance     = lightBuffer.data[i].color * attenuation;        
+		vec3 radiance     = lightBuffer.data[i].color * lightBuffer.data[i].strength * attenuation;        
 		
 		// cook-torrance brdf
 		float NDF = DistributionGGX(N, H, roughness);        
