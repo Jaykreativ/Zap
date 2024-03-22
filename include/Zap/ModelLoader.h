@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Scene/Model.h"
 #include <vector>
 
 class aiMesh;// forwarded decleration

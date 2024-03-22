@@ -26,7 +26,7 @@ namespace Zap {
 		auto pathSeperate = std::string(modelPath);
 		pathSeperate.erase(pathSeperate.find_last_of("/")+1);
 
-		ZP_ASSERT(scene, "Scene can't be loaded, check the filepath");
+		ZP_ASSERT(scene, (std::string("Scene can't be loaded, check the filepath: ") + std::string(modelPath)).c_str());
 
 #ifdef _DEBUG
 		std::cout << modelPath << " -> NumMeshes: " << scene->mNumMeshes << "\n";
