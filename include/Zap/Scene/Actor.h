@@ -81,7 +81,7 @@ namespace Zap {
 		bool hasRigidStatic();
 
 		/* Light */
-		void addLight(glm::vec3 color);
+		void addLight(glm::vec3 color = {1, 1, 1}, float strength = 1, float radius = 1);
 
 		bool hasLight();
 
@@ -92,6 +92,10 @@ namespace Zap {
 		void cmpLight_setStrength(float strength);
 
 		float cmpLight_getStrength() const;
+
+		void cmpLight_setRadius(float radius);
+
+		float cmpLight_getRadius() const;
 
 		/* Camera */
 		void addCamera(glm::mat4 offset = glm::mat4(1));

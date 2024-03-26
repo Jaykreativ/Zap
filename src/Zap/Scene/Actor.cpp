@@ -217,10 +217,10 @@ namespace Zap {
 		return m_pScene->m_rigidStaticComponents.count(m_handle);
 	}
 
-	void Actor::addLight(glm::vec3 color) {
+	void Actor::addLight(glm::vec3 color, float strength, float radius) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_lightComponents.count(m_handle), "Actor can't have multiple lights");
-		m_pScene->m_lightComponents[m_handle] = Light{ color };
+		m_pScene->m_lightComponents[m_handle] = Light{ color, strength, radius };
 	}
 
 	bool Actor::hasLight() {
@@ -249,6 +249,18 @@ namespace Zap {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
 		return cmp->strength;
+	}
+
+	void Actor::cmpLight_setRadius(float radius) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
+		cmp->radius = radius;
+	}
+
+	float Actor::cmpLight_getRadius() const {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
+		return cmp->radius;
 	}
 
 	void Actor::addCamera(glm::mat4 offset) {
