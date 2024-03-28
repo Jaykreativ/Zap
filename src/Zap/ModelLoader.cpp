@@ -16,6 +16,8 @@ namespace Zap {
 
 	}
 
+
+
 	Model ModelLoader::load(const char* modelPath, uint32_t flags) { // TODO add support for better .obj materials
 		std::vector<Material> materials;
 		std::vector<uint32_t> meshIds;
@@ -85,6 +87,16 @@ namespace Zap {
 		Model model = { materials, meshIds };
 
 		return model;
+	}
+
+	Model ModelLoader::loadFromMemory(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
+		Mesh* mesh = Mesh::createMesh();
+		mesh->load(vertexCount, pVertices, indexCount, pIndices);
+		return { {Material()}, {mesh->m_id} };
+	}
+
+	Model ModelLoader::loadFromMemory(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray) {
+		loadFromMemory(vertexArray.size(), vertexArray.data(), indexArray.size(), indexArray.data());
 	}
 
 	uint32_t ModelLoader::loadTexture(void* data, uint32_t width, uint32_t height) {

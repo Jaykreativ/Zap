@@ -21,6 +21,9 @@ namespace Zap {
 
 		Model load(const char* modelPath, uint32_t flags = 0);
 
+		Model loadFromMemory(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices);
+		Model loadFromMemory(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray);
+
 		/*
 		* Loads a texture into the texture system.
 		* Returns a handle to the texture in the system.
