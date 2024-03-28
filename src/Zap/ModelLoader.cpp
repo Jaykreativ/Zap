@@ -96,7 +96,7 @@ namespace Zap {
 	}
 
 	Model ModelLoader::loadFromMemory(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray) {
-		loadFromMemory(vertexArray.size(), vertexArray.data(), indexArray.size(), indexArray.data());
+		return loadFromMemory(vertexArray.size(), vertexArray.data(), indexArray.size(), indexArray.data());
 	}
 
 	uint32_t ModelLoader::loadTexture(void* data, uint32_t width, uint32_t height) {
