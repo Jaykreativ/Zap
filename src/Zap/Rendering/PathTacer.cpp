@@ -71,11 +71,12 @@ namespace Zap {
 
 	void PathTracer::onRendererInit() {
 		for (uint32_t id : m_pScene->m_meshReferences) {
-			Mesh& mesh = Mesh::all[id];
+			auto* base = Base::getBase();
+			Mesh* mesh = &base->m_meshes[id];
 			if (m_blasMap.count(id)) continue;
 			vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
 			accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
-			accelerationStructure.addGeometry(mesh.m_vertexBuffer, sizeof(Vertex), mesh.m_indexBuffer);
+			accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
 			accelerationStructure.init();
 		}
 		for (auto const& lightPair : m_pScene->m_lightComponents) {

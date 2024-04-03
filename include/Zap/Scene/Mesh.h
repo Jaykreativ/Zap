@@ -30,7 +30,10 @@ namespace Zap {
 
         static Mesh* createMesh();
 
+#ifndef ZP_ALL_PUBLIC
     private:
+#endif
+
         bool m_isInit = false;
 
         uint32_t m_id;
@@ -38,8 +41,6 @@ namespace Zap {
         std::vector<vk::CommandBuffer> m_commandBuffers;
         vk::Buffer m_vertexBuffer = vk::Buffer();
         vk::Buffer m_indexBuffer = vk::Buffer();
-
-        static std::vector<Mesh> all;
 
         friend class Base;
         friend class Scene;

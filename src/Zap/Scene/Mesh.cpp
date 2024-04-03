@@ -1,12 +1,11 @@
 #include "Zap/Scene/Mesh.h"
 
 namespace Zap {
-	std::vector<Mesh> Mesh::all;
-
 	Mesh::Mesh(){
-		m_id = all.size();
-		all.push_back(*this);
-		all.back().init();
+		auto* base = Base::getBase();
+		m_id = base->m_meshes.size();
+		base->m_meshes.push_back(*this);
+		base->m_meshes.back().init();
 	}
 
 	Mesh::~Mesh() {}
@@ -55,6 +54,7 @@ namespace Zap {
 	}
 
 	Mesh* Mesh::createMesh() {
-		return &Mesh::all[Mesh().m_id];
+		auto* base = Base::getBase();
+		return &base->m_meshes[Mesh().m_id];
 	}
 }

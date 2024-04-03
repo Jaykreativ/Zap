@@ -35,7 +35,10 @@ namespace Zap
 
 		static void pollEvents();
 
+#ifndef ZP_ALL_PUBLIC
 	private:
+#endif
+
 		bool m_isInit = false;
 
 		uint32_t m_width;

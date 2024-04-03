@@ -83,22 +83,22 @@ namespace Zap {
 
 			m_descriptorSet.addDescriptor(perMeshBufferDescriptor);
 
-			Base* base = Base::getBase();// TODO fix errors when 0 textures are loaded
-			VkDescriptorImageInfo* albedoImageInfos = new VkDescriptorImageInfo[base->m_textures.size()];
+			Base* base = Base::getBase();// TODO add default texture
+			VkDescriptorImageInfo* textureImageInfos = new VkDescriptorImageInfo[base->m_textures.size()];
 			for (uint32_t i = 0; i < base->m_textures.size(); i++) {
-				albedoImageInfos[i].sampler = base->m_textureSampler;
-				albedoImageInfos[i].imageView = base->m_textures[i].getVkImageView();
-				albedoImageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				textureImageInfos[i].sampler = base->m_textureSampler;
+				textureImageInfos[i].imageView = base->m_textures[i].getVkImageView();
+				textureImageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 			}
 
-			vk::Descriptor albedoMapsDescriptor{};
-			albedoMapsDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			albedoMapsDescriptor.count = base->m_textures.size();
-			albedoMapsDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
-			albedoMapsDescriptor.binding = 3;
-			albedoMapsDescriptor.pImageInfo = albedoImageInfos;
+			vk::Descriptor texturesDescriptor{};
+			texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			texturesDescriptor.count = base->m_textures.size();
+			texturesDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
+			texturesDescriptor.binding = 3;
+			texturesDescriptor.pImageInfo = textureImageInfos;
 
-			m_descriptorSet.addDescriptor(albedoMapsDescriptor);
+			m_descriptorSet.addDescriptor(texturesDescriptor);
 
 			m_descriptorPool.addDescriptorSet(m_descriptorSet);
 			m_descriptorPool.init();
@@ -107,7 +107,7 @@ namespace Zap {
 			m_descriptorSet.allocate();
 			m_descriptorSet.update();
 			
-			delete[] albedoImageInfos;
+			delete[] textureImageInfos;
 		}
 
 		/*Depth Image*/
@@ -349,7 +349,8 @@ namespace Zap {
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
 			for (uint32_t id : modelPair.second.meshes) {
-				Mesh* mesh = &Mesh::all[id];
+				auto* base = Base::getBase();
+				Mesh* mesh = &base->m_meshes[id];
 
 				VkDeviceSize offsets[] = { 0 };
 				VkBuffer vertexBuffer = mesh->m_vertexBuffer;

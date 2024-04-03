@@ -133,7 +133,8 @@ namespace Zap {
 				uint32_t i = 0;
 				for (auto const& modelPair : m_modelComponents) {
 					for (uint32_t id : modelPair.second.meshes) {
-						auto mesh = Mesh::all[id];
+						auto* base = Base::getBase();
+						auto mesh = base->m_meshes[id];
 						perMeshInstance[i].vertexBufferAddress = mesh.getVertexBuffer()->getVkDeviceAddress();
 						perMeshInstance[i].indexBufferAddress = mesh.getIndexBuffer()->getVkDeviceAddress();
 						i++;

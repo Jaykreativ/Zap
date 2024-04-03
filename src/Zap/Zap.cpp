@@ -89,7 +89,7 @@ namespace Zap {
 	}
 
 	void Base::terminate() {
-		for (Mesh mesh : Mesh::all) mesh.destroy();
+		for (Mesh mesh : m_meshes) mesh.destroy();
 		
 		m_pxPhysics->release();
 		m_pxFoundation->release();

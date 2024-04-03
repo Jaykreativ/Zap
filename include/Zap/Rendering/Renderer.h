@@ -33,7 +33,9 @@ namespace Zap {
 
 		void addRenderTemplate(RenderTemplate* pRenderTemplate);
 
+#ifndef ZP_ALL_PUBLIC
 	private:
+#endif
 		bool m_isInit = false;
 
 		Window& m_window;

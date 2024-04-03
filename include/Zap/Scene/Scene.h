@@ -42,7 +42,9 @@ namespace Zap {
 
 		void update();
 
+#ifndef ZP_ALL_PUBLIC
 	private:
+#endif
 		physx::PxScene* m_pxScene;
 
 		//TODO add parent/child system to actors
@@ -56,7 +58,9 @@ namespace Zap {
 		std::unordered_map<UUID, RigidStaticComponent>     m_rigidStaticComponents;
 		std::unordered_map<UUID, Transform>                m_transformComponents;
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
+#ifndef ZP_ALL_PUBLIC
 	private:
+#endif
 #endif
 
 		struct LightData {

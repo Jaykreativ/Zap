@@ -20,6 +20,7 @@ namespace Zap {
 	class Window;
 	class Renderer;
 	class Scene;
+	class Mesh;
 
 	typedef vk::Image Image;
 
@@ -53,7 +54,9 @@ namespace Zap {
 
 		static Base* getBase();
 
+#ifndef ZP_ALL_PUBLIC
 	private:
+#endif
 		Base(std::string applicationName);
 		~Base();
 
@@ -66,6 +69,7 @@ namespace Zap {
 		physx::PxPvd* m_pxPvd;
 		physx::PxPhysics* m_pxPhysics;
 
+		std::vector<Zap::Mesh> m_meshes;
 		vk::Sampler m_textureSampler;
 		std::vector<vk::Image> m_textures = {};
 
@@ -74,6 +78,7 @@ namespace Zap {
 
 		friend class Scene;
 		friend class Actor;
+		friend class Mesh;
 		friend class PBRenderer;
 		friend class RaytracingRenderer;
 		friend class PathTracer;
