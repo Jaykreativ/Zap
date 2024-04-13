@@ -90,6 +90,9 @@ namespace Zap {
 
 		vk::Buffer m_perMeshBuffer;
 
+		// TODO remove when useless
+		uint32_t m_oldLightbufferSize = 0;
+
 		void onRendererInit();
 
 		void destroy();

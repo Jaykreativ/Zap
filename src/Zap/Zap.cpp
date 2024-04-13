@@ -67,6 +67,8 @@ namespace Zap {
 		initVulkan(initInfo);
 		printStats();
 
+		m_registery = vk::Registery();
+
 		m_textureSampler = vk::Sampler();
 		m_textureSampler.init();
 
@@ -88,6 +90,11 @@ namespace Zap {
 		}
 	}
 
+
+	void Base::update() { // TODO implement base update
+		return;
+	}
+
 	void Base::terminate() {
 		for (Mesh mesh : m_meshes) mesh.destroy();
 		
@@ -100,6 +107,10 @@ namespace Zap {
 
 		terminateVulkan();
 		glfwTerminate();
+	}
+
+	void Base::addExtension(Extension extension) {
+		m_extensions = m_extensions | extension;
 	}
 
 	Base* Base::createBase(const char* applicationName) {

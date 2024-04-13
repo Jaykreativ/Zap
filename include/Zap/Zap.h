@@ -24,6 +24,11 @@ namespace Zap {
 
 	typedef vk::Image Image;
 
+	enum Extension {
+		eNONE = 0x0,
+		eRAYTRACING = 0x1
+	};
+
 	enum PhysicsType {
 		PHYSICS_TYPE_UNDEFINED = 0,
 		PHYSICS_TYPE_NONE = 1,
@@ -46,7 +51,11 @@ namespace Zap {
 	public:
 		void init();
 
+		void update();
+
 		void terminate();
+
+		void addExtension(Extension extension);
 
 		static Base* createBase(const char* applicationName);
 
@@ -63,6 +72,10 @@ namespace Zap {
 		bool m_isInit;
 
 		std::string m_applicationName;
+
+		uint32_t m_extensions = Extension::eNONE;
+
+		vk::Registery m_registery;
 
 		//physx variables
 		physx::PxFoundation* m_pxFoundation;

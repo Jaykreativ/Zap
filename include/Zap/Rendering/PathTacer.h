@@ -45,6 +45,9 @@ namespace Zap {
 		vk::DescriptorSet m_descriptorSet;
 		vk::RtPipeline m_rtPipeline;
 
+		// TODO remove when useless
+		uint32_t m_oldLightbufferSize = 0;
+
 		void onRendererInit();
 
 		void destroy();

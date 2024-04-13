@@ -126,7 +126,7 @@ void main(){
 			   
 	// reflectance equation
 	vec3 Lo = vec3(0.0);
-	for(int i = 0; i < 4; ++i) 
+	for(int i = 0; i < ubo.lightCount; i++) 
 	{
 		// calculate per-light radiance
 		vec3 L = normalize(lightBuffer.data[i].pos - fragPos);
@@ -151,10 +151,10 @@ void main(){
 			
 		// add to outgoing radiance Lo
 		float NdotL = max(dot(N, L), 0.0);
-		Lo += emissive.xyz * emissive.w + (kD * albedo / PI + specular) * radiance * NdotL; 
+		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 	}   
   
-	vec3 color = Lo;
+	vec3 color = emissive.xyz * emissive.w + Lo;
 	
 	color = color / (color + vec3(1.0));
 	color = pow(color, vec3(1.0/2.2));  

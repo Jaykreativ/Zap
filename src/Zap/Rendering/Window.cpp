@@ -47,6 +47,10 @@ namespace Zap {
 		glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
 	}
 
+	void Window::setScrollCallback(GLFWscrollfun scrollCallback) {
+		glfwSetScrollCallback(m_window, scrollCallback);
+	}
+
 	void Window::setCursorPosCallback(GLFWcursorposfun cursorPosCallback) {
 		glfwSetCursorPosCallback(m_window, cursorPosCallback);
 	}

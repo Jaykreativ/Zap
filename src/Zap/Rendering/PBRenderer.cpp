@@ -10,6 +10,19 @@
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Camera.h"
 
+void updateLightBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+	if (func != vk::eUPDATE)
+		return;
+
+	vk::Buffer* pBuffer = (vk::Buffer*)obj;
+	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
+	auto descriptor = pDescriptorSet->getDescriptor(1);
+	descriptor.bufferInfos[0].range = pBuffer->getSize();
+	pDescriptorSet->setDescriptor(1, descriptor);
+	
+	pDescriptorSet->update();
+}
+
 namespace Zap {
 	PBRenderer::PBRenderer(Renderer& renderer, Scene* pScene)
 		: m_renderer(renderer), m_pScene(pScene)
@@ -20,6 +33,7 @@ namespace Zap {
 	{}
 
 	PBRenderer::~PBRenderer() {}
+
 
 	void PBRenderer::onRendererInit() {
 		if (m_isInit) return;
@@ -44,8 +58,8 @@ namespace Zap {
 		}
 
 		/*DescriptorPool*/ {
-			VkDescriptorBufferInfo uniformBufferInfo;
-			uniformBufferInfo.buffer = m_uniformBuffer;
+			vk::DescriptorBufferInfo uniformBufferInfo{};
+			uniformBufferInfo.pBuffer = &m_uniformBuffer;
 			uniformBufferInfo.offset = 0;
 			uniformBufferInfo.range = m_uniformBuffer.getSize();
 
@@ -53,12 +67,12 @@ namespace Zap {
 			uniformBufferDescriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			uniformBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			uniformBufferDescriptor.binding = 0;
-			uniformBufferDescriptor.pBufferInfo = &uniformBufferInfo;
+			uniformBufferDescriptor.bufferInfos = { uniformBufferInfo };
 
 			m_descriptorSet.addDescriptor(uniformBufferDescriptor);
 
-			VkDescriptorBufferInfo lightBufferInfo;
-			lightBufferInfo.buffer = m_pScene->m_lightBuffer;
+			vk::DescriptorBufferInfo lightBufferInfo{};
+			lightBufferInfo.pBuffer = &m_pScene->m_lightBuffer;
 			lightBufferInfo.offset = 0;
 			lightBufferInfo.range = m_pScene->m_lightBuffer.getSize();
 
@@ -66,12 +80,12 @@ namespace Zap {
 			lightBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			lightBufferDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
 			lightBufferDescriptor.binding = 1;
-			lightBufferDescriptor.pBufferInfo = &lightBufferInfo;
+			lightBufferDescriptor.bufferInfos = { lightBufferInfo };
 
 			m_descriptorSet.addDescriptor(lightBufferDescriptor);
 
-			VkDescriptorBufferInfo perMeshBufferInfo;
-			perMeshBufferInfo.buffer = m_pScene->m_perMeshInstanceBuffer;
+			vk::DescriptorBufferInfo perMeshBufferInfo;
+			perMeshBufferInfo.pBuffer = &m_pScene->m_perMeshInstanceBuffer;
 			perMeshBufferInfo.offset = 0;
 			perMeshBufferInfo.range = m_pScene->m_perMeshInstanceBuffer.getSize();
 
@@ -79,16 +93,17 @@ namespace Zap {
 			perMeshBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			perMeshBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			perMeshBufferDescriptor.binding = 2;
-			perMeshBufferDescriptor.pBufferInfo = &perMeshBufferInfo;
-
+			perMeshBufferDescriptor.bufferInfos = { perMeshBufferInfo };
 			m_descriptorSet.addDescriptor(perMeshBufferDescriptor);
 
 			Base* base = Base::getBase();// TODO add default texture
-			VkDescriptorImageInfo* textureImageInfos = new VkDescriptorImageInfo[base->m_textures.size()];
+			std::vector<vk::DescriptorImageInfo> textureImageInfos;
 			for (uint32_t i = 0; i < base->m_textures.size(); i++) {
-				textureImageInfos[i].sampler = base->m_textureSampler;
-				textureImageInfos[i].imageView = base->m_textures[i].getVkImageView();
-				textureImageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				vk::DescriptorImageInfo textureImageInfo{};
+				textureImageInfo.pSampler = &base->m_textureSampler;
+				textureImageInfo.pImage = &base->m_textures[i];
+				textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				textureImageInfos.push_back(textureImageInfo);
 			}
 
 			vk::Descriptor texturesDescriptor{};
@@ -96,7 +111,7 @@ namespace Zap {
 			texturesDescriptor.count = base->m_textures.size();
 			texturesDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
 			texturesDescriptor.binding = 3;
-			texturesDescriptor.pImageInfo = textureImageInfos;
+			texturesDescriptor.imageInfos = textureImageInfos;
 
 			m_descriptorSet.addDescriptor(texturesDescriptor);
 
@@ -106,8 +121,8 @@ namespace Zap {
 			m_descriptorSet.init();
 			m_descriptorSet.allocate();
 			m_descriptorSet.update();
-			
-			delete[] textureImageInfos;
+
+			base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPBR);
 		}
 
 		/*Depth Image*/
@@ -280,7 +295,18 @@ namespace Zap {
 		m_perMeshBuffer.destroy();
 	}
 
-	void PBRenderer::beforeRender() {}
+	void PBRenderer::beforeRender() {
+		m_ubo.lightCount = m_pScene->m_lightComponents.size();
+
+		void* rawData; m_uniformBuffer.map(&rawData);
+		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
+		m_uniformBuffer.unmap();
+
+		if (m_pScene->m_lightBuffer.getSize() != m_oldLightbufferSize) { // TODO make commandBuffer re recording for invalid commandBuffers easier
+			m_oldLightbufferSize = m_pScene->m_lightBuffer.getSize();
+			m_renderer.recordCommandBuffers();
+		}
+	}
 
 	void PBRenderer::afterRender() {}
 
@@ -412,11 +438,6 @@ namespace Zap {
 		m_ubo.view = camera.cmpCamera_getView();
 		m_ubo.perspective = camera.cmpCamera_getPerspective(m_viewport.width / m_viewport.height);
 		m_ubo.camPos = camera.cmpTransform_getPos();
-		m_ubo.lightCount = m_pScene->m_lightComponents.size();
-
-		void* rawData; m_uniformBuffer.map(&rawData);
-		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
-		m_uniformBuffer.unmap();
 	}
 
 	void PBRenderer::changeScene(Scene* pScene) {

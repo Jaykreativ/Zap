@@ -103,13 +103,12 @@ namespace Zap {
 
 	void Scene::update() {
 		if (std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData) != m_lightBuffer.getSize()) {
-			m_lightBuffer.destroy();
 			m_lightBuffer.resize(std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData));
-			m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			m_lightBuffer.update();
 		}
 
 		void* rawData;
-		m_lightBuffer.map(&rawData);// TODO add registery system for automatically updating dependencies like descriptors etc.
+		m_lightBuffer.map(&rawData);
 		{
 			LightData* lightData = (LightData*)(rawData);
 			uint32_t i = 0;

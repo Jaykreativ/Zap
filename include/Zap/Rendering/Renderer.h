@@ -70,6 +70,8 @@ namespace Zap {
 
 		friend class Window;
 		friend class PBRenderer;//TODO add rendertoolkit for userdefined rendertemplates
+		friend class RaytracingRenderer;
+		friend class PathTracer;
 		friend class Gui;
 	};
 }

@@ -22,6 +22,8 @@ namespace Zap {
 		/* Transform */
 		void addTransform(glm::mat4 transform); //TODO reduce components to be only databuckets using structs
 
+		void destroyTransform();
+
 		bool hasTransform() const;
 
 		void cmpTransform_translate(glm::vec3 pos);
@@ -47,6 +49,8 @@ namespace Zap {
 		/* Model */
 		bool addModel(Model meshes);
 
+		void destroyModel();
+
 		bool hasModel();
 
 		void cmpModel_setMaterial(Material material);
@@ -56,6 +60,8 @@ namespace Zap {
 		/* RigidDynamic */
 
 		void addRigidDynamic(Shape shape);
+
+		void destroyRigidDynamic();
 
 		bool hasRigidDynamic();
 
@@ -78,10 +84,14 @@ namespace Zap {
 		/* RigidStatic */
 		void addRigidStatic(Shape shape);
 
+		void destroyRigidStatic();
+
 		bool hasRigidStatic();
 
 		/* Light */
 		void addLight(glm::vec3 color = {1, 1, 1}, float strength = 1, float radius = 1);
+
+		void destroyLight();
 
 		bool hasLight();
 
@@ -100,6 +110,8 @@ namespace Zap {
 		/* Camera */
 		void addCamera(glm::mat4 offset = glm::mat4(1));
 
+		void destroyCamera();
+
 		bool hasCamera() const;
 
 		void cmpCamera_lookAtCenter();
@@ -113,6 +125,8 @@ namespace Zap {
 		glm::mat4 cmpCamera_getView() const;
 
 		glm::mat4 cmpCamera_getPerspective(float aspect) const;
+
+		void destroy();
 
 	private:
 

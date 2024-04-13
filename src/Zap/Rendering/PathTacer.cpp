@@ -1,4 +1,6 @@
 #include "Zap/Rendering/PathTacer.h"
+
+#include "Zap/Rendering/Renderer.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 
@@ -8,6 +10,19 @@ struct UBO {
 	uint32_t lightCount = 0;
 	uint32_t frameIndex = 0;
 };
+
+void updateLightBufferDescriptorSetPT(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+	if (func != vk::eUPDATE)
+		return;
+
+	vk::Buffer* pBuffer = (vk::Buffer*)obj;
+	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
+	auto descriptor = pDescriptorSet->getDescriptor(1);
+	descriptor.bufferInfos[0].range = pBuffer->getSize();
+	pDescriptorSet->setDescriptor(1, descriptor);
+
+	pDescriptorSet->update();
+}
 
 namespace Zap {
 	PathTracer::PathTracer(Renderer& renderer, Scene* pScene)
@@ -38,21 +53,20 @@ namespace Zap {
 		m_storageImage.resize(width, height);
 
 		auto desc = m_rtDescriptorSet.getDescriptor(1);
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageView = m_pTarget->getVkImageView();
-		imageInfo.imageLayout = m_pTarget->getLayout();
-		desc.pImageInfo = &imageInfo;
+		vk::DescriptorImageInfo imageInfo{};
+		imageInfo.pImage = m_pTarget;
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		desc.imageInfos = { imageInfo };
 		m_rtDescriptorSet.setDescriptor(1, desc);
 
 		desc = m_rtDescriptorSet.getDescriptor(2);
-		VkDescriptorImageInfo storageImageInfo{};
-		storageImageInfo.imageView = m_storageImage.getVkImageView();
+		vk::DescriptorImageInfo storageImageInfo{};
+		storageImageInfo.pImage = &m_storageImage;
 		storageImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		desc.pImageInfo = &storageImageInfo;
+		desc.imageInfos = { storageImageInfo };
 		m_rtDescriptorSet.setDescriptor(2, desc);
 
-		m_rtDescriptorSet.updateDescriptor(1);
-		m_rtDescriptorSet.updateDescriptor(2);
+		m_rtDescriptorSet.update();
 
 		m_frameIndex = 0;
 	}
@@ -187,24 +201,23 @@ namespace Zap {
 
 		m_rtPipeline.addGroup(group);
 
-		VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptor{};
-		accelerationStructureDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-		accelerationStructureDescriptor.accelerationStructureCount = 1;
-		VkAccelerationStructureKHR accelerationStructure = m_tlas;
-		accelerationStructureDescriptor.pAccelerationStructures = &accelerationStructure;
+		VkWriteDescriptorSetAccelerationStructureKHR* accelerationStructureDescriptor = new VkWriteDescriptorSetAccelerationStructureKHR{};
+		accelerationStructureDescriptor->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+		accelerationStructureDescriptor->accelerationStructureCount = 1;
+		accelerationStructureDescriptor->pAccelerationStructures = m_tlas.getVkAccelerationStructureKHRptr();
 
 		vk::Descriptor descriptor{};
-		descriptor.pNext = &accelerationStructureDescriptor;
+		descriptor.pNext = accelerationStructureDescriptor;
 		descriptor.type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 		descriptor.stages = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 		descriptor.binding = 0;
 
 		m_rtDescriptorSet.addDescriptor(descriptor);
 
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.sampler = VK_NULL_HANDLE;// TODO add direct write to swapchain
+		vk::DescriptorImageInfo imageInfo{};
+		imageInfo.pSampler = nullptr; // TODO add direct write to swapchain
+		imageInfo.pImage = m_pTarget;
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		imageInfo.imageView = m_pTarget->getVkImageView();
 
 		m_pTarget->changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
 
@@ -212,78 +225,80 @@ namespace Zap {
 		descriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		descriptor.stages = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
 		descriptor.binding = 1;
-		descriptor.pImageInfo = &imageInfo;
+		descriptor.imageInfos = { imageInfo };
 
 		m_rtDescriptorSet.addDescriptor(descriptor);
 
-		VkDescriptorImageInfo storageImageInfo{};
-		storageImageInfo.sampler = VK_NULL_HANDLE;
+		vk::DescriptorImageInfo storageImageInfo{};
+		storageImageInfo.pSampler = nullptr;
+		storageImageInfo.pImage = &m_storageImage;
 		storageImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		storageImageInfo.imageView = m_storageImage.getVkImageView();
 
 		descriptor = {};
 		descriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		descriptor.stages = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
 		descriptor.binding = 2;
-		descriptor.pImageInfo = &storageImageInfo;
+		descriptor.imageInfos = { storageImageInfo };
 
 		m_rtDescriptorSet.addDescriptor(descriptor);
 
-		VkDescriptorBufferInfo camUBOInfo{};
+		vk::DescriptorBufferInfo camUBOInfo{};
+		camUBOInfo.pBuffer = &m_UBO;
 		camUBOInfo.offset = 0;
 		camUBOInfo.range = m_UBO.getSize();
-		camUBOInfo.buffer = m_UBO;
 
 		vk::Descriptor camUBODescriptor{};
 		camUBODescriptor.binding = 0;
 		camUBODescriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		camUBODescriptor.stages = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-		camUBODescriptor.pBufferInfo = &camUBOInfo;
+		camUBODescriptor.bufferInfos = { camUBOInfo };
 
 		m_descriptorSet.addDescriptor(camUBODescriptor);
 
-		VkDescriptorBufferInfo lightBufferInfo{};
+		vk::DescriptorBufferInfo lightBufferInfo{};
+		lightBufferInfo.pBuffer = &m_pScene->m_lightBuffer;
 		lightBufferInfo.offset = 0;
 		lightBufferInfo.range = m_pScene->m_lightBuffer.getSize();
-		lightBufferInfo.buffer = m_pScene->m_lightBuffer;
 
 		vk::Descriptor lightBufferDescriptor{};
 		lightBufferDescriptor.binding = 1;
 		lightBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		lightBufferDescriptor.stages = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
-		lightBufferDescriptor.pBufferInfo = &lightBufferInfo;
+		lightBufferDescriptor.bufferInfos = { lightBufferInfo };
 
 		m_descriptorSet.addDescriptor(lightBufferDescriptor);
 
-		VkDescriptorBufferInfo perMeshInstanceBufferInfo{};
+		vk::DescriptorBufferInfo perMeshInstanceBufferInfo{};
+		perMeshInstanceBufferInfo.pBuffer = &m_pScene->m_perMeshInstanceBuffer;
 		perMeshInstanceBufferInfo.offset = 0;
 		perMeshInstanceBufferInfo.range = m_pScene->m_perMeshInstanceBuffer.getSize();
-		perMeshInstanceBufferInfo.buffer = m_pScene->m_perMeshInstanceBuffer;
 
 		vk::Descriptor perMeshInstanceBufferDescriptor{};
 		perMeshInstanceBufferDescriptor.binding = 2;
 		perMeshInstanceBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		perMeshInstanceBufferDescriptor.stages = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-		perMeshInstanceBufferDescriptor.pBufferInfo = &perMeshInstanceBufferInfo;
+		perMeshInstanceBufferDescriptor.bufferInfos = { perMeshInstanceBufferInfo };
 
 		m_descriptorSet.addDescriptor(perMeshInstanceBufferDescriptor);
 
 		Base* base = Base::getBase();
-		VkDescriptorImageInfo* imageInfos = new VkDescriptorImageInfo[base->m_textures.size()];
+		std::vector<vk::DescriptorImageInfo> textureInfos;
 		for (uint32_t i = 0; i < base->m_textures.size(); i++) {
-			imageInfos[i].sampler = base->m_textureSampler;
-			imageInfos[i].imageView = base->m_textures[i].getVkImageView();
-			imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			vk::DescriptorImageInfo textureInfo{};
+			textureInfo.pSampler = &base->m_textureSampler;
+			textureInfo.pImage = &base->m_textures[i];
+			textureInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			textureInfos.push_back(textureInfo);
 		}
 
-		vk::Descriptor albedoMapsDescriptor{};
-		albedoMapsDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		albedoMapsDescriptor.count = base->m_textures.size();
-		albedoMapsDescriptor.stages = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-		albedoMapsDescriptor.binding = 3;
-		albedoMapsDescriptor.pImageInfo = imageInfos;
+		vk::Descriptor texturesDescriptor{};
+		texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		texturesDescriptor.count = base->m_textures.size();
+		texturesDescriptor.stages = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+		texturesDescriptor.binding = 3;
+		texturesDescriptor.imageInfos = textureInfos;
 
-		m_descriptorSet.addDescriptor(albedoMapsDescriptor);
+		m_descriptorSet.addDescriptor(texturesDescriptor);
 
 		m_descriptorPool.addDescriptorSet(m_rtDescriptorSet);
 		m_descriptorPool.addDescriptorSet(m_descriptorSet);
@@ -301,6 +316,7 @@ namespace Zap {
 		m_rtPipeline.addDescriptorSetLayout(m_descriptorSet.getVkDescriptorSetLayout());
 		m_rtPipeline.init(); m_rtPipeline.initShaderBindingTable();
 
+		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPT);
 	}
 
 	void PathTracer::destroy() {
@@ -324,6 +340,11 @@ namespace Zap {
 	}
 
 	void PathTracer::beforeRender() {
+		if (m_pScene->m_lightBuffer.getSize() != m_oldLightbufferSize) {
+			m_oldLightbufferSize = m_pScene->m_lightBuffer.getSize();
+			m_renderer.recordCommandBuffers();
+		}
+
 		void* rawData; m_UBO.map(&rawData);
 		UBO* data = (UBO*)rawData;
 		data->frameIndex = m_frameIndex;

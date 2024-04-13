@@ -12,6 +12,8 @@ namespace Zap
 		Window(uint32_t width, uint32_t height, std::string title);
 		~Window();
 
+		operator GLFWwindow* () { return m_window; }
+
 		void init();
 
 		bool shouldClose();
@@ -23,6 +25,8 @@ namespace Zap
 		void setKeyCallback(GLFWkeyfun callback);
 
 		void setMousebButtonCallback(GLFWmousebuttonfun mouseButtonCallback);
+
+		void setScrollCallback(GLFWscrollfun scrollCallback);
 
 		void setCursorPosCallback(GLFWcursorposfun cursorPosCallback);
 

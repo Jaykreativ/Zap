@@ -37,6 +37,11 @@ namespace Zap {
 		m_pScene->m_transformComponents[m_handle] = Transform{ transform };
 	}
 
+	void Actor::destroyTransform() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_transformComponents.erase(m_handle);
+	}
+
 	bool Actor::hasTransform() const {
 		return m_pScene->m_transformComponents.count(m_handle);
 	}
@@ -121,6 +126,11 @@ namespace Zap {
 		m_pScene->m_meshInstanceCount += cmp->meshes.size();
 	}
 
+	void Actor::destroyModel() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_modelComponents.erase(m_handle);
+	}
+
 	bool Actor::hasModel() {
 		return m_pScene->m_modelComponents.count(m_handle);
 	}
@@ -148,6 +158,11 @@ namespace Zap {
 		cmp->pxActor->userData = (void*)(uint64_t)m_handle;
 		cmp->pxActor->attachShape(*shape.m_pxShape);
 		m_pScene->m_pxScene->addActor(*cmp->pxActor);
+	}
+
+	void Actor::destroyRigidDynamic() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_rigidDynamicComponents.erase(m_handle);
 	}
 
 	bool Actor::hasRigidDynamic() {
@@ -213,6 +228,11 @@ namespace Zap {
 		m_pScene->m_pxScene->addActor(*cmp->pxActor);
 	}
 
+	void Actor::destroyRigidStatic() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_rigidStaticComponents.erase(m_handle);
+	}
+
 	bool Actor::hasRigidStatic() {
 		return m_pScene->m_rigidStaticComponents.count(m_handle);
 	}
@@ -221,6 +241,11 @@ namespace Zap {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_lightComponents.count(m_handle), "Actor can't have multiple lights");
 		m_pScene->m_lightComponents[m_handle] = Light{ color, strength, radius };
+	}
+
+	void Actor::destroyLight() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_lightComponents.erase(m_handle);
 	}
 
 	bool Actor::hasLight() {
@@ -267,6 +292,11 @@ namespace Zap {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_cameraComponents.count(m_handle), "Actor can't have multiple cameras");
 		m_pScene->m_cameraComponents[m_handle] = Camera{ false, offset };
+	}
+
+	void Actor::destroyCamera() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_cameraComponents.erase(m_handle);
 	}
 
 	bool Actor::hasCamera() const {
@@ -341,5 +371,20 @@ namespace Zap {
 	Camera* Actor::getCamera() {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		return &m_pScene->m_cameraComponents.at(m_handle);
+	}
+
+	void Actor::destroy() {
+		if (hasCamera())
+			destroyCamera();
+		if (hasLight())
+			destroyLight();
+		if (hasModel())
+			destroyModel();
+		if (hasRigidDynamic())
+			destroyRigidDynamic();
+		if (hasRigidStatic())
+			destroyRigidStatic();
+		if (hasTransform())
+			destroyTransform();
 	}
 }
