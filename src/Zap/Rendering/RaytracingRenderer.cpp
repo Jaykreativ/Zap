@@ -30,7 +30,11 @@ void updateLightBufferDescriptorSetRT(vk::Registerable* obj, vk::Registerable* d
 namespace Zap {
 	RaytracingRenderer::RaytracingRenderer(Renderer& renderer, Scene* pScene)
 		: m_renderer(renderer), m_pScene(pScene)
-	{}
+	{
+		auto base = Base::getBase();
+		auto settings = base->getSettings();
+		ZP_ASSERT(settings->enableRaytracing, "Created Raytracer without enabling raytracing");
+	}
 
 	RaytracingRenderer::~RaytracingRenderer() {}
 

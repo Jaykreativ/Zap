@@ -27,7 +27,11 @@ void updateLightBufferDescriptorSetPT(vk::Registerable* obj, vk::Registerable* d
 namespace Zap {
 	PathTracer::PathTracer(Renderer& renderer, Scene* pScene)
 		: m_renderer(renderer), m_pScene(pScene)
-	{}
+	{
+		auto base = Base::getBase();
+		auto settings = base->getSettings();
+		ZP_ASSERT(settings->enableRaytracing, "Created PathTracer without enabling raytracing");
+	}
 
 	PathTracer::~PathTracer() {}
 

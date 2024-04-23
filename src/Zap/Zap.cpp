@@ -63,9 +63,46 @@ namespace Zap {
 		if (!glfwInit())
 			std::runtime_error("Can't initialize GLFW");
 
-		vk::initInfo initInfo = { m_applicationName.c_str(), 0};
+		vk::initInfo initInfo{};
+		initInfo.applicationName = m_applicationName.c_str();
+		initInfo.checkDeviceSupport = true;
+		initInfo.requestedInstanceLayers = {
+#if _DEBUG
+			"VK_LAYER_KHRONOS_validation"
+#endif
+		};
+		initInfo.requestedDeviceExtensions = {
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		};
+
+		if (m_settings.enableRaytracing) {
+			initInfo.requestedDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+			initInfo.requestedDeviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+			initInfo.requestedDeviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+		}
+
+		VkPhysicalDeviceVulkan12Features vulkan12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+		vulkan12Features.runtimeDescriptorArray = true;
+		vulkan12Features.bufferDeviceAddress = true;
+
+		VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
+		accelerationStructureFeatures.pNext = &vulkan12Features;
+		accelerationStructureFeatures.accelerationStructure = true;
+
+		VkPhysicalDeviceRayTracingPipelineFeaturesKHR raytracingPipelineFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
+		raytracingPipelineFeatures.pNext = &accelerationStructureFeatures;
+		raytracingPipelineFeatures.rayTracingPipeline = true;
+
+		VkPhysicalDeviceFeatures2 features2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+		if (m_settings.enableRaytracing)
+			features2.pNext = &raytracingPipelineFeatures;
+		else
+			features2.pNext = &vulkan12Features;
+		features2.features.shaderInt64 = true;
+
+		initInfo.features = features2;
+
 		initVulkan(initInfo);
-		printStats();
 
 		m_registery = vk::Registery();
 
@@ -109,8 +146,8 @@ namespace Zap {
 		glfwTerminate();
 	}
 
-	void Base::addExtension(Extension extension) {
-		m_extensions = m_extensions | extension;
+	Settings* Base::getSettings() {
+		return &m_settings;
 	}
 
 	Base* Base::createBase(const char* applicationName) {

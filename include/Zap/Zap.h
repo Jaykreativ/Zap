@@ -47,6 +47,10 @@ namespace Zap {
 		COMPONENT_TYPE_CAMERA = 6
 	};
 
+	struct Settings {
+		bool enableRaytracing = false;
+	};
+
 	class Base {
 	public:
 		void init();
@@ -55,7 +59,7 @@ namespace Zap {
 
 		void terminate();
 
-		void addExtension(Extension extension);
+		Settings* getSettings();
 
 		static Base* createBase(const char* applicationName);
 
@@ -71,9 +75,9 @@ namespace Zap {
 
 		bool m_isInit;
 
-		std::string m_applicationName;
+		Settings m_settings = {};
 
-		uint32_t m_extensions = Extension::eNONE;
+		std::string m_applicationName;
 
 		vk::Registery m_registery;
 
