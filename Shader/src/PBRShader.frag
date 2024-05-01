@@ -2,8 +2,6 @@
 #extension GL_KHR_vulkan_glsl : enable
 #extension GL_EXT_nonuniform_qualifier : enable
 
-#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
-
 #define PI (3.14159265359)
 
 layout(location=0) in vec3 fragPos;
@@ -52,8 +50,7 @@ struct PerMeshInstanceData {
 	mat4 transform;
 	mat4 normalTransform;
 	Material material;
-	uint64_t vertexAddress;
-	uint64_t indexAddress;
+	int unused[4];
 };
 
 layout(set=0, binding=2) readonly buffer PerMeshInstanceBuffer {
