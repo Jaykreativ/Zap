@@ -48,6 +48,7 @@ namespace Zap {
 	};
 
 	struct Settings {
+		uint32_t requestedGPU = 0;
 		bool enableRaytracing = false;
 	};
 

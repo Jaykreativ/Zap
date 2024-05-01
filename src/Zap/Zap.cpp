@@ -107,6 +107,7 @@ namespace Zap {
 
 		initInfo.features = features2;
 
+		bool requestedGPUSupported = false;
 		auto physicalDevices = vk::PhysicalDevice::getAllPhysicalDevices();// validation
 		uint32_t selectedDeviceIndex = 0xFFFFFFFF;
 		auto printSupport = [](bool b) {
@@ -158,6 +159,10 @@ namespace Zap {
 
 			if (allExtensionsSupported && allFeaturesSupported) {
 				selectedDeviceIndex = physicalDeviceIndex;
+				if (m_settings.requestedGPU == physicalDeviceIndex) {
+					requestedGPUSupported = true;
+					initInfo.deviceIndex = m_settings.requestedGPU;
+				}
 			}
 
 			physicalDeviceIndex++;
@@ -165,7 +170,8 @@ namespace Zap {
 		
 		ZP_ASSERT(selectedDeviceIndex == 0xFFFFFFFF, "No supported device found");
 
-		initInfo.deviceIndex = selectedDeviceIndex;
+		if (!requestedGPUSupported)
+			initInfo.deviceIndex = selectedDeviceIndex;
 
 		initVulkan(initInfo);
 
