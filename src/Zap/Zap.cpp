@@ -63,14 +63,18 @@ namespace Zap {
 		if (!glfwInit())
 			std::runtime_error("Can't initialize GLFW");
 
-		vk::initInfo initInfo{};
+		vk::initInfo initInfo{};// init Instance
 		initInfo.applicationName = m_applicationName.c_str();
-		initInfo.checkDeviceSupport = true;
 		initInfo.requestedInstanceLayers = {
 #if _DEBUG
 			"VK_LAYER_KHRONOS_validation"
 #endif
 		};
+
+		vk::initInstance(initInfo);
+
+		// init device
+		initInfo.checkDeviceSupport = false;// request extensions, layers, features
 		initInfo.requestedDeviceExtensions = {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME
 		};
@@ -94,13 +98,74 @@ namespace Zap {
 		raytracingPipelineFeatures.rayTracingPipeline = true;
 
 		VkPhysicalDeviceFeatures2 features2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-		if (m_settings.enableRaytracing)
+		if (m_settings.enableRaytracing) {
 			features2.pNext = &raytracingPipelineFeatures;
+			features2.features.shaderInt64 = true;
+		}
 		else
 			features2.pNext = &vulkan12Features;
-		features2.features.shaderInt64 = true;
 
 		initInfo.features = features2;
+
+		auto physicalDevices = vk::PhysicalDevice::getAllPhysicalDevices();// validation
+		uint32_t selectedDeviceIndex = 0xFFFFFFFF;
+		auto printSupport = [](bool b) {
+			if (b)
+				std::cout << "Supported\n";
+			else
+				std::cout << "Not Supported\n";
+		};
+		uint32_t physicalDeviceIndex = 0;
+		for (auto physicalDevice : physicalDevices) {
+			std::cout << 
+				"---------------- Device ----------------\n" << 
+				physicalDevice.getName() << "\n";
+
+			std::cout <<
+				"-------------- Extensions --------------\n";
+			bool allExtensionsSupported = true;
+			for (auto extension : initInfo.requestedDeviceExtensions) {
+				bool supported = physicalDevice.isExtensionSupported(extension);
+				allExtensionsSupported &= supported;
+				std::cout << extension << " | ";
+				printSupport(supported);
+			}
+
+			std::cout << 
+				"--------------- Features ---------------\n";
+			bool allFeaturesSupported = true;
+			auto supportedVk12Features = physicalDevice.getSupportedVulkan12Features();
+			allFeaturesSupported &= supportedVk12Features.runtimeDescriptorArray;
+			std::cout << "supportedVk12Features.runtimeDescriptorArray | ";
+			printSupport(supportedVk12Features.runtimeDescriptorArray);
+			allFeaturesSupported &= supportedVk12Features.bufferDeviceAddress;
+			std::cout << "supportedVk12Features.bufferDeviceAddress | ";
+			printSupport(supportedVk12Features.bufferDeviceAddress);
+			if (m_settings.enableRaytracing) {
+				auto supportedFeatures2 = physicalDevice.getSupportedFeatures2();
+				auto supportedASFeatures = physicalDevice.getSupportedAccelerationStructureFeatures();
+				auto supportedRTPipelineFeatures = physicalDevice.getSupportedRayTraycingPipelineFeatures();
+				allFeaturesSupported &= supportedFeatures2.features.shaderInt64;
+				std::cout << "supportedFeatures2.features.shaderInt64 | ";
+				printSupport(supportedFeatures2.features.shaderInt64);
+				allFeaturesSupported &= supportedASFeatures.accelerationStructure;
+				std::cout << "supportedASFeatures.accelerationStructure | ";
+				printSupport(supportedASFeatures.accelerationStructure);
+				allFeaturesSupported &= supportedRTPipelineFeatures.rayTracingPipeline;
+				std::cout << "supportedRTPipelineFeatures.rayTracingPipeline | ";
+				printSupport(supportedRTPipelineFeatures.rayTracingPipeline);
+			}
+
+			if (allExtensionsSupported && allFeaturesSupported) {
+				selectedDeviceIndex = physicalDeviceIndex;
+			}
+
+			physicalDeviceIndex++;
+		}
+		
+		ZP_ASSERT(selectedDeviceIndex == 0xFFFFFFFF, "No supported device found");
+
+		initInfo.deviceIndex = selectedDeviceIndex;
 
 		initVulkan(initInfo);
 
