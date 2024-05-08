@@ -52,7 +52,8 @@ namespace Zap {
 
 		{
 			uint32_t meshCount = 0;
-			for (auto const& x : m_pScene->m_modelComponents) meshCount += x.second.meshes.size();
+			for (auto const& x : m_pScene->m_modelComponents)
+				meshCount += x.second.meshes.size();
 			m_perMeshBuffer = vk::Buffer(sizeof(PerMeshData) * meshCount, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 			m_perMeshBuffer.init(); m_perMeshBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		}

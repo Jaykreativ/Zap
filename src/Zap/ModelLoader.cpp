@@ -16,8 +16,6 @@ namespace Zap {
 
 	}
 
-
-
 	Model ModelLoader::load(const char* modelPath, uint32_t flags) { // TODO add support for better .obj materials
 		std::vector<Material> materials;
 		std::vector<uint32_t> meshIds;
@@ -84,7 +82,7 @@ namespace Zap {
 			materials.push_back(material);
 		}
 
-		Model model = { materials, meshIds };
+		Model model = { std::string(modelPath), materials, meshIds };
 
 		return model;
 	}
@@ -92,7 +90,7 @@ namespace Zap {
 	Model ModelLoader::loadFromMemory(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
 		Mesh* mesh = Mesh::createMesh();
 		mesh->load(vertexCount, pVertices, indexCount, pIndices);
-		return { {Material()}, {mesh->m_id} };
+		return {"", {Material()}, {mesh->m_id}};
 	}
 
 	Model ModelLoader::loadFromMemory(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray) {
@@ -127,6 +125,7 @@ namespace Zap {
 		stbi_set_flip_vertically_on_load(true);
 		auto data = stbi_load(texturePath, &width, &height, &channels, 4);
 		ZP_ASSERT(data, "Image not loaded correctly");
+		Zap::Base::getBase()->m_texturePaths.push_back(texturePath);
 		return loadTexture(data, width, height);
 	}
 

@@ -368,7 +368,7 @@ namespace Zap {
 			}
 		}
 
-		// procedural lights
+		// procedural geometry lights
 		i = 0;
 		for (auto const& lightPair : m_pScene->m_lightComponents) {
 			instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasVector[i]));

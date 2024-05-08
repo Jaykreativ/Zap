@@ -21,6 +21,7 @@ namespace Zap {
 	{
 	public:
 		Scene();
+		Scene(UUID handle);
 		~Scene();
 
 		struct RaycastOutput {
@@ -45,6 +46,8 @@ namespace Zap {
 #ifndef ZP_ALL_PUBLIC
 	private:
 #endif
+		UUID m_handle;
+
 		physx::PxScene* m_pxScene;
 
 		//TODO add parent/child system to actors
@@ -54,8 +57,8 @@ namespace Zap {
 		std::unordered_map<UUID, Camera>                   m_cameraComponents;// TODO rework access system
 		std::unordered_map<UUID, Light>                    m_lightComponents;
 		std::unordered_map<UUID, Model>                    m_modelComponents;
-		std::unordered_map<UUID, RigidDynamicComponent>    m_rigidDynamicComponents;
-		std::unordered_map<UUID, RigidStaticComponent>     m_rigidStaticComponents;
+		std::unordered_map<UUID, RigidDynamic>    m_rigidDynamicComponents;
+		std::unordered_map<UUID, RigidStatic>     m_rigidStaticComponents;
 		std::unordered_map<UUID, Transform>                m_transformComponents;
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 #ifndef ZP_ALL_PUBLIC
@@ -84,9 +87,10 @@ namespace Zap {
 		std::vector<uint32_t> m_meshReferences;
 
 		friend class Base;
+		friend class Serializer;
 		friend class Actor;
-		friend class RigidDynamicComponent;
-		friend class RigidStaticComponent;
+		friend class RigidDynamic;
+		friend class RigidStatic;
 		friend class PBRenderer;
 		friend class RaytracingRenderer;
 		friend class PathTracer;

@@ -4,11 +4,11 @@ class physx::PxRigidDynamic;
 class physx::PxRigidStatic;
 namespace Zap {
 
-	struct RigidDynamicComponent {
+	struct RigidDynamic {
 		physx::PxRigidDynamic* pxActor;
 	};
 
-	struct RigidStaticComponent {
+	struct RigidStatic {
 		physx::PxRigidStatic* pxActor;
 	};
 }

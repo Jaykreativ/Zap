@@ -4,7 +4,12 @@
 #include "Zap/Scene/PhysicsComponent.h"
 
 namespace Zap {
-	Scene::Scene() {}
+	Scene::Scene() {
+		m_handle = UUID();
+	}
+	Scene::Scene(UUID handle)
+		: m_handle(handle)
+	{}
 
 	Scene::~Scene() {}
 
@@ -88,7 +93,7 @@ namespace Zap {
 			auto pxActor = actors[i];
 			switch (pxActor->getType()) {
 			case physx::PxActorType::eRIGID_DYNAMIC: {
-				RigidDynamicComponent* cmp = &m_rigidDynamicComponents.at((uint64_t)pxActor->userData);
+				RigidDynamic* cmp = &m_rigidDynamicComponents.at((uint64_t)pxActor->userData);
 				glm::mat4* transform = &m_transformComponents.at((uint64_t)pxActor->userData).transform;
 				physx::PxMat44 pxMat = physx::PxMat44(((physx::PxRigidDynamic*)pxActor)->getGlobalPose());
 				glm::mat4 mat = *((glm::mat4*)&pxMat);

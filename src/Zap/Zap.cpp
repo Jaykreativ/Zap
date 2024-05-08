@@ -221,6 +221,10 @@ namespace Zap {
 		return &m_settings;
 	}
 
+	std::string Base::getApplicationName() {
+		return m_applicationName;
+	}
+
 	Base* Base::createBase(const char* applicationName) {
 		m_engineBase = new Base(applicationName);
 		m_exists = true;

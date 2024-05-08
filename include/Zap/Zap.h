@@ -62,6 +62,8 @@ namespace Zap {
 
 		Settings* getSettings();
 
+		std::string getApplicationName();
+
 		static Base* createBase(const char* applicationName);
 
 		static void releaseBase();
@@ -90,6 +92,7 @@ namespace Zap {
 		std::vector<Zap::Mesh> m_meshes;
 		vk::Sampler m_textureSampler;
 		std::vector<vk::Image> m_textures = {};
+		std::vector<std::string> m_texturePaths = {};
 
 		static Base* m_engineBase;
 		static bool m_exists;
@@ -103,8 +106,8 @@ namespace Zap {
 		friend class ModelLoader;
 		friend class PhysicsComponent;
 		friend class RigidBodyComponent;
-		friend class RigidDynamicComponent;
-		friend class RigidStaticComponent;
+		friend class RigidDynamic;
+		friend class RigidStatic;
 		friend class Shape;
 		friend class PhysicsMaterial;
 	};

@@ -20,7 +20,9 @@ namespace Zap {
 		~Actor(); 
 
 		/* Transform */
-		void addTransform(glm::mat4 transform); //TODO reduce components to be only databuckets using structs
+		void addTransform(Transform transform);
+
+		void addTransform(glm::mat4 transform);
 
 		void destroyTransform();
 
@@ -59,6 +61,8 @@ namespace Zap {
 
 		/* RigidDynamic */
 
+		void addRigidDynamic(RigidDynamic rigidDynamic);
+
 		void addRigidDynamic(Shape shape);
 
 		void destroyRigidDynamic();
@@ -82,6 +86,8 @@ namespace Zap {
 		bool cmpRigidDynamic_getFlag(physx::PxActorFlag::Enum flag);
 
 		/* RigidStatic */
+		void addRigidStatic(RigidStatic rigidStatic);
+
 		void addRigidStatic(Shape shape);
 
 		void destroyRigidStatic();
@@ -89,6 +95,8 @@ namespace Zap {
 		bool hasRigidStatic();
 
 		/* Light */
+		void addLight(Light light);
+
 		void addLight(glm::vec3 color = {1, 1, 1}, float strength = 1, float radius = 1);
 
 		void destroyLight();
@@ -108,6 +116,8 @@ namespace Zap {
 		float cmpLight_getRadius() const;
 
 		/* Camera */
+		void addCamera(Camera camera);
+
 		void addCamera(glm::mat4 offset = glm::mat4(1));
 
 		void destroyCamera();
@@ -137,8 +147,8 @@ namespace Zap {
 
 		Transform* getTransform();
 		Model* getModel();// TODO rework mesh system with models
-		RigidDynamicComponent* getRigidDynamic();
-		RigidStaticComponent* getRigidStatic();
+		RigidDynamic* getRigidDynamic();
+		RigidStatic* getRigidStatic();
 		Light* getLight();
 		Camera* getCamera();
 
@@ -150,6 +160,7 @@ namespace Zap {
 
 		friend class Scene;
 		friend class PBRenderer;
+		friend class Serializer;
 	};
 }
 

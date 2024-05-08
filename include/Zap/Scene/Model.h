@@ -5,6 +5,7 @@
 
 namespace Zap {
 	struct Model {
+		std::string filepath = "";
 		std::vector<Material> materials;
 		std::vector<uint32_t> meshes;
 	};
