@@ -4,12 +4,18 @@
 #include "Zap/Rendering/RenderTemplate.h"
 
 namespace Zap {
+	typedef VkDescriptorSet GuiTexture;
+
 	class Gui : public RenderTemplate {
 	public:
 		Gui(Renderer& renderer);
 		~Gui();
 
 		void init();
+
+		GuiTexture loadTexture(const char* texturePath);
+
+		void unloadTexture(GuiTexture texture);
 
 		// wip
 		void setRenderTarget(Image* target) {};// TODO add target functionality to gui
@@ -30,6 +36,9 @@ namespace Zap {
 		vk::RenderPass m_renderPass = vk::RenderPass();
 		uint32_t m_framebufferCount = 0;
 		vk::Framebuffer* m_framebuffers = nullptr;
+
+		vk::Sampler m_textureSampler;
+		std::vector<vk::Image> m_textures = {};
 
 		void onRendererInit();
 

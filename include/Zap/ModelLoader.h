@@ -36,7 +36,11 @@ namespace Zap {
 		uint32_t loadTexture(const aiTexture* texture);
 
 	private:
-		uint32_t loadMesh(aiMesh* aMesh);
+		void processNode(const aiNode* node, const aiScene* aScene, std::string path, glm::mat4& transform, uint32_t flags, Model* pModel);
+
+		uint32_t loadMesh(aiMesh* aMesh, glm::mat4& transform);
+
+		void loadMaterial(const aiScene* aScene, const aiMaterial* aMaterial, std::string path, uint32_t flags, Material* pMaterial);
 	};
 }
 

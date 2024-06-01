@@ -43,6 +43,68 @@ namespace Zap {
 		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
 
+	void Scene::update() {
+		if (std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData) != m_lightBuffer.getSize()) {
+			m_lightBuffer.resize(std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData));
+			m_lightBuffer.update();
+		}
+
+		void* rawData;
+		m_lightBuffer.map(&rawData);
+		{
+			LightData* lightData = (LightData*)(rawData);
+			uint32_t i = 0;
+			for (auto const& lightPair : m_lightComponents) {
+				lightData[i].pos = m_transformComponents.at(lightPair.first).transform[3];
+				lightData[i].color = lightPair.second.color;
+				lightData[i].strength = lightPair.second.strength;
+				lightData[i].radius = lightPair.second.radius;
+				i++;
+			}
+		}
+		m_lightBuffer.unmap();
+
+		// resize buffer and fill in one time data
+		if (std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData) != m_perMeshInstanceBuffer.getSize()) {
+			m_perMeshInstanceBuffer.destroy();
+			m_perMeshInstanceBuffer.resize(std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData));
+			m_perMeshInstanceBuffer.init(); m_perMeshInstanceBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			m_perMeshInstanceBuffer.map(&rawData);
+			{
+				PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
+				uint32_t i = 0;
+				for (auto const& modelPair : m_modelComponents) {
+					for (uint32_t id : modelPair.second.meshes) {
+						auto* base = Base::getBase();
+						auto mesh = base->m_meshes[id];
+						perMeshInstance[i].vertexBufferAddress = mesh.getVertexBuffer()->getVkDeviceAddress();
+						perMeshInstance[i].indexBufferAddress = mesh.getIndexBuffer()->getVkDeviceAddress();
+						i++;
+					}
+				}
+			}
+			m_perMeshInstanceBuffer.unmap();
+		}
+
+		m_perMeshInstanceBuffer.map(&rawData);
+		{
+			PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
+			uint32_t i = 0;
+			for (auto const& modelPair : m_modelComponents) {
+				uint32_t j = 0;
+				for (uint32_t id : modelPair.second.meshes) {
+					auto* base = Base::getBase();
+					auto mesh = base->m_meshes[id];
+					perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * mesh.m_transform;
+					perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
+					perMeshInstance[i].material = modelPair.second.materials[j];
+					j++; i++;
+				}
+			}
+		}
+		m_perMeshInstanceBuffer.unmap();
+	}
+
 	void Scene::destroy() {
 		m_perMeshInstanceBuffer.destroy();
 		m_lightBuffer.destroy();
@@ -104,64 +166,5 @@ namespace Zap {
 			}
 			}
 		}
-	}
-
-	void Scene::update() {
-		if (std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData) != m_lightBuffer.getSize()) {
-			m_lightBuffer.resize(std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData));
-			m_lightBuffer.update();
-		}
-
-		void* rawData;
-		m_lightBuffer.map(&rawData);
-		{
-			LightData* lightData = (LightData*)(rawData);
-			uint32_t i = 0;
-			for (auto const& lightPair : m_lightComponents) {
-				lightData[i].pos = m_transformComponents.at(lightPair.first).transform[3];
-				lightData[i].color = lightPair.second.color;
-				lightData[i].strength = lightPair.second.strength;
-				lightData[i].radius = lightPair.second.radius;
-				i++;
-			}
-		}
-		m_lightBuffer.unmap();
-
-		if (std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData) != m_perMeshInstanceBuffer.getSize()) {
-			m_perMeshInstanceBuffer.destroy();
-			m_perMeshInstanceBuffer.resize(std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData));
-			m_perMeshInstanceBuffer.init(); m_perMeshInstanceBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			m_perMeshInstanceBuffer.map(&rawData);
-			{
-				PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
-				uint32_t i = 0;
-				for (auto const& modelPair : m_modelComponents) {
-					for (uint32_t id : modelPair.second.meshes) {
-						auto* base = Base::getBase();
-						auto mesh = base->m_meshes[id];
-						perMeshInstance[i].vertexBufferAddress = mesh.getVertexBuffer()->getVkDeviceAddress();
-						perMeshInstance[i].indexBufferAddress = mesh.getIndexBuffer()->getVkDeviceAddress();
-						i++;
-					}
-				}
-			}
-			m_perMeshInstanceBuffer.unmap();
-		}
-
-		m_perMeshInstanceBuffer.map(&rawData);
-		{
-			PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
-			uint32_t i = 0;
-			for (auto const& modelPair : m_modelComponents) {
-				uint32_t j = 0;
-				for (uint32_t id : modelPair.second.meshes) {
-					perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform;
-					perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
-					perMeshInstance[i].material = modelPair.second.materials[j];
-					j++; i++;
-				}
-			}
-		}
-		m_perMeshInstanceBuffer.unmap();
 	}
 }

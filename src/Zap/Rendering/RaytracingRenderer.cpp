@@ -250,8 +250,10 @@ namespace Zap {
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
-			glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform);
 			for (uint32_t id : modelPair.second.meshes) {
+				auto* base = Base::getBase();
+				auto& mesh = base->m_meshes.at(id);
+				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * mesh.m_transform);
 				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(id)));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);

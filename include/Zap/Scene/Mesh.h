@@ -38,6 +38,8 @@ namespace Zap {
 
         uint32_t m_id;
 
+        glm::mat4 m_transform = glm::mat4(1);
+
         std::vector<vk::CommandBuffer> m_commandBuffers;
         vk::Buffer m_vertexBuffer = vk::Buffer();
         vk::Buffer m_indexBuffer = vk::Buffer();
