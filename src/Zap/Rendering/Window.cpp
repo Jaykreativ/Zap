@@ -3,6 +3,8 @@
 #include "Zap/Rendering/PBRenderer.h"
 
 namespace Zap {
+	std::unordered_map<GLFWwindow*, Window*> Window::glfwWindowMap = {};
+
 	Window::Window(uint32_t width, uint32_t height, std::string title)
 		: m_width(width), m_height(height), m_title(title)
 	{}
@@ -11,20 +13,32 @@ namespace Zap {
 		if (!m_isInit) return;
 		m_isInit = false;
 		//TODO destroy renderer
+		Window::glfwWindowMap.erase(m_window);
 		glfwDestroyWindow(m_window);
+	}
+
+	void Window::resizeEventCallback(Zap::ResizeEvent& resizeEvent, void* data) {
+		resizeEvent.pWindow->resize(resizeEvent.pWindow->m_window, resizeEvent.width, resizeEvent.height);
 	}
 
 	void Window::init() {
 		if (m_isInit) return;
 		m_isInit = true;
 
-		Zap::objects::windows.push_back(this);
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 		m_window = glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
 
-		glfwSetWindowSizeCallback(m_window, resizeCallback);
+		glfwSetWindowSizeCallback(m_window, resizeGLFWCallback);
+		glfwSetKeyCallback(m_window, keyGLFWCallback);
+		glfwSetCursorPosCallback(m_window, cursorPosGLFWCallback);
+		glfwSetMouseButtonCallback(m_window, mouseButtonGLFWCallback);
+		glfwSetScrollCallback(m_window, scrollGLFWCallback);
+
+		m_resizeEventHandler.addCallback(Window::resizeEventCallback);
+
+		Window::glfwWindowMap[m_window] = this;
 	}
 
 	bool Window::shouldClose() {
@@ -39,32 +53,49 @@ namespace Zap {
 		glfwShowWindow(m_window);
 	}
 
-	void Window::setKeyCallback(GLFWkeyfun callback) {
-		glfwSetKeyCallback(m_window, callback);
+	EventHandler<ResizeEvent>* Window::getResizeEventHandler() {
+		return &m_resizeEventHandler;
 	}
 
-	void Window::setMousebButtonCallback(GLFWmousebuttonfun mouseButtonCallback) {
-		glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
+	EventHandler<KeyEvent>* Window::getKeyEventHandler() {
+		return &m_keyEventHandler;
 	}
 
-	void Window::setScrollCallback(GLFWscrollfun scrollCallback) {
-		glfwSetScrollCallback(m_window, scrollCallback);
+	EventHandler<CursorPosEvent>* Window::getCursorPosEventHandler() {
+		return &m_cursorPosEventHandler;
 	}
 
-	void Window::setCursorPosCallback(GLFWcursorposfun cursorPosCallback) {
-		glfwSetCursorPosCallback(m_window, cursorPosCallback);
+	EventHandler<MouseButtonEvent>* Window::getMouseButtonEventHandler() {
+		return &m_mouseButtonEventHandler;
 	}
 
-	void Window::setResizeCallback(GLFWwindowsizefun callback) {
-		m_sizeCallback = callback;
+	EventHandler<ScrollEvent>* Window::getScrollEventHandler() {
+		return &m_scrollEventHandler;
 	}
 
-	void Window::resizeCallback(GLFWwindow* window, int width, int height) {
-		for (uint32_t i = 0; i < Zap::objects::windows.size(); i++) {
-			if (Zap::objects::windows[i]->m_window == window) {
-				Zap::objects::windows[i]->resize(window, width, height);
-			}
-		}
+	void Window::resizeGLFWCallback(GLFWwindow* window, int width, int height) {
+		Window* pWindow = Window::glfwWindowMap.at(window);
+		pWindow->getResizeEventHandler()->pushEvent(ResizeEvent(pWindow, width, height));
+	}
+
+	void Window::keyGLFWCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+		Window* pWindow = Window::glfwWindowMap.at(window);
+		pWindow->getKeyEventHandler()->pushEvent(KeyEvent(pWindow, key, scancode, action, mods));
+	}
+
+	void Window::cursorPosGLFWCallback(GLFWwindow* window, double xPos, double yPos) {
+		Window* pWindow = Window::glfwWindowMap.at(window);
+		pWindow->getCursorPosEventHandler()->pushEvent(CursorPosEvent(pWindow, xPos, yPos));
+	}
+
+	void Window::mouseButtonGLFWCallback(GLFWwindow* window, int button, int action, int mods) {
+		Window* pWindow = Window::glfwWindowMap.at(window);
+		pWindow->getMouseButtonEventHandler()->pushEvent(MouseButtonEvent(pWindow, button, action, mods));
+	}
+
+	void Window::scrollGLFWCallback(GLFWwindow* window, double xoffset, double yoffset) {
+		Window* pWindow = Window::glfwWindowMap.at(window);
+		pWindow->getScrollEventHandler()->pushEvent(ScrollEvent(pWindow, xoffset, yoffset));
 	}
 
 	void Window::resize(GLFWwindow* window, int width, int height) {

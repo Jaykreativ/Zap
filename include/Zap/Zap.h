@@ -112,10 +112,6 @@ namespace Zap {
 		friend class PhysicsMaterial;
 	};
 
-	namespace objects {
-		static std::vector<Window*> windows;// fix global variables
-	}
-
 	namespace GlobalSettings {
 		VkFormat getColorFormat();
 		VkFormat getDepthStencilFormat();

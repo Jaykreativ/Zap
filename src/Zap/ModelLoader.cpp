@@ -7,6 +7,24 @@
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
 
+glm::mat4 ConvertMatrixToGLMFormat(const aiMatrix4x4& from) {
+	glm::mat4 to;
+	//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+	to[0][0] = from.a1; to[1][0] = from.a2; to[2][0] = from.a3; to[3][0] = from.a4;
+	to[0][1] = from.b1; to[1][1] = from.b2; to[2][1] = from.b3; to[3][1] = from.b4;
+	to[0][2] = from.c1; to[1][2] = from.c2; to[2][2] = from.c3; to[3][2] = from.c4;
+	to[0][3] = from.d1; to[1][3] = from.d2; to[2][3] = from.d3; to[3][3] = from.d4;
+	return to;
+}
+
+glm::vec3 GetGLMVec(const aiVector3D& vec) {
+	return glm::vec3(vec.x, vec.y, vec.z);
+}
+
+//glm::quat GetGLMQuat(const aiQuaternion& pOrientation) {
+//	return glm::quat(pOrientation.w, pOrientation.x, pOrientation.y, pOrientation.z);
+//}
+
 namespace Zap {
 	ModelLoader::ModelLoader() {
 
@@ -17,74 +35,63 @@ namespace Zap {
 	}
 
 	Model ModelLoader::load(const char* modelPath, uint32_t flags) { // TODO add support for better .obj materials
-		std::vector<Material> materials;
-		std::vector<uint32_t> meshIds;
+		Model model = {};
+		model.filepath = std::string(modelPath);
 
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_GenUVCoords);
+		const aiScene* aScene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_GenUVCoords);
 
 		auto pathSeperate = std::string(modelPath);
 		pathSeperate.erase(pathSeperate.find_last_of("/")+1);
 
-		ZP_ASSERT(scene, (std::string("Scene can't be loaded, check the filepath: ") + std::string(modelPath)).c_str());
+		ZP_ASSERT(aScene, (std::string("Scene can't be loaded, check the filepath: ") + std::string(modelPath)).c_str());
 
 #ifdef _DEBUG
-		std::cout << modelPath << " -> NumMeshes: " << scene->mNumMeshes << "\n";
+		std::cout << modelPath << " -> NumMeshes: " << aScene->mNumMeshes << "\n";
+		auto timeStartLoad = std::chrono::high_resolution_clock::now();
+#endif
+		processNode(aScene->mRootNode, aScene, pathSeperate, glm::mat4(1), flags, &model);
+
+#ifdef _DEBUG
+		auto timeLoad = std::chrono::high_resolution_clock::now() - timeStartLoad;
+		std::cout << modelPath << " -> Duration: " <<
+			std::chrono::duration_cast<std::chrono::duration<float>>(timeLoad).count() << "s\n";
+#endif
+		return model;
+	}
+
+	void ModelLoader::processNode(const aiNode* node, const aiScene* aScene, std::string path, glm::mat4& transform, uint32_t flags, Model* pModel) {
+		glm::mat4 newTransform = ConvertMatrixToGLMFormat(node->mTransformation) * transform;
+		for (uint32_t i = 0; i < node->mNumMeshes; i++) {
+#ifdef _DEBUG
+			auto timeStartLoad = std::chrono::high_resolution_clock::now();
+			auto timeStartMeshLoad = std::chrono::high_resolution_clock::now();
 #endif
 
-		for (uint32_t i = 0; i < scene->mNumMeshes; i++) {
-			meshIds.push_back(loadMesh(scene->mMeshes[i]));
-			auto aMaterial = scene->mMaterials[scene->mMeshes[i]->mMaterialIndex];
-			Material material = Material();
-			aiColor4D aDiffuse; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_DIFFUSE, &aDiffuse);
-			material.albedoColor = glm::vec3(aDiffuse.r, aDiffuse.g, aDiffuse.b);
-			aiGetMaterialFloat(aMaterial, AI_MATKEY_METALLIC_FACTOR, &material.metallic);
-			aiGetMaterialFloat(aMaterial, AI_MATKEY_ROUGHNESS_FACTOR, &material.roughness);
-			aiColor4D aEmissive; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_EMISSIVE, &aEmissive);
-			material.emissive = glm::vec4(aEmissive.r, aEmissive.g, aEmissive.b, 0);
-			aiGetMaterialFloat(aMaterial, AI_MATKEY_EMISSIVE_INTENSITY, &material.emissive.w);
-			if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE) > 0) {
-				aiString diffuseTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
-				auto embeddedTexture = scene->GetEmbeddedTexture(diffuseTexturePath.C_Str());
-				if (embeddedTexture) {
-					material.albedoMap = loadTexture(embeddedTexture);
-				}
-				else {
-					material.albedoMap = loadTexture((pathSeperate + std::string(diffuseTexturePath.C_Str())).c_str());
-				}
-				if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
-					material.albedoColor = glm::vec3(1, 1, 1);
-			}
-			if (aiGetMaterialTextureCount(aMaterial, aiTextureType_METALNESS) > 0) {
-				aiString metallicTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_METALNESS, 0, &metallicTexturePath);
-				auto embeddedTexture = scene->GetEmbeddedTexture(metallicTexturePath.C_Str());
-				if (embeddedTexture) {
-					material.metallicMap = loadTexture(embeddedTexture);
-				}
-				else {
-					material.metallicMap = loadTexture((pathSeperate + std::string(metallicTexturePath.C_Str())).c_str());
-				}
-				if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
-					material.metallic = 1;
-			}
-			if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
-				aiString roughnessTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS, 0, &roughnessTexturePath);
-				auto embeddedTexture = scene->GetEmbeddedTexture(roughnessTexturePath.C_Str());
-				if (embeddedTexture) {
-					material.roughnessMap = loadTexture(embeddedTexture);
-				}
-				else {
-					material.roughnessMap = loadTexture((pathSeperate + std::string(roughnessTexturePath.C_Str())).c_str());
-				}
-				if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
-					material.roughness = 1;
-			}
-			materials.push_back(material);
+			pModel->meshes.push_back(loadMesh(aScene->mMeshes[node->mMeshes[i]], newTransform));
+
+#ifdef _DEBUG
+			auto timeMeshLoad = std::chrono::high_resolution_clock::now() - timeStartMeshLoad;
+			auto timeStartMaterialLoad = std::chrono::high_resolution_clock::now();
+#endif
+
+			aiMaterial* aMaterial = aScene->mMaterials[aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex];
+			pModel->materials.push_back(Material());
+			loadMaterial(aScene, aMaterial, path, flags, &pModel->materials.back());
+
+#ifdef _DEBUG
+			auto timeMaterialLoad = std::chrono::high_resolution_clock::now() - timeStartMaterialLoad;
+			auto timeLoad = std::chrono::high_resolution_clock::now() - timeStartLoad;
+			std::cout <<
+				std::chrono::duration_cast<std::chrono::duration<float>>(timeLoad).count() * 1000 << "ms - " <<
+				std::chrono::duration_cast<std::chrono::duration<float>>(timeMeshLoad).count() * 1000 << "ms(Mesh only) - " <<
+				std::chrono::duration_cast<std::chrono::duration<float>>(timeMaterialLoad).count() * 1000 << "ms(Material only)\n";
+#endif
 		}
 
-		Model model = { std::string(modelPath), materials, meshIds };
-
-		return model;
+		for (uint32_t i = 0; i < node->mNumChildren; i++) {
+			processNode(node->mChildren[i], aScene, path, newTransform, flags, pModel);
+		}
 	}
 
 	Model ModelLoader::loadFromMemory(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
@@ -95,6 +102,52 @@ namespace Zap {
 
 	Model ModelLoader::loadFromMemory(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray) {
 		return loadFromMemory(vertexArray.size(), vertexArray.data(), indexArray.size(), indexArray.data());
+	}
+
+	void ModelLoader::loadMaterial(const aiScene* aScene, const aiMaterial* aMaterial, std::string path, uint32_t flags, Material* pMaterial) {;
+		aiColor4D aDiffuse; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_DIFFUSE, &aDiffuse);
+		pMaterial->albedoColor = glm::vec3(aDiffuse.r, aDiffuse.g, aDiffuse.b);
+		aiGetMaterialFloat(aMaterial, AI_MATKEY_METALLIC_FACTOR, &pMaterial->metallic);
+		aiGetMaterialFloat(aMaterial, AI_MATKEY_ROUGHNESS_FACTOR, &pMaterial->roughness);
+		aiColor4D aEmissive; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_EMISSIVE, &aEmissive);
+		pMaterial->emissive = glm::vec4(aEmissive.r, aEmissive.g, aEmissive.b, 0);
+		aiGetMaterialFloat(aMaterial, AI_MATKEY_EMISSIVE_INTENSITY, &pMaterial->emissive.w);
+		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE) > 0) {
+			aiString diffuseTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
+			auto embeddedTexture = aScene->GetEmbeddedTexture(diffuseTexturePath.C_Str());
+			if (embeddedTexture) {
+				pMaterial->albedoMap = loadTexture(embeddedTexture);
+			}
+			else {
+				pMaterial->albedoMap = loadTexture((path + std::string(diffuseTexturePath.C_Str())).c_str());
+			}
+			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
+				pMaterial->albedoColor = glm::vec3(1, 1, 1);
+		}
+		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_METALNESS) > 0) {
+			aiString metallicTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_METALNESS, 0, &metallicTexturePath);
+			auto embeddedTexture = aScene->GetEmbeddedTexture(metallicTexturePath.C_Str());
+			if (embeddedTexture) {
+				pMaterial->metallicMap = loadTexture(embeddedTexture);
+			}
+			else {
+				pMaterial->metallicMap = loadTexture((path + std::string(metallicTexturePath.C_Str())).c_str());
+			}
+			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
+				pMaterial->metallic = 1;
+		}
+		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
+			aiString roughnessTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS, 0, &roughnessTexturePath);
+			auto embeddedTexture = aScene->GetEmbeddedTexture(roughnessTexturePath.C_Str());
+			if (embeddedTexture) {
+				pMaterial->roughnessMap = loadTexture(embeddedTexture);
+			}
+			else {
+				pMaterial->roughnessMap = loadTexture((path + std::string(roughnessTexturePath.C_Str())).c_str());
+			}
+			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
+				pMaterial->roughness = 1;
+		}
 	}
 
 	uint32_t ModelLoader::loadTexture(void* data, uint32_t width, uint32_t height) {
@@ -138,7 +191,7 @@ namespace Zap {
 		return loadTexture(data, width, height);
 	}
 
-	uint32_t ModelLoader::loadMesh(aiMesh* aMesh) {
+	uint32_t ModelLoader::loadMesh(aiMesh* aMesh, glm::mat4& transform) {
 		vk::Buffer vertexStgBuffer = vk::Buffer(aMesh->mNumVertices * sizeof(Vertex), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 		vk::Buffer indexStgBuffer = vk::Buffer(aMesh->mNumFaces*3 * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
@@ -169,6 +222,8 @@ namespace Zap {
 		}
 
 		Mesh* mesh = Mesh::createMesh();
+		
+		mesh->m_transform = transform;
 
 		mesh->m_vertexBuffer = vk::Buffer(vertexStgBuffer.getSize(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
 			| VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
