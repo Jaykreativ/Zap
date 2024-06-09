@@ -8,10 +8,12 @@
 
 #define ZP_IS_FLAG_ENABLED(val, flag) ((val & flag) == flag)
 
+#define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_QUAT_DATA_XYZW
 #include "Zap/UUID.h"
 #include "VulkanFramework.h"
+#define PX_PHYSX_STATIC_LIB
 #include "PxPhysicsAPI.h"
 #include <unordered_map>
 

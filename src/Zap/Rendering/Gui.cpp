@@ -108,11 +108,12 @@ namespace Zap {
 		imguiInitInfo.QueueFamily = vk::getQueueFamily();
 		imguiInitInfo.Queue = vkUtils::queueHandler::getQueue();
 		imguiInitInfo.DescriptorPool = m_imguiPool;
+		imguiInitInfo.RenderPass = m_renderPass;
 		imguiInitInfo.MinImageCount = VK_MIN_AMOUNT_OF_SWAPCHAIN_IMAGES;
 		imguiInitInfo.ImageCount = VK_MIN_AMOUNT_OF_SWAPCHAIN_IMAGES;
 		imguiInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-		ImGui_ImplVulkan_Init(&imguiInitInfo, m_renderPass);
+		ImGui_ImplVulkan_Init(&imguiInitInfo);
 
 		ImGui_ImplGlfw_InitForVulkan(m_renderer.m_window.m_window, true);
 
