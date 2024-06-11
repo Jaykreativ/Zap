@@ -23,6 +23,7 @@ file(GLOB Imgui_SRC
     "Dependencies/imgui/backends/imgui_impl_glfw.cpp"
     "Dependencies/imgui/backends/imgui_impl_glfw.h"
 )
+
 string(TOLOWER "${CMAKE_BUILD_TYPE}" PHYSX_BUILD_TYPE)
 file(GLOB PhysX_libs
     "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.md/${PHYSX_BUILD_TYPE}/*.lib"
@@ -43,6 +44,16 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/glfw)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/glm)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/assimp)
+
+set(PHYSX_ROOT_DIR "${PROJECT_SOURCE_DIR}/Dependencies/PhysX/physx")
+set(PX_OUTPUT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.md/${PHYSX_BUILD_TYPE}/")
+set(PX_OUTPUT_BIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.md/${PHYSX_BUILD_TYPE}/")
+set(TARGET_BUILD_PLATFORM "windows")
+set(ENV{PM_PhysXDevice_PATH} "C:/packman-repo/chk/PhysXDevice/18.12.7.6")
+set(ENV{PM_freeglut_PATH} "C:/packman-repo/chk/freeglut-windows/3.4_1.1")
+set(PHYSX_SLN_PHYSXDEVICE_PATH "$ENV{PM_PhysXDevice_PATH}/bin/x86/")
+set(PHYSX_SLN_FREEGLUT_PATH "$ENV{PM_freeglut_PATH}/bin/")
+add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/PhysX/physx/compiler/public)
 
 target_link_libraries(Zap PUBLIC VulkanFramework glfw glm assimp $ENV{VULKAN_SDK}/Lib/vulkan-1.lib ${PhysX_libs})
 target_include_directories(
