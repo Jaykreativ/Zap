@@ -6,6 +6,8 @@
 
 namespace Zap {
 	class Actor;
+	class AddLightEvent;
+	class RemoveLightEvent;
 
 	class PathTracer : public RenderTemplate
 	{
@@ -16,6 +18,8 @@ namespace Zap {
 		void updateCamera(const Actor camera);
 
 		void resize();
+
+		void resetRender();
 
 		void setRenderTarget(Image* target);
 
@@ -30,7 +34,7 @@ namespace Zap {
 		Image* m_pTarget = nullptr;
 
 		std::unordered_map<uint32_t, vk::AccelerationStructure> m_blasMap;
-		std::vector<vk::AccelerationStructure> m_lightBlasVector;
+		std::unordered_map<UUID, vk::AccelerationStructure> m_lightBlasMap;
 		vk::AccelerationStructure m_tlas;
 		vk::Image m_storageImage;
 		glm::vec2 m_extent = { 1, 1 };
@@ -59,6 +63,10 @@ namespace Zap {
 		void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex);
 		
 		void onWindowResize(int width, int height);
+
+		static void addLightCallback(AddLightEvent& eventParams, void* customParams);
+
+		static void removeLightCallback(RemoveLightEvent& eventParams, void* customParams);
 	};
 }
 

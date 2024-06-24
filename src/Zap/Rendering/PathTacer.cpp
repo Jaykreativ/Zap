@@ -24,6 +24,21 @@ void updateLightBufferDescriptorSetPT(vk::Registerable* obj, vk::Registerable* d
 	pDescriptorSet->update();
 }
 
+void updateAccelerationStructureDescriptorSetPT(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+	if (func != vk::eUPDATE)
+		return;
+
+	vk::AccelerationStructure* pAccel = (vk::AccelerationStructure*)obj;
+	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
+	auto descriptor = pDescriptorSet->getDescriptor(0);
+
+	VkWriteDescriptorSetAccelerationStructureKHR* accelerationStructureDescriptor = (VkWriteDescriptorSetAccelerationStructureKHR*)descriptor.pNext;
+	accelerationStructureDescriptor->pAccelerationStructures = pAccel->getVkAccelerationStructureKHRptr();
+
+	pDescriptorSet->setDescriptor(0, descriptor);
+	pDescriptorSet->update();
+}
+
 namespace Zap {
 	PathTracer::PathTracer(Renderer& renderer, Scene* pScene)
 		: m_renderer(renderer), m_pScene(pScene)
@@ -31,9 +46,15 @@ namespace Zap {
 		auto base = Base::getBase();
 		auto settings = base->getSettings();
 		ZP_ASSERT(settings->enableRaytracing, "Created PathTracer without enabling raytracing");
+
+		m_pScene->getAddLightEventHandler()->addCallback(addLightCallback, this);
+		m_pScene->getRemoveLightEventHandler()->addCallback(removeLightCallback, this);
 	}
 
-	PathTracer::~PathTracer() {}
+	PathTracer::~PathTracer() {
+		m_pScene->getAddLightEventHandler()->removeCallback(addLightCallback, this);
+		m_pScene->getRemoveLightEventHandler()->removeCallback(removeLightCallback, this);
+	}
 
 	void PathTracer::updateCamera(const Actor camera) {
 		ZP_ASSERT(camera.hasCamera(), "ERROR: Actor has no camera component");
@@ -42,7 +63,7 @@ namespace Zap {
 		auto oldView = data->inverseView;
 		data->inverseView = glm::inverse(camera.cmpCamera_getView());
 		if (oldView != data->inverseView)
-			m_frameIndex = 0;
+			resetRender();
 		data->inversePerspective = glm::inverse(camera.cmpCamera_getPerspective(m_extent.x / m_extent.y));
 		data->lightCount = m_pScene->m_lightComponents.size();
 		m_UBO.unmap();
@@ -75,6 +96,10 @@ namespace Zap {
 		m_frameIndex = 0;
 	}
 
+	void PathTracer::resetRender() {
+		m_frameIndex = 0;
+	}
+
 	void PathTracer::setRenderTarget(Image* target) {
 		m_pTarget = target;
 	}
@@ -88,25 +113,29 @@ namespace Zap {
 	}
 
 	void PathTracer::onRendererInit() {
+		// create blas
 		for (uint32_t id : m_pScene->m_meshReferences) {
 			auto* base = Base::getBase();
 			Mesh* mesh = &base->m_meshes[id];
 			if (m_blasMap.count(id)) continue;
 			vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
 			accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
-			accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
 			accelerationStructure.init();
+			accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
+			accelerationStructure.update();
 		}
 		for (auto const& lightPair : m_pScene->m_lightComponents) {
 			float aabbMin[3] = { -lightPair.second.radius, -lightPair.second.radius, -lightPair.second.radius };
 			float aabbMax[3] = {  lightPair.second.radius,  lightPair.second.radius,  lightPair.second.radius };
-			m_lightBlasVector.push_back(vk::AccelerationStructure());
-			vk::AccelerationStructure& accelerationStructure = m_lightBlasVector.back();
+			vk::AccelerationStructure& accelerationStructure = (m_lightBlasMap[lightPair.first] = vk::AccelerationStructure());
 			accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
-			accelerationStructure.addGeometry(aabbMin, aabbMax);
 			accelerationStructure.init();
+			accelerationStructure.addGeometry(aabbMin, aabbMax);
+			accelerationStructure.update();
 		}
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
+
+		// create blas instances
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
 			glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform);
@@ -119,17 +148,20 @@ namespace Zap {
 		}
 		i = 0;
 		for (auto const& lightPair : m_pScene->m_lightComponents) {
-			instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasVector[i]));
+			instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasMap.at(lightPair.first)));
 			auto* transform = &glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
 			instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 			instanceVector.back().setCustomIndex(i);
 			instanceVector.back().setMask(0x0F);
 			i++;
 		}
+
+		// create tlas
 		m_tlas = vk::AccelerationStructure();
 		m_tlas.setType(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR);
-		m_tlas.addGeometry(instanceVector);
 		m_tlas.init();
+
+		m_tlas.setGeometry(instanceVector);
 
 		m_storageImage = vk::Image();
 		m_storageImage.setWidth(m_extent.x);
@@ -321,6 +353,7 @@ namespace Zap {
 		m_rtPipeline.init(); m_rtPipeline.initShaderBindingTable();
 
 		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPT);
+		base->m_registery.connect(&m_tlas, &m_rtDescriptorSet, updateAccelerationStructureDescriptorSetPT);
 	}
 
 	void PathTracer::destroy() {
@@ -338,24 +371,22 @@ namespace Zap {
 		for (auto& blasPair : m_blasMap) {
 			blasPair.second.destroy();
 		}
-		for (auto& blas : m_lightBlasVector) {
-			blas.destroy();
+		m_blasMap.clear();
+		for (auto& lightBlasPair : m_lightBlasMap) {
+			lightBlasPair.second.destroy();
 		}
+		m_lightBlasMap.clear();
 	}
 
 	void PathTracer::beforeRender() {
-		if (m_pScene->m_lightBuffer.getSize() != m_oldLightbufferSize) {
-			m_oldLightbufferSize = m_pScene->m_lightBuffer.getSize();
-			m_renderer.recordCommandBuffers();
-		}
-
 		void* rawData; m_UBO.map(&rawData);
 		UBO* data = (UBO*)rawData;
 		data->frameIndex = m_frameIndex;
 		m_UBO.unmap();
 
+		if (m_frameIndex > 0) return;// only update AccelerationStructure when render is being reset
+
 		// triangle objects
-		if (m_frameIndex > 0) return;
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
@@ -373,7 +404,7 @@ namespace Zap {
 		// procedural geometry lights
 		i = 0;
 		for (auto const& lightPair : m_pScene->m_lightComponents) {
-			instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasVector[i]));
+			instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasMap.at(lightPair.first)));
 			auto* transform = &glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
 			instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 			instanceVector.back().setCustomIndex(i);
@@ -381,8 +412,10 @@ namespace Zap {
 			i++;
 		}
 
-		m_tlas.updateGeometry(instanceVector);
+		m_tlas.setGeometry(instanceVector);
 		m_tlas.update();
+
+		m_renderer.recordCommandBuffers();
 	}
 
 	void PathTracer::afterRender() {
@@ -401,4 +434,27 @@ namespace Zap {
 	}
 
 	void PathTracer::onWindowResize(int width, int height) {}
+
+	void PathTracer::addLightCallback(AddLightEvent& eventParams, void* customParams) {
+		PathTracer* pPathTracer = (PathTracer*)customParams;
+		auto radius = eventParams.actor.cmpLight_getRadius();
+		float aabbMin[3] = { -radius, -radius, -radius };
+		float aabbMax[3] = { radius, radius, radius };
+		vk::AccelerationStructure& accelerationStructure = (pPathTracer->m_lightBlasMap[eventParams.actor] = vk::AccelerationStructure());
+		accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
+		accelerationStructure.init();
+		accelerationStructure.addGeometry(aabbMin, aabbMax);
+		accelerationStructure.update();
+
+		pPathTracer->resetRender();
+	}
+
+	void PathTracer::removeLightCallback(RemoveLightEvent& eventParams, void* customParams) {
+		PathTracer* pPathTracer = (PathTracer*)customParams;
+		vk::AccelerationStructure& accelerationStructure = pPathTracer->m_lightBlasMap.at(eventParams.actor);
+		accelerationStructure.destroy();
+		pPathTracer->m_lightBlasMap.erase(eventParams.actor);
+
+		pPathTracer->resetRender();
+	}
 }

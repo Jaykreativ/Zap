@@ -38,9 +38,7 @@ namespace Zap {
 	}
 
 	void Actor::addTransform(glm::mat4 transform) {
-		ZP_ASSERT(m_pScene, "Actor is not part of scene");
-		ZP_ASSERT(!m_pScene->m_transformComponents.count(m_handle), "Actor can't have multiple transforms");
-		m_pScene->m_transformComponents[m_handle] = Transform{ transform };
+		addTransform(Transform{ transform });
 	}
 
 	void Actor::destroyTransform() {
@@ -261,17 +259,17 @@ namespace Zap {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_lightComponents.count(m_handle), "Actor can't have multiple lights");
 		m_pScene->m_lightComponents[m_handle] = light;
+		m_pScene->m_addLightEventHandler.pushEvent(AddLightEvent(m_pScene, *this, m_pScene->m_lightComponents.size()));
 	}
 
 	void Actor::addLight(glm::vec3 color, float strength, float radius) {
-		ZP_ASSERT(m_pScene, "Actor is not part of scene");
-		ZP_ASSERT(!m_pScene->m_lightComponents.count(m_handle), "Actor can't have multiple lights");
-		m_pScene->m_lightComponents[m_handle] = Light{ color, strength, radius };
+		addLight(Light{ color, strength, radius });
 	}
 
 	void Actor::destroyLight() {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		m_pScene->m_lightComponents.erase(m_handle);
+		m_pScene->getRemoveLightEventHandler()->pushEvent(RemoveLightEvent(m_pScene, *this, m_pScene->m_lightComponents.size()));
 	}
 
 	bool Actor::hasLight() {
@@ -405,6 +403,7 @@ namespace Zap {
 	}
 
 	void Actor::destroy() {
+		m_pScene->getRemoveActorEventHandler()->pushEvent(RemoveActorEvent(m_pScene, *this));
 		if (hasCamera())
 			destroyCamera();
 		if (hasLight())

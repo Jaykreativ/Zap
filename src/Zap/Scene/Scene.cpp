@@ -66,9 +66,7 @@ namespace Zap {
 
 		// resize buffer and fill in one time data
 		if (std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData) != m_perMeshInstanceBuffer.getSize()) {
-			m_perMeshInstanceBuffer.destroy();
 			m_perMeshInstanceBuffer.resize(std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData));
-			m_perMeshInstanceBuffer.init(); m_perMeshInstanceBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			m_perMeshInstanceBuffer.map(&rawData);
 			{
 				PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
@@ -103,6 +101,8 @@ namespace Zap {
 			}
 		}
 		m_perMeshInstanceBuffer.unmap();
+
+		m_sceneUpdateEventHandler.pushEvent(SceneUpdateEvent(this));
 	}
 
 	void Scene::destroy() {
@@ -114,6 +114,7 @@ namespace Zap {
 
 	void Scene::attachActor(Actor& actor) {
 		actor.m_pScene = this;
+		m_addActorEventHandler.pushEvent(AddActorEvent(this, actor));
 	}
 
 	bool Scene::raycast(glm::vec3 origin, glm::vec3 unitDir, uint32_t maxDistance, RaycastOutput* out, physx::PxQueryFilterCallback* filterCallback) {
@@ -166,5 +167,25 @@ namespace Zap {
 			}
 			}
 		}
+	}
+
+	EventHandler<SceneUpdateEvent>* Scene::getSceneUpdateEventHandler() {
+		return &m_sceneUpdateEventHandler;
+	}
+
+	EventHandler<AddActorEvent>* Scene::getAddActorEventHandler() {
+		return &m_addActorEventHandler;
+	}
+
+	EventHandler<AddLightEvent>* Scene::getAddLightEventHandler() {
+		return &m_addLightEventHandler;
+	}
+
+	EventHandler<RemoveActorEvent>* Scene::getRemoveActorEventHandler() {
+		return &m_removeActorEventHandler;
+	}
+
+	EventHandler<RemoveLightEvent>* Scene::getRemoveLightEventHandler() {
+		return &m_removeLightEventHandler;
 	}
 }

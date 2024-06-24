@@ -27,6 +27,21 @@ void updateLightBufferDescriptorSetRT(vk::Registerable* obj, vk::Registerable* d
 	pDescriptorSet->update();
 }
 
+void updateAccelerationStructureDescriptorSetRT(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+	if (func != vk::eUPDATE)
+		return;
+
+	vk::AccelerationStructure* pAccel = (vk::AccelerationStructure*)obj;
+	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
+	auto descriptor = pDescriptorSet->getDescriptor(0);
+
+	VkWriteDescriptorSetAccelerationStructureKHR* accelerationStructureDescriptor = (VkWriteDescriptorSetAccelerationStructureKHR*)descriptor.pNext;
+	accelerationStructureDescriptor->pAccelerationStructures = pAccel->getVkAccelerationStructureKHRptr();
+
+	pDescriptorSet->setDescriptor(0, descriptor);
+	pDescriptorSet->update();
+}
+
 namespace Zap {
 	RaytracingRenderer::RaytracingRenderer(Renderer& renderer, Scene* pScene)
 		: m_renderer(renderer), m_pScene(pScene)
@@ -38,7 +53,6 @@ namespace Zap {
 
 	RaytracingRenderer::~RaytracingRenderer() {}
 
-
 	void RaytracingRenderer::onRendererInit() {
 		uint32_t i = 0;
 		for (uint32_t id : m_pScene->m_meshReferences) {
@@ -47,8 +61,9 @@ namespace Zap {
 			if (m_blasMap.count(id)) continue;
 			vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
 			accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
-			accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
 			accelerationStructure.init();
+			accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
+			accelerationStructure.update();
 			i++;
 		}
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
@@ -64,8 +79,9 @@ namespace Zap {
 		}
 		m_tlas = vk::AccelerationStructure();
 		m_tlas.setType(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR);
-		m_tlas.addGeometry(instanceVector);
 		m_tlas.init();
+
+		m_tlas.setGeometry(instanceVector);
 		
 		m_UBO = vk::Buffer(sizeof(UBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_UBO.init(); m_UBO.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -228,6 +244,7 @@ namespace Zap {
 		m_rtPipeline.init(); m_rtPipeline.initShaderBindingTable();
 
 		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetRT);
+		base->m_registery.connect(&m_tlas, &m_rtDescriptorSet, updateAccelerationStructureDescriptorSetRT);
 	}
 
 	void RaytracingRenderer::destroy() {
@@ -261,13 +278,14 @@ namespace Zap {
 			}
 		}
 
-		m_tlas.updateGeometry(instanceVector);
+		m_tlas.setGeometry(instanceVector);
 		m_tlas.update();
 
 		if (m_pScene->m_lightBuffer.getSize() != m_oldLigthbufferSize) {
 			m_oldLigthbufferSize = m_pScene->m_lightBuffer.getSize();
-			m_renderer.recordCommandBuffers();
 		}
+
+		m_renderer.recordCommandBuffers();
 	}
 
 	void RaytracingRenderer::afterRender() {}

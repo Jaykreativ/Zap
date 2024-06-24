@@ -17,7 +17,9 @@ namespace Zap {
 	{
 	public:
 		Actor();
-		~Actor(); 
+		~Actor();
+
+		operator UUID() { return m_handle; }
 
 		/* Transform */
 		void addTransform(Transform transform);
@@ -146,7 +148,7 @@ namespace Zap {
 		Actor(UUID uuid, Scene* pScene);
 
 		Transform* getTransform();
-		Model* getModel();// TODO rework mesh system with models
+		Model* getModel();
 		RigidDynamic* getRigidDynamic();
 		RigidStatic* getRigidStatic();
 		Light* getLight();

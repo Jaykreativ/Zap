@@ -2,6 +2,8 @@
 
 #include "Zap/Zap.h"
 #include "Zap/UUID.h"
+#include "Zap/Event.h"
+#include "Zap/EventHandler.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Camera.h"
 #include "Zap/Scene/Light.h"
@@ -14,8 +16,59 @@
 #include <vector>
 
 namespace Zap {
-
 	class Actor; // forward declaration
+
+	class SceneUpdateEvent : public Event {
+	public:
+		SceneUpdateEvent(Scene* pScene)
+			: pScene(pScene)
+		{};
+		~SceneUpdateEvent() = default;
+
+		Scene* pScene = nullptr;
+	};
+
+	class AddActorEvent : public Event {
+	public:
+		AddActorEvent(Scene* pScene, Actor actor)
+			: pScene(pScene), actor(actor)
+		{};
+		~AddActorEvent() = default;
+
+		Scene* pScene;
+		Actor actor;
+	};
+
+	class RemoveActorEvent : public Event {
+	public:
+		RemoveActorEvent(Scene* pScene, Actor actor)
+			: pScene(pScene), actor(actor)
+		{};
+		~RemoveActorEvent() = default;
+
+		Scene* pScene;
+		Actor actor;
+	};
+	
+	class AddLightEvent : public AddActorEvent {
+	public:
+		AddLightEvent(Scene* pScene, Actor actor, uint32_t lightCount)
+			: AddActorEvent(pScene, actor), lightCount(lightCount)
+		{};
+		~AddLightEvent() = default;
+
+		uint32_t lightCount = 0;
+	};
+
+	class RemoveLightEvent : public RemoveActorEvent {
+	public:
+		RemoveLightEvent(Scene* pScene, Actor actor, uint32_t lightCount)
+			: RemoveActorEvent(pScene, actor), lightCount(lightCount)
+		{};
+		~RemoveLightEvent() = default;
+
+		uint32_t lightCount = 0;
+	};
 
 	class Scene
 	{
@@ -43,6 +96,17 @@ namespace Zap {
 
 		void update();
 
+
+		EventHandler<SceneUpdateEvent>* getSceneUpdateEventHandler();
+
+		EventHandler<AddActorEvent>* getAddActorEventHandler();
+		
+		EventHandler<AddLightEvent>* getAddLightEventHandler();
+
+		EventHandler<RemoveActorEvent>* getRemoveActorEventHandler();
+
+		EventHandler<RemoveLightEvent>* getRemoveLightEventHandler();
+
 #ifndef ZP_ALL_PUBLIC
 	private:
 #endif
@@ -54,17 +118,23 @@ namespace Zap {
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 	public:
 #endif
-		std::unordered_map<UUID, Camera>                   m_cameraComponents;// TODO rework access system
-		std::unordered_map<UUID, Light>                    m_lightComponents;
-		std::unordered_map<UUID, Model>                    m_modelComponents;
+		std::unordered_map<UUID, Camera>          m_cameraComponents;// TODO rework access system
+		std::unordered_map<UUID, Light>           m_lightComponents;
+		std::unordered_map<UUID, Model>           m_modelComponents;
 		std::unordered_map<UUID, RigidDynamic>    m_rigidDynamicComponents;
 		std::unordered_map<UUID, RigidStatic>     m_rigidStaticComponents;
-		std::unordered_map<UUID, Transform>                m_transformComponents;
+		std::unordered_map<UUID, Transform>       m_transformComponents;
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 #ifndef ZP_ALL_PUBLIC
 	private:
 #endif
 #endif
+
+		EventHandler<SceneUpdateEvent> m_sceneUpdateEventHandler;
+		EventHandler<AddActorEvent> m_addActorEventHandler;
+		EventHandler<AddLightEvent> m_addLightEventHandler;
+		EventHandler<RemoveActorEvent> m_removeActorEventHandler;
+		EventHandler<RemoveLightEvent> m_removeLightEventHandler;
 
 		struct LightData {
 			alignas(16) glm::vec3 pos;
