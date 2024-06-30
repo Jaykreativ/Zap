@@ -23,6 +23,19 @@ void updateLightBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* 
 	pDescriptorSet->update();
 }
 
+void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+	if (func != vk::eUPDATE)
+		return;
+
+	vk::Buffer* pBuffer = (vk::Buffer*)obj;
+	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
+	auto descriptor = pDescriptorSet->getDescriptor(2);
+	descriptor.bufferInfos[0].range = pBuffer->getSize();
+	pDescriptorSet->setDescriptor(2, descriptor);
+
+	pDescriptorSet->update();
+}
+
 namespace Zap {
 	PBRenderer::PBRenderer(Renderer& renderer, Scene* pScene)
 		: m_renderer(renderer), m_pScene(pScene)
@@ -46,17 +59,6 @@ namespace Zap {
 		/*UniformBuffers*/
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-		m_lightBuffer = vk::Buffer(sizeof(LightData) * std::max<size_t>(m_pScene->m_lightComponents.size(), 1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-		{
-			uint32_t meshCount = 0;
-			for (auto const& x : m_pScene->m_modelComponents)
-				meshCount += x.second.meshes.size();
-			m_perMeshBuffer = vk::Buffer(sizeof(PerMeshData) * meshCount, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-			m_perMeshBuffer.init(); m_perMeshBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		}
 
 		/*DescriptorPool*/ {
 			vk::DescriptorBufferInfo uniformBufferInfo{};
@@ -124,6 +126,7 @@ namespace Zap {
 			m_descriptorSet.update();
 
 			base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPBR);
+			base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetPBR);
 		}
 
 		/*Depth Image*/
@@ -292,8 +295,6 @@ namespace Zap {
 		m_descriptorSet.destroy();
 		m_descriptorPool.destroy();
 		m_uniformBuffer.destroy();
-		m_lightBuffer.destroy();
-		m_perMeshBuffer.destroy();
 	}
 
 	void PBRenderer::beforeRender() {
@@ -303,10 +304,9 @@ namespace Zap {
 		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
 		m_uniformBuffer.unmap();
 
-		if (m_pScene->m_lightBuffer.getSize() != m_oldLightbufferSize) { // TODO make commandBuffer re recording for invalid commandBuffers easier
-			m_oldLightbufferSize = m_pScene->m_lightBuffer.getSize();
-			m_renderer.recordCommandBuffers();
-		}
+		//if (m_shouldRecord) { // TODO make commandBuffer re recording for invalid commandBuffers easier and more optimized
+		m_renderer.recordCommandBuffers();
+		//}
 	}
 
 	void PBRenderer::afterRender() {}

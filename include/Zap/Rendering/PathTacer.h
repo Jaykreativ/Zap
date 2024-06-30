@@ -8,6 +8,8 @@ namespace Zap {
 	class Actor;
 	class AddLightEvent;
 	class RemoveLightEvent;
+	class AddModelEvent;
+	class RemoveModelEvent;
 
 	class PathTracer : public RenderTemplate
 	{
@@ -67,6 +69,10 @@ namespace Zap {
 		static void addLightCallback(AddLightEvent& eventParams, void* customParams);
 
 		static void removeLightCallback(RemoveLightEvent& eventParams, void* customParams);
+
+		static void addModelCallback(AddModelEvent& eventParams, void* customParams);
+
+		static void removeModelCallback(RemoveModelEvent& eventParams, void* customParams);
 	};
 }
 

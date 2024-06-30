@@ -70,6 +70,26 @@ namespace Zap {
 		uint32_t lightCount = 0;
 	};
 
+	class AddModelEvent : public AddActorEvent {
+	public:
+		AddModelEvent(Scene* pScene, Actor actor, uint32_t modelCount)
+			: AddActorEvent(pScene, actor), modelCount(modelCount)
+		{};
+		~AddModelEvent() = default;
+
+		uint32_t modelCount = 0;
+	};
+
+	class RemoveModelEvent : public RemoveActorEvent {
+	public:
+		RemoveModelEvent(Scene* pScene, Actor actor, uint32_t modelCount)
+			: RemoveActorEvent(pScene, actor), modelCount(modelCount)
+		{};
+		~RemoveModelEvent() = default;
+
+		uint32_t modelCount = 0;
+	};
+
 	class Scene
 	{
 	public:
@@ -103,9 +123,13 @@ namespace Zap {
 		
 		EventHandler<AddLightEvent>* getAddLightEventHandler();
 
+		EventHandler<AddModelEvent>* getAddModelEventHandler();
+
 		EventHandler<RemoveActorEvent>* getRemoveActorEventHandler();
 
 		EventHandler<RemoveLightEvent>* getRemoveLightEventHandler();
+
+		EventHandler<RemoveModelEvent>* getRemoveModelEventHandler();
 
 #ifndef ZP_ALL_PUBLIC
 	private:
@@ -133,8 +157,10 @@ namespace Zap {
 		EventHandler<SceneUpdateEvent> m_sceneUpdateEventHandler;
 		EventHandler<AddActorEvent> m_addActorEventHandler;
 		EventHandler<AddLightEvent> m_addLightEventHandler;
+		EventHandler<AddModelEvent> m_addModelEventHandler;
 		EventHandler<RemoveActorEvent> m_removeActorEventHandler;
 		EventHandler<RemoveLightEvent> m_removeLightEventHandler;
+		EventHandler<RemoveModelEvent> m_removeModelEventHandler;
 
 		struct LightData {
 			alignas(16) glm::vec3 pos;
@@ -154,7 +180,7 @@ namespace Zap {
 		uint32_t m_meshInstanceCount = 0;
 		vk::Buffer m_perMeshInstanceBuffer;
 		vk::Buffer m_lightBuffer;
-		std::vector<uint32_t> m_meshReferences;
+		//std::vector<uint32_t> m_meshReferences;
 
 		friend class Base;
 		friend class Serializer;

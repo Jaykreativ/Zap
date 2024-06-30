@@ -17,9 +17,26 @@ void updateLightBufferDescriptorSetPT(vk::Registerable* obj, vk::Registerable* d
 
 	vk::Buffer* pBuffer = (vk::Buffer*)obj;
 	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
-	auto descriptor = pDescriptorSet->getDescriptor(1);
+
+	uint32_t descriptorIndex = 1;
+	auto descriptor = pDescriptorSet->getDescriptor(descriptorIndex);
 	descriptor.bufferInfos[0].range = pBuffer->getSize();
-	pDescriptorSet->setDescriptor(1, descriptor);
+	pDescriptorSet->setDescriptor(descriptorIndex, descriptor);
+
+	pDescriptorSet->update();
+}
+
+void updatePerMeshBufferDescriptorSetPT(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+	if (func != vk::eUPDATE)
+		return;
+
+	vk::Buffer* pBuffer = (vk::Buffer*)obj;
+	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
+
+	uint32_t descriptorIndex = 2;
+	auto descriptor = pDescriptorSet->getDescriptor(descriptorIndex);
+	descriptor.bufferInfos[0].range = pBuffer->getSize();
+	pDescriptorSet->setDescriptor(descriptorIndex, descriptor);
 
 	pDescriptorSet->update();
 }
@@ -49,11 +66,15 @@ namespace Zap {
 
 		m_pScene->getAddLightEventHandler()->addCallback(addLightCallback, this);
 		m_pScene->getRemoveLightEventHandler()->addCallback(removeLightCallback, this);
+		m_pScene->getAddModelEventHandler()->addCallback(addModelCallback, this);
+		m_pScene->getRemoveModelEventHandler()->addCallback(removeModelCallback, this);
 	}
 
 	PathTracer::~PathTracer() {
 		m_pScene->getAddLightEventHandler()->removeCallback(addLightCallback, this);
 		m_pScene->getRemoveLightEventHandler()->removeCallback(removeLightCallback, this);
+		m_pScene->getAddModelEventHandler()->removeCallback(addModelCallback, this);
+		m_pScene->getRemoveModelEventHandler()->removeCallback(removeModelCallback, this);
 	}
 
 	void PathTracer::updateCamera(const Actor camera) {
@@ -113,17 +134,9 @@ namespace Zap {
 	}
 
 	void PathTracer::onRendererInit() {
-		// create blas
-		for (uint32_t id : m_pScene->m_meshReferences) {
-			auto* base = Base::getBase();
-			Mesh* mesh = &base->m_meshes[id];
-			if (m_blasMap.count(id)) continue;
-			vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
-			accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
-			accelerationStructure.init();
-			accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
-			accelerationStructure.update();
-		}
+		auto* base = Base::getBase();
+
+		// create lightBLAS
 		for (auto const& lightPair : m_pScene->m_lightComponents) {
 			float aabbMin[3] = { -lightPair.second.radius, -lightPair.second.radius, -lightPair.second.radius };
 			float aabbMax[3] = {  lightPair.second.radius,  lightPair.second.radius,  lightPair.second.radius };
@@ -140,6 +153,16 @@ namespace Zap {
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
 			glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform);
 			for (uint32_t id : modelPair.second.meshes) {
+				// if mesh has no blas add new one
+				if (!m_blasMap.count(id)) {
+					Mesh* mesh = &base->m_meshes.at(id);
+					vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
+					accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
+					accelerationStructure.init();
+					accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
+					accelerationStructure.update();
+				}
+
 				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(id)));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
@@ -317,7 +340,6 @@ namespace Zap {
 
 		m_descriptorSet.addDescriptor(perMeshInstanceBufferDescriptor);
 
-		Base* base = Base::getBase();
 		std::vector<vk::DescriptorImageInfo> textureInfos;
 		for (uint32_t i = 0; i < base->m_textures.size(); i++) {
 			vk::DescriptorImageInfo textureInfo{};
@@ -353,6 +375,7 @@ namespace Zap {
 		m_rtPipeline.init(); m_rtPipeline.initShaderBindingTable();
 
 		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPT);
+		base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetPT);
 		base->m_registery.connect(&m_tlas, &m_rtDescriptorSet, updateAccelerationStructureDescriptorSetPT);
 	}
 
@@ -392,8 +415,18 @@ namespace Zap {
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
 			for (uint32_t id : modelPair.second.meshes) {
 				auto* base = Base::getBase();
-				auto& mesh = base->m_meshes.at(id);
-				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * mesh.m_transform);
+				auto* mesh = &base->m_meshes.at(id);
+				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * mesh->m_transform);
+
+				// if mesh has no blas add new one
+				if (!m_blasMap.count(id)) {
+					vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
+					accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
+					accelerationStructure.init();
+					accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
+					accelerationStructure.update();
+				}
+
 				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(id)));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
@@ -454,6 +487,18 @@ namespace Zap {
 		vk::AccelerationStructure& accelerationStructure = pPathTracer->m_lightBlasMap.at(eventParams.actor);
 		accelerationStructure.destroy();
 		pPathTracer->m_lightBlasMap.erase(eventParams.actor);
+
+		pPathTracer->resetRender();
+	}
+
+	void PathTracer::addModelCallback(AddModelEvent& eventParams, void* customParams){
+		PathTracer* pPathTracer = (PathTracer*)customParams;
+
+		pPathTracer->resetRender();
+	}
+
+	void PathTracer::removeModelCallback(RemoveModelEvent& eventParams, void* customParams) {
+		PathTracer* pPathTracer = (PathTracer*)customParams;
 
 		pPathTracer->resetRender();
 	}

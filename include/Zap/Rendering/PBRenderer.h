@@ -75,23 +75,7 @@ namespace Zap {
 		UniformBufferObject m_ubo{};// the host uniform buffer
 		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer
 
-		struct LightData {
-			alignas(16) glm::vec3 pos;
-			alignas(16) glm::vec3 color;
-		};
-
-		vk::Buffer m_lightBuffer = vk::Buffer();
-
-		struct PerMeshData {
-			glm::mat4 transform;
-			glm::mat4 normalTransform;
-			Material material;
-		};
-
-		vk::Buffer m_perMeshBuffer;
-
-		// TODO remove when useless
-		uint32_t m_oldLightbufferSize = 0;
+		//bool m_shouldRecord = false;
 
 		void onRendererInit();
 

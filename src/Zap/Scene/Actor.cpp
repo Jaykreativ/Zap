@@ -98,6 +98,10 @@ namespace Zap {
 		cmpTransform_setScale({ x, y, z });
 	}
 
+	void Actor::cmpTransform_setScale(float s) {
+		cmpTransform_setScale({ s, s, s });
+	}
+
 	void Actor::cmpTransform_setTransform(glm::mat4& transform) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
@@ -120,19 +124,18 @@ namespace Zap {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_modelComponents.count(m_handle), "Actor can't have multiple Models");
 		Model* cmp = &(m_pScene->m_modelComponents[m_handle] = model);
-		for (uint32_t reference : model.meshes) {
-			bool exist = false;
-			for (uint32_t controlID : m_pScene->m_meshReferences) {
-				exist |= reference == controlID;
-			}
-			m_pScene->m_meshReferences.push_back(reference);
-		}
 		m_pScene->m_meshInstanceCount += cmp->meshes.size();
+
+		m_pScene->getAddModelEventHandler()->pushEvent(AddModelEvent(m_pScene, *this, m_pScene->m_modelComponents.size()));
 	}
 
 	void Actor::destroyModel() {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Model* cmp = &m_pScene->m_modelComponents[m_handle];
+		m_pScene->m_meshInstanceCount -= cmp->meshes.size();
 		m_pScene->m_modelComponents.erase(m_handle);
+
+		m_pScene->getRemoveModelEventHandler()->pushEvent(RemoveModelEvent(m_pScene, *this, m_pScene->m_modelComponents.size()));
 	}
 
 	bool Actor::hasModel() {

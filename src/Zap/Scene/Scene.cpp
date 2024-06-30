@@ -74,7 +74,7 @@ namespace Zap {
 				for (auto const& modelPair : m_modelComponents) {
 					for (uint32_t id : modelPair.second.meshes) {
 						auto* base = Base::getBase();
-						auto mesh = base->m_meshes[id];
+						auto& mesh = base->m_meshes[id];
 						perMeshInstance[i].vertexBufferAddress = mesh.getVertexBuffer()->getVkDeviceAddress();
 						perMeshInstance[i].indexBufferAddress = mesh.getIndexBuffer()->getVkDeviceAddress();
 						i++;
@@ -181,11 +181,19 @@ namespace Zap {
 		return &m_addLightEventHandler;
 	}
 
+	EventHandler<AddModelEvent>* Scene::getAddModelEventHandler() {
+		return &m_addModelEventHandler;
+	}
+
 	EventHandler<RemoveActorEvent>* Scene::getRemoveActorEventHandler() {
 		return &m_removeActorEventHandler;
 	}
 
 	EventHandler<RemoveLightEvent>* Scene::getRemoveLightEventHandler() {
 		return &m_removeLightEventHandler;
+	}
+
+	EventHandler<RemoveModelEvent>* Scene::getRemoveModelEventHandler() {
+		return &m_removeModelEventHandler;
 	}
 }

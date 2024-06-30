@@ -27,6 +27,21 @@ void updateLightBufferDescriptorSetRT(vk::Registerable* obj, vk::Registerable* d
 	pDescriptorSet->update();
 }
 
+void updatePerMeshBufferDescriptorSetRT(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+	if (func != vk::eUPDATE)
+		return;
+
+	vk::Buffer* pBuffer = (vk::Buffer*)obj;
+	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
+
+	uint32_t descriptorIndex = 2;
+	auto descriptor = pDescriptorSet->getDescriptor(descriptorIndex);
+	descriptor.bufferInfos[0].range = pBuffer->getSize();
+	pDescriptorSet->setDescriptor(descriptorIndex, descriptor);
+
+	pDescriptorSet->update();
+}
+
 void updateAccelerationStructureDescriptorSetRT(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
 	if (func != vk::eUPDATE)
 		return;
@@ -54,23 +69,22 @@ namespace Zap {
 	RaytracingRenderer::~RaytracingRenderer() {}
 
 	void RaytracingRenderer::onRendererInit() {
-		uint32_t i = 0;
-		for (uint32_t id : m_pScene->m_meshReferences) {
-			auto* base = Base::getBase();
-			Mesh* mesh = &base->m_meshes[id];
-			if (m_blasMap.count(id)) continue;
-			vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
-			accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
-			accelerationStructure.init();
-			accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
-			accelerationStructure.update();
-			i++;
-		}
+		auto* base = Base::getBase();
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
-		i = 0;
+		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
 			glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform);
 			for (uint32_t id : modelPair.second.meshes) {
+				// if mesh has no blas add new one
+				if (!m_blasMap.count(id)) {
+					Mesh* mesh = &base->m_meshes.at(id);
+					vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
+					accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
+					accelerationStructure.init();
+					accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
+					accelerationStructure.update();
+				}
+
 				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(id)));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
@@ -208,7 +222,6 @@ namespace Zap {
 
 		m_descriptorSet.addDescriptor(perMeshInstanceBufferDescriptor);
 
-		Base* base = Base::getBase();
 		std::vector<vk::DescriptorImageInfo> textureInfos;
 		for (uint32_t i = 0; i < base->m_textures.size(); i++) {
 			vk::DescriptorImageInfo textureInfo{};
@@ -244,6 +257,7 @@ namespace Zap {
 		m_rtPipeline.init(); m_rtPipeline.initShaderBindingTable();
 
 		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetRT);
+		base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetRT);
 		base->m_registery.connect(&m_tlas, &m_rtDescriptorSet, updateAccelerationStructureDescriptorSetRT);
 	}
 
@@ -264,13 +278,23 @@ namespace Zap {
 	}
 
 	void RaytracingRenderer::beforeRender() {
+		auto* base = Base::getBase();
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
 			for (uint32_t id : modelPair.second.meshes) {
-				auto* base = Base::getBase();
-				auto& mesh = base->m_meshes.at(id);
-				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * mesh.m_transform);
+				Mesh* mesh = &base->m_meshes.at(id);
+				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * mesh->m_transform);
+
+				// if mesh has no blas add new one
+				if (!m_blasMap.count(id)) {
+					vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
+					accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
+					accelerationStructure.init();
+					accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
+					accelerationStructure.update();
+				}
+
 				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(id)));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
@@ -280,10 +304,6 @@ namespace Zap {
 
 		m_tlas.setGeometry(instanceVector);
 		m_tlas.update();
-
-		if (m_pScene->m_lightBuffer.getSize() != m_oldLigthbufferSize) {
-			m_oldLigthbufferSize = m_pScene->m_lightBuffer.getSize();
-		}
 
 		m_renderer.recordCommandBuffers();
 	}

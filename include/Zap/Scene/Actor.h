@@ -43,6 +43,7 @@ namespace Zap {
 
 		void cmpTransform_setScale(glm::vec3 scale);
 		void cmpTransform_setScale(float x, float y, float z);
+		void cmpTransform_setScale(float s);
 
 		void cmpTransform_setTransform(glm::mat4& transform);
 
