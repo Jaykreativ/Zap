@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Zap.h"
 #include "glm.hpp"
+#include "VulkanFramework.h"
 
 class Vertex
 {

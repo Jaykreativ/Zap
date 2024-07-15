@@ -2,6 +2,10 @@
 
 #include "Zap/Zap.h"
 #include "Zap/Scene/Model.h"
+#include "assimp/Importer.hpp"
+#include "assimp/scene.h"
+#include "assimp/postprocess.h"
+
 #include <vector>
 
 class aiMesh;// forwarded decleration
@@ -38,7 +42,7 @@ namespace Zap {
 	private:
 		void processNode(const aiNode* node, const aiScene* aScene, std::string path, glm::mat4& transform, uint32_t flags, Model* pModel);
 
-		uint32_t loadMesh(aiMesh* aMesh, glm::mat4& transform);
+		Mesh loadMesh(aiMesh* aMesh, glm::mat4& transform);
 
 		void loadMaterial(const aiScene* aScene, const aiMaterial* aMaterial, std::string path, uint32_t flags, Material* pMaterial);
 	};

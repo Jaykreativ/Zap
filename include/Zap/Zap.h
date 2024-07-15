@@ -12,6 +12,7 @@
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_QUAT_DATA_XYZW
 #include "Zap/UUID.h"
+#include "Zap/AssetHandler.h"
 #include "VulkanFramework.h"
 #define PX_PHYSX_STATIC_LIB
 #include "PxPhysicsAPI.h"
@@ -64,6 +65,8 @@ namespace Zap {
 
 		Settings* getSettings();
 
+		const AssetHandler* getAssetHandler() const;
+
 		std::string getApplicationName();
 
 		static Base* createBase(const char* applicationName);
@@ -90,8 +93,8 @@ namespace Zap {
 		physx::PxFoundation* m_pxFoundation;
 		physx::PxPvd* m_pxPvd;
 		physx::PxPhysics* m_pxPhysics;
-
-		std::vector<Zap::Mesh> m_meshes;
+		
+		AssetHandler m_assetHandler;
 		vk::Sampler m_textureSampler;
 		std::vector<vk::Image> m_textures = {};
 		std::vector<std::string> m_texturePaths = {};

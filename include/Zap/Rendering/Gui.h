@@ -13,6 +13,7 @@ namespace Zap {
 
 		void init();
 
+		GuiTexture loadTexture(Zap::Image* pImage);
 		GuiTexture loadTexture(const char* texturePath);
 
 		void unloadTexture(GuiTexture texture);
@@ -25,6 +26,7 @@ namespace Zap {
 
 		// wip
 		Image* getRenderTarget() { return nullptr; };
+
 
 	private:
 		bool m_isInit = false;

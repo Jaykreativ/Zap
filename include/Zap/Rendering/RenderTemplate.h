@@ -3,7 +3,7 @@
 #include "Zap/Zap.h"
 
 namespace Zap {
-    class RenderTemplate {
+    class RenderTaskTemplate {
     public:
         void disable() { m_isEnabled = false; }
 

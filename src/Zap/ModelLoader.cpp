@@ -1,11 +1,11 @@
+#include "Zap/ModelLoader.h"
+
 #include "Zap/Scene/Mesh.h"
+#include "Zap/Scene/Material.h"
 #include "Zap/Scene/Model.h"
 #include "Zap/ModelLoader.h"
 #include "Zap/Vertex.h"
 #include "Zap/Rendering/stb_image.h"
-#include "assimp/Importer.hpp"
-#include "assimp/scene.h"
-#include "assimp/postprocess.h"
 
 glm::mat4 ConvertMatrixToGLMFormat(const aiMatrix4x4& from) {
 	glm::mat4 to;
@@ -95,9 +95,9 @@ namespace Zap {
 	}
 
 	Model ModelLoader::loadFromMemory(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
-		Mesh* mesh = Mesh::createMesh();
-		mesh->load(vertexCount, pVertices, indexCount, pIndices);
-		return {"", {Material()}, {mesh->m_id}};
+		Mesh mesh = Mesh();
+		mesh.load(vertexCount, pVertices, indexCount, pIndices);
+		return {"", {Material()}, {mesh}};
 	}
 
 	Model ModelLoader::loadFromMemory(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray) {
@@ -191,14 +191,15 @@ namespace Zap {
 		return loadTexture(data, width, height);
 	}
 
-	uint32_t ModelLoader::loadMesh(aiMesh* aMesh, glm::mat4& transform) {
+	Mesh ModelLoader::loadMesh(aiMesh* aMesh, glm::mat4& transform) {
+		Base* base = Base::getBase();
+
 		vk::Buffer vertexStgBuffer = vk::Buffer(aMesh->mNumVertices * sizeof(Vertex), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 		vk::Buffer indexStgBuffer = vk::Buffer(aMesh->mNumFaces*3 * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
 		vertexStgBuffer.init(); vertexStgBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		indexStgBuffer.init(); indexStgBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		
 		{
 			void* rawData;
 			vertexStgBuffer.map(&rawData);
@@ -221,25 +222,28 @@ namespace Zap {
 			indexStgBuffer.unmap();
 		}
 
-		Mesh* mesh = Mesh::createMesh();
-		
-		mesh->m_transform = transform;
+		Mesh mesh = Mesh();
+		mesh.init();
 
-		mesh->m_vertexBuffer = vk::Buffer(vertexStgBuffer.getSize(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+		MeshData* pMeshData = base->m_assetHandler.getMeshDataPtr(mesh.getHandle());
+
+		pMeshData->m_transform = transform;
+
+		pMeshData->m_vertexBuffer = vk::Buffer(vertexStgBuffer.getSize(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
 			| VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
 		);
-		mesh->m_vertexBuffer.init(); mesh->m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		mesh->m_vertexBuffer.uploadData(&vertexStgBuffer);
+		pMeshData->m_vertexBuffer.init(); pMeshData->m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		pMeshData->m_vertexBuffer.uploadData(&vertexStgBuffer);
 
-		mesh->m_indexBuffer = vk::Buffer(indexStgBuffer.getSize(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+		pMeshData->m_indexBuffer = vk::Buffer(indexStgBuffer.getSize(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
 			| VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
 		);
-		mesh->m_indexBuffer.init(); mesh->m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		mesh->m_indexBuffer.uploadData(&indexStgBuffer);
+		pMeshData->m_indexBuffer.init(); pMeshData->m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		pMeshData->m_indexBuffer.uploadData(&indexStgBuffer);
 
 		vertexStgBuffer.destroy();
 		indexStgBuffer.destroy();
 
-		return mesh->m_id;
+		return mesh;
 	}
 }

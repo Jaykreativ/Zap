@@ -21,6 +21,8 @@ namespace Zap {
 
 		operator UUID() { return m_handle; }
 
+		bool operator ==(const Actor& act) { return m_handle == act.m_handle; }
+
 		/* Transform */
 		void addTransform(Transform transform);
 

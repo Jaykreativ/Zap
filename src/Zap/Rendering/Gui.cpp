@@ -124,6 +124,10 @@ namespace Zap {
 		ImGui::NewFrame();
 	}
 
+	GuiTexture Gui::loadTexture(Zap::Image* pImage) {
+		return ImGui_ImplVulkan_AddTexture(m_textureSampler, pImage->getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
+	}
+
 	GuiTexture Gui::loadTexture(const char* texturePath) {
 		int width, height, channels;
 		stbi_set_flip_vertically_on_load(false);
@@ -148,7 +152,7 @@ namespace Zap {
 
 		image->changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
 
-		return ImGui_ImplVulkan_AddTexture(m_textureSampler, image->getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
+		return loadTexture(image);
 	}
 
 	void Gui::unloadTexture(GuiTexture texture) {

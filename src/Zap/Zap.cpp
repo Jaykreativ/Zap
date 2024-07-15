@@ -204,8 +204,11 @@ namespace Zap {
 	}
 
 	void Base::terminate() {
-		for (Mesh mesh : m_meshes) mesh.destroy();
-		
+		for (auto& meshPair : m_assetHandler.m_meshes) {
+			meshPair.second.m_vertexBuffer.destroy();
+			meshPair.second.m_indexBuffer.destroy();
+		}
+
 		m_pxPhysics->release();
 		m_pxFoundation->release();
 
@@ -219,6 +222,10 @@ namespace Zap {
 
 	Settings* Base::getSettings() {
 		return &m_settings;
+	}
+
+	const AssetHandler* Base::getAssetHandler() const {
+		return &m_assetHandler;
 	}
 
 	std::string Base::getApplicationName() {

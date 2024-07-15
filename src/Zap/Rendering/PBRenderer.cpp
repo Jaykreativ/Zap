@@ -375,21 +375,20 @@ namespace Zap {
 
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
-			for (uint32_t id : modelPair.second.meshes) {
+			for (Mesh mesh : modelPair.second.meshes) {
 				auto* base = Base::getBase();
-				Mesh* mesh = &base->m_meshes[id];
 
 				VkDeviceSize offsets[] = { 0 };
-				VkBuffer vertexBuffer = mesh->m_vertexBuffer;
+				const VkBuffer vertexBuffer = *mesh.getVertexBuffer();
 				vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
-				vkCmdBindIndexBuffer(*cmd, mesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindIndexBuffer(*cmd, *mesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 				VkDescriptorSet boundSets[] = { m_descriptorSet };
 				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, boundSets, 0, nullptr);
 
 				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &i);
 
-				vkCmdDrawIndexed(*cmd, mesh->getIndexBuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
+				vkCmdDrawIndexed(*cmd, mesh.getIndexBuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
 				i++;
 			}
 		}

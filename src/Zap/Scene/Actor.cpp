@@ -6,6 +6,7 @@
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Camera.h"
 #include "Zap/Scene/Transform.h"
+#include "Zap/Scene/Material.h"
 
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"

@@ -29,7 +29,7 @@ namespace Zap {
 
 		Image* m_pTarget = nullptr;
 
-		std::unordered_map<uint32_t, vk::AccelerationStructure> m_blasMap;
+		std::unordered_map<UUID, vk::AccelerationStructure> m_blasMap;
 		vk::AccelerationStructure m_tlas;
 		glm::vec2 m_extent = {1, 1};
 		vk::Buffer m_UBO;

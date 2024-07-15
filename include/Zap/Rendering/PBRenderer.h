@@ -19,7 +19,7 @@ namespace Zap {
 
 		void updateCamera(Actor camera);
 
-		void changeScene(Scene* pScene); // TODO implement
+		void changeScene(Scene* pScene); // TODO implement change scene in render
 
 		// Resizes framebuffers
 		// Works only when rendering to a custom target

@@ -74,18 +74,17 @@ namespace Zap {
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
 			glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform);
-			for (uint32_t id : modelPair.second.meshes) {
+			for (Mesh mesh : modelPair.second.meshes) {
 				// if mesh has no blas add new one
-				if (!m_blasMap.count(id)) {
-					Mesh* mesh = &base->m_meshes.at(id);
-					vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
+				if (!m_blasMap.count(mesh.getHandle())) {
+					vk::AccelerationStructure& accelerationStructure = m_blasMap[mesh.getHandle()] = vk::AccelerationStructure();
 					accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
 					accelerationStructure.init();
-					accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
+					accelerationStructure.addGeometry(*mesh.getVertexBuffer(), sizeof(Vertex), *mesh.getIndexBuffer());
 					accelerationStructure.update();
 				}
 
-				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(id)));
+				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(mesh.getHandle())));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
 				i++;
@@ -282,20 +281,19 @@ namespace Zap {
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
-			for (uint32_t id : modelPair.second.meshes) {
-				Mesh* mesh = &base->m_meshes.at(id);
-				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * mesh->m_transform);
+			for (Mesh mesh : modelPair.second.meshes) {
+				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * *mesh.getTransform());
 
 				// if mesh has no blas add new one
-				if (!m_blasMap.count(id)) {
-					vk::AccelerationStructure& accelerationStructure = m_blasMap[id] = vk::AccelerationStructure();
+				if (!m_blasMap.count(mesh.getHandle())) {
+					vk::AccelerationStructure& accelerationStructure = m_blasMap[mesh.getHandle()] = vk::AccelerationStructure();
 					accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
 					accelerationStructure.init();
-					accelerationStructure.addGeometry(mesh->m_vertexBuffer, sizeof(Vertex), mesh->m_indexBuffer);
+					accelerationStructure.addGeometry(*mesh.getVertexBuffer(), sizeof(Vertex), *mesh.getIndexBuffer());
 					accelerationStructure.update();
 				}
 
-				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(id)));
+				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(mesh.getHandle())));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
 				i++;

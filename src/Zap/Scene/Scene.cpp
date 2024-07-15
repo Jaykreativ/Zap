@@ -1,6 +1,7 @@
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Mesh.h"
+#include "Zap/Scene/Material.h"
 #include "Zap/Scene/PhysicsComponent.h"
 
 namespace Zap {
@@ -44,6 +45,8 @@ namespace Zap {
 	}
 
 	void Scene::update() {
+		auto* base = Base::getBase();
+
 		if (std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData) != m_lightBuffer.getSize()) {
 			m_lightBuffer.resize(std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData));
 			m_lightBuffer.update();
@@ -72,9 +75,7 @@ namespace Zap {
 				PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
 				uint32_t i = 0;
 				for (auto const& modelPair : m_modelComponents) {
-					for (uint32_t id : modelPair.second.meshes) {
-						auto* base = Base::getBase();
-						auto& mesh = base->m_meshes[id];
+					for (Mesh mesh : modelPair.second.meshes) {
 						perMeshInstance[i].vertexBufferAddress = mesh.getVertexBuffer()->getVkDeviceAddress();
 						perMeshInstance[i].indexBufferAddress = mesh.getIndexBuffer()->getVkDeviceAddress();
 						i++;
@@ -90,10 +91,9 @@ namespace Zap {
 			uint32_t i = 0;
 			for (auto const& modelPair : m_modelComponents) {
 				uint32_t j = 0;
-				for (uint32_t id : modelPair.second.meshes) {
+				for (Mesh mesh : modelPair.second.meshes) {
 					auto* base = Base::getBase();
-					auto mesh = base->m_meshes[id];
-					perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * mesh.m_transform;
+					perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * *mesh.getTransform();
 					perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
 					perMeshInstance[i].material = modelPair.second.materials[j];
 					j++; i++;
