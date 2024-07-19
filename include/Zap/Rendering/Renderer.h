@@ -3,7 +3,7 @@
 #include "Zap/Zap.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Vertex.h"
-#include "Zap/Rendering/RenderTemplate.h"
+#include "Zap/Rendering/RenderTaskTemplate.h"
 #include "Zap/Scene/Camera.h"
 #include "glm.hpp"
 
@@ -11,49 +11,49 @@ namespace Zap {
 	class Renderer
 	{
 	public:
-		Renderer(Window& window);
+		Renderer();
 		~Renderer();
 	
 		void init();
 
 		void destroy();
 
-		//Render all rendertemplates
-		void render();
+		//Only works on image targets
+		//Has to be called when the target image gets resized
+		void resize();
 
-		void update();
+		void render();
 
 		void beginRecord();
 
 		void endRecord();
 
-		void recRenderTemplate(RenderTemplate* pRenderTemplate);
+		void recRenderTemplate(RenderTaskTemplate* pRenderTemplate);
 
 		void recChangeImageLayout(Image* pImage, VkImageLayout layout, VkAccessFlags accessMask);
 
-		void addRenderTemplate(RenderTemplate* pRenderTemplate);
+		void addRenderTask(RenderTaskTemplate* pRenderTemplate);
+
+		void setTarget(vk::Image* imageTarget);
+		void setTarget(Window* windowTarget);
 
 #ifndef ZP_ALL_PUBLIC
 	private:
 #endif
 		bool m_isInit = false;
 
-		Window& m_window;
-
-		//Surface & Swapchain
-		vk::Surface m_surface = vk::Surface();
-		uint32_t m_currentImageIndex = 0;
-		vk::Swapchain m_swapchain = vk::Swapchain();
+		//Target
+		Window* m_pWindowTarget = nullptr;
+		Zap::Image* m_pTarget = nullptr;
 
 		//CommandBuffers 
 		uint32_t m_commandBufferCount;
 		vk::CommandBuffer* m_commandBuffers;
 
 		//Fences
-		VkFence m_imageAvailable = VK_NULL_HANDLE;
 		VkFence m_renderComplete = VK_NULL_HANDLE;
 
-		std::vector<RenderTemplate*> m_renderTemplates;
+		std::vector<RenderTaskTemplate*> m_renderTasks;
 
 		//Recording
 		enum FunctionType {
@@ -64,12 +64,17 @@ namespace Zap {
 		std::vector<FunctionType> m_recordedFunctions;
 		std::vector<char> m_recordedParams = {};
 
-		void recordCommandBuffers();
+		void initRenderTaskTargetDependencies(RenderTaskTemplate* task);
 
-		void onWindowResize(int width, int height);
+		void resizeRenderTaskTargetDependencies(RenderTaskTemplate* task);
+
+		void recordCommandBuffer();
+
+		static void onWindowResize(ResizeEvent& eventParams, void* customParams);
 
 		friend class Window;
-		friend class PBRenderer;//TODO add rendertoolkit for userdefined rendertemplates
+		friend class RenderTaskTemplate;
+		friend class PBRenderer;//TODO add rendertoolkit for userdefined rendertasks
 		friend class RaytracingRenderer;
 		friend class PathTracer;
 		friend class Gui;

@@ -2,102 +2,104 @@
 #include "VulkanUtils.h"
 
 namespace Zap {
-	Renderer::Renderer(Window& window)
-		: m_window(window)
-	{}
+	Renderer::Renderer() {}
 
-	Renderer::~Renderer() {}
-
-	void Renderer::destroy() {
-		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
-			m_commandBuffers[i].free();
-		}
-		for (RenderTemplate* renderTemplate : m_renderTemplates) {
-			renderTemplate->destroy();
-		}
-		m_swapchain.~Swapchain();
-		m_surface.~Surface();
-		vk::destroyFence(m_renderComplete);
-		vk::destroyFence(m_imageAvailable);
+	Renderer::~Renderer() {
+		if(m_pWindowTarget)
+			m_pWindowTarget->getResizeEventHandler()->removeCallback(Renderer::onWindowResize, this);
 	}
 
 	void Renderer::init() {
-		m_window.m_renderer = this;
+		if (m_pTarget)
+			m_commandBufferCount = 1;
+		else if (m_pWindowTarget)
+			m_commandBufferCount = m_pWindowTarget->m_swapchain.getImageCount();
+		else
+			ZP_ASSERT(false, "Renderer has no render target, use setTarget to set a window or image target");
+		if(m_pTarget && m_pWindowTarget)
+			ZP_ASSERT(false, "Renderer has window and image target, the Renderer can only have one target at a time");
 
-		/*Surface*/
-		m_surface.setGLFWwindow(m_window.m_window);
-
-		m_surface.init();
-
-		/*Swapchain*/
-		m_swapchain.setWidth(m_window.m_width);
-		m_swapchain.setHeight(m_window.m_height);
-		m_swapchain.setPresentMode(VK_PRESENT_MODE_MAILBOX_KHR);
-		m_swapchain.setSurface(m_surface);
-		m_swapchain.init();
-
-		for (uint32_t i = 0; i < m_swapchain.getImageCount(); i++) {
-			vk::changeImageLayout(m_swapchain.getImage(i), m_swapchain.getImageSubresourceRange(),
-				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-			);
-		}
-
-		for (RenderTemplate* renderTemplate : m_renderTemplates) {
-			renderTemplate->onRendererInit();
-		}
-
-		m_commandBufferCount = m_swapchain.getImageCount();
 		m_commandBuffers = new vk::CommandBuffer[m_commandBufferCount];
 		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
 			m_commandBuffers[i].allocate();
 		}
 
-		recordCommandBuffers();
+		// Init Tasks
+		VkExtent3D targetExtent;
+		uint32_t imageCount;
+		if (m_pTarget) {
+			imageCount = 1;
+			targetExtent = m_pTarget->getExtent();
+		}
+		else {
+			imageCount = m_pWindowTarget->getSwapchain()->getImageCount();
+			targetExtent = { m_pWindowTarget->getWidth(), m_pWindowTarget->getHeight(), 1};
+		}
+
+		for (auto task : m_renderTasks) {
+			task->init(targetExtent.width, targetExtent.height, imageCount);
+		}
 
 		vk::createFence(&m_renderComplete);
-		vk::createFence(&m_imageAvailable);
+	}
 
-		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
-		vk::waitForFence(m_imageAvailable);
+	void Renderer::destroy() {
+		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
+			m_commandBuffers[i].free();
+		}
+		for (auto task : m_renderTasks) {
+			task->destroy();
+		}
+		vk::destroyFence(m_renderComplete);
+	}
+
+	void Renderer::resize() {
+		if (!m_pTarget) return;
+
+		VkExtent3D targetExtent = m_pTarget->getExtent();
+		uint32_t imageCount = 1;
+
+		for (auto task : m_renderTasks) {
+			task->resize(targetExtent.width, targetExtent.height, imageCount);
+		}
 	}
 
 	void Renderer::render() {
-		for (RenderTemplate* renderTemplate : m_renderTemplates) {
-			if(renderTemplate->m_isEnabled)
-				renderTemplate->beforeRender();
+		if (m_pWindowTarget) {
+			if (m_pWindowTarget->isIconified()) return;
+		}
+
+		uint32_t cmdBufferIndex;
+		if (m_pTarget) {
+			cmdBufferIndex = 0;
+		}
+		else {
+			cmdBufferIndex = m_pWindowTarget->getSwapchainImageIndex();
+		}
+
+		for (RenderTaskTemplate* renderTemplate : m_renderTasks) {
+			if (renderTemplate->m_isEnabled) {
+				if(m_pTarget)
+					renderTemplate->beforeRender(m_pTarget, 0);
+				else
+					renderTemplate->beforeRender(m_pWindowTarget->m_swapchain.getImage(cmdBufferIndex), cmdBufferIndex);
+			}
 		}
 
 		// Render
-		m_commandBuffers[m_currentImageIndex].submit(m_renderComplete);
+
+		recordCommandBuffer();
+		m_commandBuffers[cmdBufferIndex].submit(m_renderComplete);
 		vk::waitForFence(m_renderComplete); // TODO use semaphores for parallelization
 
-		for (RenderTemplate* renderTemplate : m_renderTemplates) {
-			if (renderTemplate->m_isEnabled)
-				renderTemplate->afterRender();
+		for (RenderTaskTemplate* renderTemplate : m_renderTasks) {
+			if (renderTemplate->m_isEnabled) {
+				if (m_pTarget)
+					renderTemplate->afterRender(m_pTarget, 0);
+				else
+					renderTemplate->afterRender(m_pWindowTarget->m_swapchain.getImage(cmdBufferIndex), cmdBufferIndex);
+			}
 		}
-
-		if (glfwGetWindowAttrib(m_window.m_window, GLFW_ICONIFIED)) return;
-
-		// Present swapchain image
-		vk::changeImageLayout(m_swapchain.getImage(m_currentImageIndex), m_swapchain.getImageSubresourceRange(),
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
-		);
-
-		vk::queuePresent(vkUtils::queueHandler::getQueue(), m_swapchain, m_currentImageIndex);
-
-		vk::changeImageLayout(m_swapchain.getImage(m_currentImageIndex), m_swapchain.getImageSubresourceRange(),
-			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-		);
-
-		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
-		vk::waitForFence(m_imageAvailable);
-	}
-
-	void Renderer::update() {
-		recordCommandBuffers();
 	}
 
 	void Renderer::beginRecord() {
@@ -105,14 +107,12 @@ namespace Zap {
 		m_recordedParams.clear();
 	}
 
-	void Renderer::endRecord() {
-		recordCommandBuffers();
-	}
+	void Renderer::endRecord() {}
 
-	void Renderer::recRenderTemplate(RenderTemplate* renderTemplate) {
+	void Renderer::recRenderTemplate(RenderTaskTemplate* renderTemplate) {
 		m_recordedFunctions.push_back(eRENDER_TEMPLATE);
-		m_recordedParams.resize(m_recordedParams.size()+sizeof(RenderTemplate*));
-		memcpy(&m_recordedParams[m_recordedParams.size()-sizeof(RenderTemplate*)], &renderTemplate, sizeof(RenderTemplate*));
+		m_recordedParams.resize(m_recordedParams.size()+sizeof(RenderTaskTemplate*));
+		memcpy(&m_recordedParams[m_recordedParams.size()-sizeof(RenderTaskTemplate*)], &renderTemplate, sizeof(RenderTaskTemplate*));
 	}
 
 	void Renderer::recChangeImageLayout(Image* pImage, VkImageLayout layout, VkAccessFlags accessMask) {
@@ -124,68 +124,125 @@ namespace Zap {
 		memcpy(&m_recordedParams[oldSize+sizeof(Image*)+sizeof(VkImageLayout)], &accessMask, sizeof(VkAccessFlags));
 	}
 
-	void Renderer::addRenderTemplate(RenderTemplate* renderTemplate) {
-		m_renderTemplates.push_back(renderTemplate);
+	void Renderer::addRenderTask(RenderTaskTemplate* renderTask) {
+		m_renderTasks.push_back(renderTask);
+		renderTask->m_pRenderer = this;
 	}
 
-	void Renderer::recordCommandBuffers() {
+	void Renderer::setTarget(vk::Image* imageTarget) {
+		m_pTarget = imageTarget;
+		if (m_pWindowTarget)
+			m_pWindowTarget->getResizeEventHandler()->removeCallback(Renderer::onWindowResize, this);
+		m_pWindowTarget = nullptr;
+	}
+
+	void Renderer::setTarget(Window* windowTarget) {
+		m_pWindowTarget = windowTarget;
+		m_pWindowTarget->getResizeEventHandler()->addCallback(Renderer::onWindowResize, this);
+		m_pTarget = nullptr;
+	}
+
+	void Renderer::initRenderTaskTargetDependencies(RenderTaskTemplate* task) {
+		VkExtent3D targetExtent;
+		uint32_t imageCount;
+		if (m_pTarget) {
+			imageCount = 1;
+			targetExtent = m_pTarget->getExtent();
+		}
+		else {
+			imageCount = m_pWindowTarget->getSwapchain()->getImageCount();
+			targetExtent = { m_pWindowTarget->getWidth(), m_pWindowTarget->getHeight(), 1 };
+		}
+
+		if (m_pTarget)
+			task->initTargetDependencies(targetExtent.width, targetExtent.height, imageCount, m_pTarget, 0);
+		else {
+			for (uint32_t i = 0; i < imageCount; i++) {
+				task->initTargetDependencies(targetExtent.width, targetExtent.height, imageCount, m_pWindowTarget->m_swapchain.getImage(i), i);
+			}
+		}
+	}
+
+	void Renderer::resizeRenderTaskTargetDependencies(RenderTaskTemplate* task) {
+		VkExtent3D targetExtent;
+		uint32_t imageCount;
+		if (m_pTarget) {
+			imageCount = 1;
+			targetExtent = m_pTarget->getExtent();
+		}
+		else {
+			imageCount = m_pWindowTarget->getSwapchain()->getImageCount();
+			targetExtent = { m_pWindowTarget->getWidth(), m_pWindowTarget->getHeight(), 1 };
+		}
+
+		if(m_pTarget)
+			task->resizeTargetDependencies(targetExtent.width, targetExtent.height, imageCount, m_pTarget, 0);
+		else {
+			for (uint32_t i = 0; i < imageCount; i++)
+				task->resizeTargetDependencies(targetExtent.width, targetExtent.height, imageCount, m_pWindowTarget->m_swapchain.getImage(i), i);
+		}
+	}
+
+	void Renderer::recordCommandBuffer() {
 		if (!m_recordedFunctions.size()) return;
 
-		for (uint32_t i = 0; i < m_commandBufferCount; i++) {
-			vk::CommandBuffer* cmd = &m_commandBuffers[i];
-			cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+		uint32_t imageIndex;
+		if (m_pTarget)
+			imageIndex = 0;
+		else
+			imageIndex = m_pWindowTarget->getSwapchainImageIndex();
 
-			char* currentParam = &m_recordedParams[0];
-			for (FunctionType function : m_recordedFunctions) {
-				switch (function)
-				{
-				case eRENDER_TEMPLATE:
-					RenderTemplate* pRenderTemplate;
-					memcpy(&pRenderTemplate, currentParam, sizeof(RenderTemplate*));
-					currentParam += sizeof(RenderTemplate*);
-					pRenderTemplate->recordCommands(cmd, i);
-					break;
-				case eCHANGE_IMAGE_LAYOUT:
-					Image* pImage;
-					memcpy(&pImage, currentParam, sizeof(Image*));
-					currentParam += sizeof(Image*);
+		vk::CommandBuffer* cmd = &m_commandBuffers[imageIndex];
+		cmd->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
-					VkImageLayout layout;
-					memcpy(&layout, currentParam, sizeof(VkImageLayout));
-					currentParam += sizeof(VkImageLayout);
+		char* currentParam = &m_recordedParams[0];
+		for (FunctionType function : m_recordedFunctions) {
+			switch (function)
+			{
+			case eRENDER_TEMPLATE:
+				RenderTaskTemplate* pRenderTemplate;
+				memcpy(&pRenderTemplate, currentParam, sizeof(RenderTaskTemplate*));
+				currentParam += sizeof(RenderTaskTemplate*);
+				if (m_pTarget)
+					pRenderTemplate->recordCommands(cmd, m_pTarget, imageIndex);
+				else
+					pRenderTemplate->recordCommands(cmd, m_pWindowTarget->m_swapchain.getImage(imageIndex), imageIndex);
+				break;
+			case eCHANGE_IMAGE_LAYOUT:
+				Image* pImage;
+				memcpy(&pImage, currentParam, sizeof(Image*));
+				currentParam += sizeof(Image*);
 
-					VkAccessFlags accessMask;
-					memcpy(&accessMask, currentParam, sizeof(VkAccessFlags));
-					currentParam += sizeof(VkAccessFlags);
-					pImage->cmdChangeLayout(*cmd, layout, accessMask);
-					break;
-				default:
-					ZP_ASSERT(false, "Unknown function type");
-					break;
-				}
+				VkImageLayout layout;
+				memcpy(&layout, currentParam, sizeof(VkImageLayout));
+				currentParam += sizeof(VkImageLayout);
+
+				VkAccessFlags accessMask;
+				memcpy(&accessMask, currentParam, sizeof(VkAccessFlags));
+				currentParam += sizeof(VkAccessFlags);
+				pImage->cmdChangeLayout(*cmd, layout, accessMask);
+				break;
+			default:
+				ZP_ASSERT(false, "Unknown function type");
+				break;
 			}
-
-			cmd->end();
 		}
+
+		cmd->end();
 	}
 
-	void Renderer::onWindowResize(int width, int height) {
-		m_swapchain.setWidth(width);
-		m_swapchain.setHeight(height);
-		m_swapchain.update();
+	void Renderer::onWindowResize(ResizeEvent& eventParams, void* customParams) {
+		Renderer* obj = (Renderer*)customParams;
 
-		for (uint32_t i = 0; i < m_swapchain.getImageCount(); i++) {
-			vk::changeImageLayout(m_swapchain.getImage(i), m_swapchain.getImageSubresourceRange(),
-				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-			);
+		if (obj->m_pWindowTarget->isIconified()) return;
+
+		VkExtent3D targetExtent;
+		uint32_t imageCount;
+		imageCount = obj->m_pWindowTarget->getSwapchain()->getImageCount();
+		targetExtent = { obj->m_pWindowTarget->getWidth(), obj->m_pWindowTarget->getHeight(), 1 };
+
+		for (auto task : obj->m_renderTasks) {
+			task->resize(targetExtent.width, targetExtent.height, imageCount);
 		}
-		
-		for (RenderTemplate* renderTemplate : m_renderTemplates) renderTemplate->onWindowResize(width, height);
-
-		recordCommandBuffers();
-		
-		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentImageIndex);
-		vk::waitForFence(m_imageAvailable);
 	}
 }

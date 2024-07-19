@@ -61,7 +61,7 @@ namespace Zap {
 		GlobalSettings::depthStencilFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
 
 		if (!glfwInit())
-			std::runtime_error("Can't initialize GLFW");
+			throw std::runtime_error("Can't initialize GLFW");
 
 		vk::initInfo initInfo{};// init Instance
 		initInfo.applicationName = m_applicationName.c_str();

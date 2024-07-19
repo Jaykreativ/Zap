@@ -1,6 +1,7 @@
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Rendering/PBRenderer.h"
+#include "VulkanUtils.h"
 
 namespace Zap {
 	std::unordered_map<GLFWwindow*, Window*> Window::glfwWindowMap = {};
@@ -10,15 +11,7 @@ namespace Zap {
 	{}
 
 	Window::~Window() {
-		if (!m_isInit) return;
-		m_isInit = false;
-		//TODO destroy renderer
-		Window::glfwWindowMap.erase(m_window);
-		glfwDestroyWindow(m_window);
-	}
-
-	void Window::resizeEventCallback(Zap::ResizeEvent& resizeEvent, void* data) {
-		resizeEvent.pWindow->resize(resizeEvent.pWindow->m_window, resizeEvent.width, resizeEvent.height);
+		destroy();
 	}
 
 	void Window::init() {
@@ -36,9 +29,43 @@ namespace Zap {
 		glfwSetMouseButtonCallback(m_window, mouseButtonGLFWCallback);
 		glfwSetScrollCallback(m_window, scrollGLFWCallback);
 
-		m_resizeEventHandler.addCallback(Window::resizeEventCallback);
+		m_surface.setGLFWwindow(m_window);
+		m_surface.init();
+
+		m_swapchain.setWidth(m_width);
+		m_swapchain.setHeight(m_height);
+		m_swapchain.setPresentMode(VK_PRESENT_MODE_MAILBOX_KHR);
+		m_swapchain.setSurface(m_surface);
+		m_swapchain.init();
+
+		vk::createFence(&m_imageAvailable);
+
+		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentSwapchainImageIndex);
+		vk::waitForFence(m_imageAvailable);
 
 		Window::glfwWindowMap[m_window] = this;
+	}
+
+	void Window::destroy() {
+		if (!m_isInit) return;
+		m_isInit = false;
+		//TODO destroy renderer
+		Window::glfwWindowMap.erase(m_window);
+		vk::destroyFence(m_imageAvailable);
+		m_swapchain.destroy();
+		m_surface.destroy();
+		glfwDestroyWindow(m_window);
+	}
+
+	void Window::present() {
+		if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED)) return;
+
+		m_swapchain.getImage(m_currentSwapchainImageIndex)->changeLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
+
+		vk::queuePresent(vkUtils::queueHandler::getQueue(), m_swapchain, m_currentSwapchainImageIndex);
+
+		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentSwapchainImageIndex);
+		vk::waitForFence(m_imageAvailable);
 	}
 
 	bool Window::shouldClose() {
@@ -75,6 +102,7 @@ namespace Zap {
 
 	void Window::resizeGLFWCallback(GLFWwindow* window, int width, int height) {
 		Window* pWindow = Window::glfwWindowMap.at(window);
+		pWindow->resize(window, width, height);
 		pWindow->getResizeEventHandler()->pushEvent(ResizeEvent(pWindow, width, height));
 	}
 
@@ -110,7 +138,12 @@ namespace Zap {
 			m_sizeCallback(m_window, width, height);
 		}
 
-		m_renderer->onWindowResize(width, height);
+		m_swapchain.setWidth(width);
+		m_swapchain.setHeight(height);
+		m_swapchain.update();
+
+		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentSwapchainImageIndex);
+		vk::waitForFence(m_imageAvailable);
 	}
 
 	/*Getter*/
@@ -119,6 +152,18 @@ namespace Zap {
 	}
 	uint32_t Window::getHeight() {
 		return m_height;
+	}
+
+	uint32_t Window::getSwapchainImageIndex() {
+		return m_currentSwapchainImageIndex;
+	}
+
+	const vk::Surface* Window::getSurface() {
+		return &m_surface;
+	}
+
+	const vk::Swapchain* Window::getSwapchain() {
+		return &m_swapchain;
 	}
 
 	void Window::pollEvents() {

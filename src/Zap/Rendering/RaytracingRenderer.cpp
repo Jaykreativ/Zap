@@ -6,7 +6,6 @@
 #include "Zap/Scene/Model.h"
 #include "Zap/Scene/Mesh.h"
 
-
 struct UBO {
 	glm::mat4 inverseView = glm::mat4(1);
 	glm::mat4 inversePerspective = glm::mat4(1);
@@ -58,8 +57,8 @@ void updateAccelerationStructureDescriptorSetRT(vk::Registerable* obj, vk::Regis
 }
 
 namespace Zap {
-	RaytracingRenderer::RaytracingRenderer(Renderer& renderer, Scene* pScene)
-		: m_renderer(renderer), m_pScene(pScene)
+	RaytracingRenderer::RaytracingRenderer(Scene* pScene)
+		: m_pScene(pScene)
 	{
 		auto base = Base::getBase();
 		auto settings = base->getSettings();
@@ -68,7 +67,7 @@ namespace Zap {
 
 	RaytracingRenderer::~RaytracingRenderer() {}
 
-	void RaytracingRenderer::onRendererInit() {
+	void RaytracingRenderer::init(uint32_t width, uint32_t height, uint32_t imageCount) {
 		auto* base = Base::getBase();
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
 		uint32_t i = 0;
@@ -95,7 +94,7 @@ namespace Zap {
 		m_tlas.init();
 
 		m_tlas.setGeometry(instanceVector);
-		
+
 		m_UBO = vk::Buffer(sizeof(UBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_UBO.init(); m_UBO.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		{
@@ -106,7 +105,7 @@ namespace Zap {
 		}
 
 #ifdef _DEBUG
-		vk::Shader::compile("../Zap/Shader/src/", { "raytrace.rgen", "raytrace.rchit", "raytrace.rmiss", "raytraceShadow.rmiss"}, {"./"});
+		vk::Shader::compile("../Zap/Shader/src/", { "raytrace.rgen", "raytrace.rchit", "raytrace.rmiss", "raytraceShadow.rmiss" }, { "./" });
 #endif
 
 		m_rgenShader.setPath("raytrace.rgen.spv");
@@ -167,21 +166,6 @@ namespace Zap {
 
 		m_rtDescriptorSet.addDescriptor(descriptor);
 
-		vk::DescriptorImageInfo imageInfo{};
-		imageInfo.pSampler = nullptr;// TODO add direct write to swapchain
-		imageInfo.pImage = m_pTarget;
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-		m_pTarget->changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
-
-		descriptor = {};
-		descriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		descriptor.stages = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-		descriptor.binding = 1;
-		descriptor.imageInfos = { imageInfo };
-
-		m_rtDescriptorSet.addDescriptor(descriptor);
-
 		vk::DescriptorBufferInfo camUBOInfo{};
 		camUBOInfo.pBuffer = &m_UBO;
 		camUBOInfo.offset = 0;
@@ -239,8 +223,14 @@ namespace Zap {
 
 		m_descriptorSet.addDescriptor(texturesDescriptor);
 
+		m_targetDescriptorSets.resize(imageCount);
+
+		RenderTaskTemplate::initTargetDependencies();
+
 		m_descriptorPool.addDescriptorSet(m_rtDescriptorSet);
 		m_descriptorPool.addDescriptorSet(m_descriptorSet);
+		for (auto& descriptorSet : m_targetDescriptorSets)
+			m_descriptorPool.addDescriptorSet(descriptorSet);
 		m_descriptorPool.init();
 
 		m_rtDescriptorSet.init();
@@ -251,8 +241,16 @@ namespace Zap {
 		m_descriptorSet.allocate();
 		m_descriptorSet.update();
 
+		for (auto& descriptorSet : m_targetDescriptorSets) {
+			descriptorSet.init();
+			descriptorSet.allocate();
+			descriptorSet.update();
+		}
+
 		m_rtPipeline.addDescriptorSetLayout(m_rtDescriptorSet.getVkDescriptorSetLayout());
 		m_rtPipeline.addDescriptorSetLayout(m_descriptorSet.getVkDescriptorSetLayout());
+		if (imageCount > 0)
+			m_rtPipeline.addDescriptorSetLayout(m_targetDescriptorSets[0].getVkDescriptorSetLayout());
 		m_rtPipeline.init(); m_rtPipeline.initShaderBindingTable();
 
 		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetRT);
@@ -260,10 +258,45 @@ namespace Zap {
 		base->m_registery.connect(&m_tlas, &m_rtDescriptorSet, updateAccelerationStructureDescriptorSetRT);
 	}
 
+	void RaytracingRenderer::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		vk::DescriptorImageInfo imageInfo{};
+		imageInfo.pSampler = nullptr;
+		imageInfo.pImage = pTarget;
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+		vk::Descriptor targetDescriptor{};
+		targetDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		targetDescriptor.stages = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+		targetDescriptor.binding = 0;
+		targetDescriptor.imageInfos = { imageInfo };
+
+		m_targetDescriptorSets[imageIndex].addDescriptor(targetDescriptor);
+	}
+
+	void RaytracingRenderer::resize(uint32_t width, uint32_t height, uint32_t imageCount) {
+		if (width <= 0) width = 1;
+		if (height <= 0) height = 1;
+		m_extent = { width, height };
+
+		RenderTaskTemplate::resizeTargetDependencies();
+	}
+
+	void RaytracingRenderer::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		auto desc = m_targetDescriptorSets[imageIndex].getDescriptor(0);
+		vk::DescriptorImageInfo imageInfo{};
+		imageInfo.pImage = pTarget;
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		desc.imageInfos = { imageInfo };
+		m_targetDescriptorSets[imageIndex].setDescriptor(0, desc);
+		m_targetDescriptorSets[imageIndex].update();
+	}
+
 	void RaytracingRenderer::destroy() {
 		m_rtPipeline.destroy();
 		m_rtDescriptorSet.destroy();
 		m_descriptorSet.destroy();
+		for (auto& descriptorSet : m_targetDescriptorSets)
+			descriptorSet.destroy();
 		m_descriptorPool.destroy();
 		m_rgenShader.~Shader();
 		m_rchitShader.~Shader();
@@ -276,12 +309,14 @@ namespace Zap {
 		}
 	}
 
-	void RaytracingRenderer::beforeRender() {
+	void RaytracingRenderer::beforeRender(vk::Image* pTarget, uint32_t imageIndex) {
 		auto* base = Base::getBase();
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
+
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
 			for (Mesh mesh : modelPair.second.meshes) {
+				auto* base = Base::getBase();
 				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * *mesh.getTransform());
 
 				// if mesh has no blas add new one
@@ -296,30 +331,28 @@ namespace Zap {
 				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(mesh.getHandle())));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
+				instanceVector.back().setMask(0xFF);
 				i++;
 			}
 		}
 
 		m_tlas.setGeometry(instanceVector);
 		m_tlas.update();
-
-		m_renderer.recordCommandBuffers();
 	}
 
-	void RaytracingRenderer::afterRender() {}
+	void RaytracingRenderer::afterRender(vk::Image* pTarget, uint32_t imageIndex) {}
 
-	void RaytracingRenderer::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {
+	void RaytracingRenderer::recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex) {
 		vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline);
-		std::vector<VkDescriptorSet> boundSets = { 
+		std::vector<VkDescriptorSet> boundSets = {
 			m_rtDescriptorSet,
-			m_descriptorSet
+			m_descriptorSet,
+			m_targetDescriptorSets[imageIndex]
 		};
 		vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline.getVkPipelineLayout(), 0, boundSets.size(), boundSets.data(), 0, nullptr);
 
 		vkCmdTraceRaysKHR(*cmd, &m_rtPipeline.getRayGenRegion(), &m_rtPipeline.getMissRegion(), &m_rtPipeline.getHitRegion(), &m_rtPipeline.getCallRegion(), m_extent.x, m_extent.y, 1);
 	}
-
-	void RaytracingRenderer::onWindowResize(int width, int height) {}
 
 	void RaytracingRenderer::updateCamera(const Actor camera) {
 		ZP_ASSERT(camera.hasCamera(), "ERROR: Actor has no camera component");
@@ -330,33 +363,5 @@ namespace Zap {
 		data->camPos = camera.cmpTransform_getPos();
 		data->lightCount = m_pScene->m_lightComponents.size();
 		m_UBO.unmap();
-	}
-
-	void RaytracingRenderer::resize() {
-		uint32_t width = m_pTarget->getExtent().width;
-		uint32_t height = m_pTarget->getExtent().height;
-		if (width <= 0) width = 1;
-		if (height <= 0) height = 1;
-		m_extent = {width, height};
-
-		auto desc = m_rtDescriptorSet.getDescriptor(1);
-		vk::DescriptorImageInfo imageInfo{};
-		imageInfo.pImage = m_pTarget;
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		desc.imageInfos = { imageInfo };
-		m_rtDescriptorSet.setDescriptor(1, desc);
-		m_rtDescriptorSet.update();
-	}
-
-	void RaytracingRenderer::setRenderTarget(Image* target) {
-		m_pTarget = target;
-	}
-
-	void RaytracingRenderer::setDefaultRenderTarget() {
-		m_pTarget = nullptr;
-	}
-
-	Image* RaytracingRenderer::getRenderTarget() {
-		return m_pTarget;
 	}
 }

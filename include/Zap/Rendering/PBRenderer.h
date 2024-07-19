@@ -3,17 +3,20 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Material.h"
-#include "Zap/Rendering/RenderTemplate.h"
+#include "Zap/Rendering/RenderTaskTemplate.h"
 
 #include "glm.hpp"
 
 namespace Zap {
 	class Scene;
 
-	class PBRenderer : public RenderTemplate
+	class PBRenderer : public RenderTaskTemplate
 	{
 	public:
-		PBRenderer(Renderer& renderer, Scene* pScene);
+		glm::vec4 clearColor        = { 0.0f, 0.0f, 0.0f, 1.0f };
+		glm::vec2 clearDepthStencil = { 1.0f, 0.0f };
+
+		PBRenderer(Scene* pScene);
 		PBRenderer(const PBRenderer& pbrenderer);
 		~PBRenderer();
 
@@ -21,26 +24,12 @@ namespace Zap {
 
 		void changeScene(Scene* pScene); // TODO implement change scene in render
 
-		// Resizes framebuffers
-		// Works only when rendering to a custom target
-		void resize();
-
-		void setRenderTarget(Image* target);
-
-		void setDefaultRenderTarget();
-
-		Image* getRenderTarget();
-
 		void setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y);
 
 		void getViewport(uint32_t& width, uint32_t& height, uint32_t& x, uint32_t& y);
 
 	private:
-		bool m_isInit = false;
-
-		Renderer& m_renderer;
 		Scene* m_pScene = nullptr;
-		Image* m_pTarget = nullptr;
 
 		VkViewport m_viewport;
 		VkRect2D m_scissor;
@@ -58,9 +47,6 @@ namespace Zap {
 		vk::Shader m_fragmentShader = vk::Shader();
 		vk::Pipeline m_pipeline = vk::Pipeline();
 
-		//Semaphores
-		VkSemaphore m_semaphoreRenderComplete;
-
 		//Buffers
 		struct UniformBufferObject {// definition of the uniform buffer layout
 			glm::mat4 model;
@@ -73,21 +59,27 @@ namespace Zap {
 		};
 
 		UniformBufferObject m_ubo{};// the host uniform buffer
-		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer
+		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer;
 
-		//bool m_shouldRecord = false;
+		void init(uint32_t width, uint32_t height, uint32_t imageCount);
 
-		void onRendererInit();
+		void initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex);
+
+		void resize(uint32_t width, uint32_t height, uint32_t imageCount);
+
+		void resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex);
 
 		void destroy();
 
-		void beforeRender();
+		void beforeRender(vk::Image* pTarget, uint32_t imageIndex);
 
-		void afterRender();
+		void afterRender(vk::Image* pTarget, uint32_t imageIndex);
 
-		void recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex);
+		void recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex);
 
-		void onWindowResize(int width, int height);
+#ifdef _DEBUG
+		static bool areShadersCompiled;
+#endif
 	};
 }
 

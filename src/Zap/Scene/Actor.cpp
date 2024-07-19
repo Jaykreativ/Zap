@@ -157,6 +157,22 @@ namespace Zap {
 		cmp->materials[meshIndex] = material;
 	}
 
+	void Actor::cmpModel_addMesh(Mesh mesh, Material material) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
+		cmp->meshes.push_back(mesh);
+		cmp->materials.push_back(material);
+		m_pScene->m_meshInstanceCount++;
+	}
+
+	void Actor::cmpModel_removeMesh(uint32_t meshIndex) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
+		cmp->meshes.erase(cmp->meshes.begin()+meshIndex);
+		cmp->materials.erase(cmp->materials.begin()+meshIndex);
+		m_pScene->m_meshInstanceCount--;
+	}
+
 	void Actor::addRigidDynamic(RigidDynamic shape) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_rigidDynamicComponents.count(m_handle), "Actor can't have multiple RigidDynamics");

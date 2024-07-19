@@ -57,8 +57,8 @@ void updateAccelerationStructureDescriptorSetPT(vk::Registerable* obj, vk::Regis
 }
 
 namespace Zap {
-	PathTracer::PathTracer(Renderer& renderer, Scene* pScene)
-		: m_renderer(renderer), m_pScene(pScene)
+	PathTracer::PathTracer(Scene* pScene)
+		: m_pScene(pScene)
 	{
 		auto base = Base::getBase();
 		auto settings = base->getSettings();
@@ -90,56 +90,17 @@ namespace Zap {
 		m_UBO.unmap();
 	}
 
-	void PathTracer::resize() {
-		uint32_t width = m_pTarget->getExtent().width;
-		uint32_t height = m_pTarget->getExtent().height;
-		if (width <= 0) width = 1;
-		if (height <= 0) height = 1;
-		m_extent = { width, height };
-		m_storageImage.resize(width, height);
-
-		auto desc = m_rtDescriptorSet.getDescriptor(1);
-		vk::DescriptorImageInfo imageInfo{};
-		imageInfo.pImage = m_pTarget;
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		desc.imageInfos = { imageInfo };
-		m_rtDescriptorSet.setDescriptor(1, desc);
-
-		desc = m_rtDescriptorSet.getDescriptor(2);
-		vk::DescriptorImageInfo storageImageInfo{};
-		storageImageInfo.pImage = &m_storageImage;
-		storageImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		desc.imageInfos = { storageImageInfo };
-		m_rtDescriptorSet.setDescriptor(2, desc);
-
-		m_rtDescriptorSet.update();
-
-		m_frameIndex = 0;
-	}
-
 	void PathTracer::resetRender() {
 		m_frameIndex = 0;
 	}
 
-	void PathTracer::setRenderTarget(Image* target) {
-		m_pTarget = target;
-	}
-
-	void PathTracer::setDefaultRenderTarget() {
-		m_pTarget = nullptr;
-	}
-
-	Image* PathTracer::getRenderTarget() {
-		return m_pTarget;
-	}
-
-	void PathTracer::onRendererInit() {
+	void PathTracer::init(uint32_t width, uint32_t height, uint32_t imageCount) {
 		auto* base = Base::getBase();
 
 		// create lightBLAS
 		for (auto const& lightPair : m_pScene->m_lightComponents) {
 			float aabbMin[3] = { -lightPair.second.radius, -lightPair.second.radius, -lightPair.second.radius };
-			float aabbMax[3] = {  lightPair.second.radius,  lightPair.second.radius,  lightPair.second.radius };
+			float aabbMax[3] = { lightPair.second.radius,  lightPair.second.radius,  lightPair.second.radius };
 			vk::AccelerationStructure& accelerationStructure = (m_lightBlasMap[lightPair.first] = vk::AccelerationStructure());
 			accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
 			accelerationStructure.init();
@@ -148,7 +109,7 @@ namespace Zap {
 		}
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
 
-		// create blas instances
+		// create blas instances, if blas is missing create new
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
 			glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform);
@@ -169,6 +130,8 @@ namespace Zap {
 			}
 		}
 		i = 0;
+
+		// create lightBlas instances
 		for (auto const& lightPair : m_pScene->m_lightComponents) {
 			instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasMap.at(lightPair.first)));
 			auto* transform = &glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
@@ -184,14 +147,14 @@ namespace Zap {
 		m_tlas.init();
 
 		m_tlas.setGeometry(instanceVector);
-
+		// create storage image for samples over time
 		m_storageImage = vk::Image();
 		m_storageImage.setWidth(m_extent.x);
 		m_storageImage.setHeight(m_extent.y);
 		m_storageImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
 		m_storageImage.setUsage(VK_IMAGE_USAGE_STORAGE_BIT);
 		m_storageImage.setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
-		
+
 		m_storageImage.init();
 		m_storageImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		m_storageImage.initView();
@@ -208,7 +171,7 @@ namespace Zap {
 		}
 
 #ifdef _DEBUG
-		vk::Shader::compile("../Zap/Shader/src/", { "pathTrace.rgen", "pathTrace.rchit", "pathTrace.rmiss", "pathTrace.rint"}, {"./"});
+		vk::Shader::compile("../Zap/Shader/src/", { "pathTrace.rgen", "pathTrace.rchit", "pathTrace.rmiss", "pathTrace.rint" }, { "./" });
 #endif
 
 		m_rgenShader.setPath("pathTrace.rgen.spv");
@@ -272,21 +235,6 @@ namespace Zap {
 
 		m_rtDescriptorSet.addDescriptor(descriptor);
 
-		vk::DescriptorImageInfo imageInfo{};
-		imageInfo.pSampler = nullptr; // TODO add direct write to swapchain
-		imageInfo.pImage = m_pTarget;
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-		m_pTarget->changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
-
-		descriptor = {};
-		descriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		descriptor.stages = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-		descriptor.binding = 1;
-		descriptor.imageInfos = { imageInfo };
-
-		m_rtDescriptorSet.addDescriptor(descriptor);
-
 		vk::DescriptorImageInfo storageImageInfo{};
 		storageImageInfo.pSampler = nullptr;
 		storageImageInfo.pImage = &m_storageImage;
@@ -295,7 +243,7 @@ namespace Zap {
 		descriptor = {};
 		descriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		descriptor.stages = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-		descriptor.binding = 2;
+		descriptor.binding = 1;
 		descriptor.imageInfos = { storageImageInfo };
 
 		m_rtDescriptorSet.addDescriptor(descriptor);
@@ -357,8 +305,13 @@ namespace Zap {
 
 		m_descriptorSet.addDescriptor(texturesDescriptor);
 
+		m_targetDescriptorSets.resize(imageCount);
+		RenderTaskTemplate::initTargetDependencies();
+
 		m_descriptorPool.addDescriptorSet(m_rtDescriptorSet);
 		m_descriptorPool.addDescriptorSet(m_descriptorSet);
+		for (auto& descriptorSet : m_targetDescriptorSets)
+			m_descriptorPool.addDescriptorSet(descriptorSet);
 		m_descriptorPool.init();
 
 		m_rtDescriptorSet.init();
@@ -369,8 +322,16 @@ namespace Zap {
 		m_descriptorSet.allocate();
 		m_descriptorSet.update();
 
+		for (auto& descriptorSet : m_targetDescriptorSets) {
+			descriptorSet.init();
+			descriptorSet.allocate();
+			descriptorSet.update();
+		}
+
 		m_rtPipeline.addDescriptorSetLayout(m_rtDescriptorSet.getVkDescriptorSetLayout());
 		m_rtPipeline.addDescriptorSetLayout(m_descriptorSet.getVkDescriptorSetLayout());
+		if (imageCount > 0)
+			m_rtPipeline.addDescriptorSetLayout(m_targetDescriptorSets[0].getVkDescriptorSetLayout());
 		m_rtPipeline.init(); m_rtPipeline.initShaderBindingTable();
 
 		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPT);
@@ -378,10 +339,59 @@ namespace Zap {
 		base->m_registery.connect(&m_tlas, &m_rtDescriptorSet, updateAccelerationStructureDescriptorSetPT);
 	}
 
+	void PathTracer::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		vk::DescriptorImageInfo targetImageInfo{};
+		targetImageInfo.pSampler = nullptr;
+		targetImageInfo.pImage = pTarget;
+		targetImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+		vk::Descriptor targetDescriptor{};
+		targetDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		targetDescriptor.stages = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+		targetDescriptor.binding = 0;
+		targetDescriptor.imageInfos = { targetImageInfo };
+
+		m_targetDescriptorSets[imageIndex].addDescriptor(targetDescriptor);
+	}
+
+	void PathTracer::resize(uint32_t width, uint32_t height, uint32_t imageCount) {
+		if (width <= 0) width = 1;
+		if (height <= 0) height = 1;
+		m_extent = { width, height };
+
+		m_storageImage.resize(width, height);
+	
+		auto desc = m_rtDescriptorSet.getDescriptor(1);
+		vk::DescriptorImageInfo storageImageInfo{};
+		storageImageInfo.pImage = &m_storageImage;
+		storageImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		desc.imageInfos = { storageImageInfo };
+		m_rtDescriptorSet.setDescriptor(1, desc);
+
+		m_rtDescriptorSet.update();
+
+		RenderTaskTemplate::resizeTargetDependencies();
+	
+		resetRender();
+	}
+
+	void PathTracer::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		auto desc = m_targetDescriptorSets[imageIndex].getDescriptor(0);
+		vk::DescriptorImageInfo imageInfo{};
+		imageInfo.pImage = pTarget;
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		desc.imageInfos = { imageInfo };
+		m_targetDescriptorSets[imageIndex].setDescriptor(0, desc);
+
+		m_targetDescriptorSets[imageIndex].update();
+	}
+
 	void PathTracer::destroy() {
 		m_rtPipeline.destroy();
 		m_rtDescriptorSet.destroy();
 		m_descriptorSet.destroy();
+		for (auto& descriptorSet : m_targetDescriptorSets)
+			descriptorSet.destroy();
 		m_descriptorPool.destroy();
 		m_rgenShader.~Shader();
 		m_rchitShader.~Shader();
@@ -400,7 +410,7 @@ namespace Zap {
 		m_lightBlasMap.clear();
 	}
 
-	void PathTracer::beforeRender() {
+	void PathTracer::beforeRender(vk::Image* pTarget, uint32_t imageIndex) {
 		void* rawData; m_UBO.map(&rawData);
 		UBO* data = (UBO*)rawData;
 		data->frameIndex = m_frameIndex;
@@ -428,43 +438,42 @@ namespace Zap {
 				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(mesh.getHandle())));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
+				instanceVector.back().setMask(0xFF);
 				i++;
 			}
 		}
 
 		// procedural geometry lights
-		i = 0;
-		for (auto const& lightPair : m_pScene->m_lightComponents) {
-			instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasMap.at(lightPair.first)));
-			auto* transform = &glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
-			instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
-			instanceVector.back().setCustomIndex(i);
-			instanceVector.back().setMask(0x0F);
-			i++;
-		}
+		//i = 0;
+		//for (auto const& lightPair : m_pScene->m_lightComponents) {
+		//	instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasMap.at(lightPair.first)));
+		//	auto* transform = &glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
+		//	instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
+		//	instanceVector.back().setCustomIndex(i);
+		//	instanceVector.back().setMask(0x0F);
+		//	i++;
+		//}
 
 		m_tlas.setGeometry(instanceVector);
 		m_tlas.update();
-
-		m_renderer.recordCommandBuffers();
 	}
 
-	void PathTracer::afterRender() {
+	void PathTracer::afterRender(vk::Image* pTarget, uint32_t imageIndex) {
 		m_frameIndex++;
 	}
 
-	void PathTracer::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {
+	void PathTracer::recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex) {
 		vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline);
 		std::vector<VkDescriptorSet> boundSets = {
 			m_rtDescriptorSet,
-			m_descriptorSet
+			m_descriptorSet,
+			m_targetDescriptorSets[imageIndex]
 		};
 		vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline.getVkPipelineLayout(), 0, boundSets.size(), boundSets.data(), 0, nullptr);
 
 		vkCmdTraceRaysKHR(*cmd, &m_rtPipeline.getRayGenRegion(), &m_rtPipeline.getMissRegion(), &m_rtPipeline.getHitRegion(), &m_rtPipeline.getCallRegion(), m_extent.x, m_extent.y, 1);
-	}
 
-	void PathTracer::onWindowResize(int width, int height) {}
+	}
 
 	void PathTracer::addLightCallback(AddLightEvent& eventParams, void* customParams) {
 		PathTracer* pPathTracer = (PathTracer*)customParams;

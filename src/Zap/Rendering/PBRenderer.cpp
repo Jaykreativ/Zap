@@ -37,25 +37,21 @@ void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable
 }
 
 namespace Zap {
-	PBRenderer::PBRenderer(Renderer& renderer, Scene* pScene)
-		: m_renderer(renderer), m_pScene(pScene)
+#ifdef _DEBUG
+	bool PBRenderer::areShadersCompiled = false;
+#endif
+
+	PBRenderer::PBRenderer(Scene* pScene)
+		: m_pScene(pScene)
 	{}
 
 	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
-		: m_renderer(pbrenderer.m_renderer), m_pScene(pbrenderer.m_pScene)
+		: m_pScene(pbrenderer.m_pScene)
 	{}
 
 	PBRenderer::~PBRenderer() {}
 
-
-	void PBRenderer::onRendererInit() {
-		if (m_isInit) return;
-		m_isInit = true;
-
-		if (m_pTarget) {
-			m_pTarget->changeLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-		}
-
+	void PBRenderer::init(uint32_t width, uint32_t height, uint32_t imageCount) {
 		/*UniformBuffers*/
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -132,7 +128,7 @@ namespace Zap {
 		/*Depth Image*/
 		m_depthImage = vk::Image();
 		m_depthImage.setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-		m_depthImage.setExtent({ m_renderer.m_window.m_width, m_renderer.m_window.m_height, 1 });//TODO try with viewport scale
+		m_depthImage.setExtent({ width, height, 1 });//TODO try with viewport scale
 		m_depthImage.setFormat(Zap::GlobalSettings::getDepthStencilFormat());
 		m_depthImage.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
 		m_depthImage.setType(VK_IMAGE_TYPE_2D);
@@ -154,7 +150,7 @@ namespace Zap {
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;//TODO lookup what this means
+			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;//TODO lookup what this means
 			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 			m_renderPass.addAttachmentDescription(colorAttachment);
@@ -221,30 +217,14 @@ namespace Zap {
 		}
 
 		/*Framebuffer*/
-		if (m_pTarget) {
-			m_framebuffers.resize(1);
-			m_framebuffers[0].setWidth(m_pTarget->getExtent().width);
-			m_framebuffers[0].setHeight(m_pTarget->getExtent().height);
-			m_framebuffers[0].addAttachment(m_pTarget->getVkImageView());
-			m_framebuffers[0].addAttachment(m_depthImage.getVkImageView());
-			m_framebuffers[0].setRenderPass(m_renderPass);
-			m_framebuffers[0].init();
-		}
-		else {
-			m_framebuffers.resize(m_renderer.m_swapchain.getImageCount());
-			for (int i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
-				m_framebuffers[i].setWidth(m_renderer.m_window.m_width);
-				m_framebuffers[i].setHeight(m_renderer.m_window.m_height);
-				m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
-				m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
-				m_framebuffers[i].setRenderPass(m_renderPass);
-				m_framebuffers[i].init();
-			}
-		}
+		m_framebuffers.resize(imageCount);
 
 		/*Shader*/
 #ifdef _DEBUG
-		vk::Shader::compile("../Zap/Shader/src/", { "PBRShader.vert", "PBRShader.frag" }, { "./" });
+		if (!areShadersCompiled) {
+			vk::Shader::compile("../Zap/Shader/src/", { "PBRShader.vert", "PBRShader.frag" }, { "./" });
+			areShadersCompiled = true;
+		}
 #endif
 
 		m_vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
@@ -280,16 +260,46 @@ namespace Zap {
 		m_pipeline.addPushConstantRange(pushConstantRange);
 
 		m_pipeline.init();
+
+		RenderTaskTemplate::initTargetDependencies();
+	}
+
+	void PBRenderer::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		/*Framebuffer*/
+		m_framebuffers[imageIndex].setWidth(width);
+		m_framebuffers[imageIndex].setHeight(height);
+		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
+		m_framebuffers[imageIndex].addAttachment(m_depthImage.getVkImageView());
+		m_framebuffers[imageIndex].setRenderPass(m_renderPass);
+		m_framebuffers[imageIndex].init();
+	}
+
+	void PBRenderer::resize(uint32_t width, uint32_t height, uint32_t imageCount) {
+		m_depthImage.setWidth(width);
+		m_depthImage.setHeight(height);
+		m_depthImage.update();
+
+		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+
+		RenderTaskTemplate::resizeTargetDependencies();
+	}
+
+	void PBRenderer::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		m_framebuffers[imageIndex].setWidth(width);
+		m_framebuffers[imageIndex].setHeight(height);
+		m_framebuffers[imageIndex].delAttachment(0);
+		m_framebuffers[imageIndex].delAttachment(0);
+		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
+		m_framebuffers[imageIndex].addAttachment(m_depthImage.getVkImageView());
+		m_framebuffers[imageIndex].update();
 	}
 
 	void PBRenderer::destroy() {
-		if (!m_isInit) return;
-		m_isInit = false;
-
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
-		for (vk::Framebuffer framebuffer : m_framebuffers) framebuffer.destroy();
+		for (auto& framebuffer : m_framebuffers) framebuffer.destroy();
+		m_framebuffers.clear();
 		m_renderPass.~RenderPass();
 		m_depthImage.destroy();
 		m_descriptorSet.destroy();
@@ -297,45 +307,30 @@ namespace Zap {
 		m_uniformBuffer.destroy();
 	}
 
-	void PBRenderer::beforeRender() {
+	void PBRenderer::beforeRender(vk::Image* pTarget, uint32_t imageIndex) {
 		m_ubo.lightCount = m_pScene->m_lightComponents.size();
 
 		void* rawData; m_uniformBuffer.map(&rawData);
 		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
 		m_uniformBuffer.unmap();
-
-		//if (m_shouldRecord) { // TODO make commandBuffer re recording for invalid commandBuffers easier and more optimized
-		m_renderer.recordCommandBuffers();
-		//}
 	}
 
-	void PBRenderer::afterRender() {}
+	void PBRenderer::afterRender(vk::Image* pTarget, uint32_t imageIndex) {}
 
-	void PBRenderer::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {
+	void PBRenderer::recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex) {
+		pTarget->cmdChangeLayout(*cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
 		VkRenderPassBeginInfo renderPassBeginInfo;
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
 		renderPassBeginInfo.renderPass = m_renderPass;
-
-		if (m_pTarget) {// bind framebuffer
-			m_pTarget->cmdChangeLayout(*cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-			renderPassBeginInfo.framebuffer = m_framebuffers[0];
-		}
-		else {
-			renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
-		}
+		renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
 
 		VkRect2D renderArea{};
 		int32_t restX, restY;
 		uint32_t maxWidth, maxHeight;// render area cant be larger then the image to write to
-		if (m_pTarget) {
-			maxWidth = m_pTarget->getExtent().width;
-			maxHeight = m_pTarget->getExtent().height;
-		}
-		else {
-			maxWidth = m_renderer.m_window.m_width;
-			maxHeight = m_renderer.m_window.m_height;
-		}
+		maxWidth = pTarget->getExtent().width;
+		maxHeight = pTarget->getExtent().height;
 
 		restX = maxWidth - (m_scissor.extent.width + m_scissor.offset.x);
 		restY = maxHeight - (m_scissor.extent.height + m_scissor.offset.y);
@@ -348,8 +343,8 @@ namespace Zap {
 
 		renderPassBeginInfo.renderArea = renderArea;
 
-		VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
-		VkClearValue depthClearValue = { 1.0f, 0.0f };
+		VkClearValue clearValue = { clearColor.x, clearColor.y, clearColor.z, clearColor.a };
+		VkClearValue depthClearValue = { clearDepthStencil.x, clearDepthStencil.y };
 		std::vector<VkClearValue> clearValues = {
 			clearValue,
 			depthClearValue
@@ -396,64 +391,14 @@ namespace Zap {
 		vkCmdEndRenderPass(*cmd);
 	}
 
-	void PBRenderer::onWindowResize(int width, int height) {
-		if (m_pTarget) return;
-
-		m_depthImage.setWidth(width);
-		m_depthImage.setHeight(height);
-		m_depthImage.update();
-		
-		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-
-		for (uint32_t i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
-			m_framebuffers[i].setWidth(width);
-			m_framebuffers[i].setHeight(height);
-			m_framebuffers[i].delAttachment(0);
-			m_framebuffers[i].delAttachment(0);
-			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
-			m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
-			m_framebuffers[i].update();
-		}
-	}
-
-	void PBRenderer::resize() {
-		if (!m_pTarget) return;
-		m_depthImage.setWidth(m_pTarget->getExtent().width);
-		m_depthImage.setHeight(m_pTarget->getExtent().height);
-		m_depthImage.update();
-
-		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-
-		m_framebuffers[0].setWidth(m_pTarget->getExtent().width);
-		m_framebuffers[0].setHeight(m_pTarget->getExtent().height);
-		m_framebuffers[0].delAttachment(0);
-		m_framebuffers[0].delAttachment(0);
-		m_framebuffers[0].addAttachment(m_pTarget->getVkImageView());
-		m_framebuffers[0].addAttachment(m_depthImage.getVkImageView());
-		m_framebuffers[0].update();
-
-	}
-
 	void PBRenderer::updateCamera(Actor camera) {
 		m_ubo.view = camera.cmpCamera_getView();
 		m_ubo.perspective = camera.cmpCamera_getPerspective(m_viewport.width / m_viewport.height);
-		m_ubo.camPos = camera.cmpTransform_getPos();
+		m_ubo.camPos = camera.cmpTransform_getPos() + glm::vec3(camera.cmpCamera_getOffset()[3]);
 	}
 
 	void PBRenderer::changeScene(Scene* pScene) {
 
-	}
-
-	void PBRenderer::setRenderTarget(Image* target) {
-		m_pTarget = target;
-	}
-
-	void PBRenderer::setDefaultRenderTarget() {
-		m_pTarget = nullptr;
-	}
-
-	Image* PBRenderer::getRenderTarget() {
-		return m_pTarget;
 	}
 
 	void PBRenderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {

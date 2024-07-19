@@ -313,5 +313,5 @@ void main() {
 		Lo += emissive.xyz*emissive.w + BRDF * radiance * NdotL * 2;
 	}
 
-	prd.radiance  = Lo/sampleCount;
+	prd.radiance  = Lo/sampleCount+albedo;
 }

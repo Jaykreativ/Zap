@@ -97,6 +97,7 @@ namespace Zap {
 					perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
 					perMeshInstance[i].material = modelPair.second.materials[j];
 					j++; i++;
+
 				}
 			}
 		}

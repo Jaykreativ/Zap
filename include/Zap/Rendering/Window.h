@@ -83,6 +83,12 @@ namespace Zap
 
 		void init();
 
+		void destroy();
+
+		// Will push the next frame to the screen
+		// Should be executed after rendering
+		void present();
+
 		bool shouldClose();
 
 		bool isIconified();
@@ -100,6 +106,12 @@ namespace Zap
 
 		uint32_t getHeight();
 
+		uint32_t getSwapchainImageIndex();
+
+		const vk::Surface* getSurface();
+
+		const vk::Swapchain* getSwapchain();
+
 		static void pollEvents();
 
 #ifndef ZP_ALL_PUBLIC
@@ -113,6 +125,11 @@ namespace Zap
 		std::string m_title;
 
 		GLFWwindow *m_window;
+		vk::Surface m_surface = vk::Surface();
+		uint32_t m_currentSwapchainImageIndex = 0;
+		VkFence m_imageAvailable = VK_NULL_HANDLE;
+		vk::Swapchain m_swapchain = vk::Swapchain();
+
 		GLFWwindowsizefun m_sizeCallback = nullptr;
 
 		EventHandler<ResizeEvent> m_resizeEventHandler;
@@ -120,8 +137,6 @@ namespace Zap
 		EventHandler<CursorPosEvent> m_cursorPosEventHandler;
 		EventHandler<MouseButtonEvent> m_mouseButtonEventHandler;
 		EventHandler<ScrollEvent> m_scrollEventHandler;
-
-		Renderer* m_renderer = nullptr;
 
 		void resize(GLFWwindow* window, int width, int height);
 

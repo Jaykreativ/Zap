@@ -2,6 +2,7 @@
 
 #include "Zap/UUID.h"
 #include "Zap/Scene/Shape.h"
+#include "Zap/Scene/Material.h"
 #include "glm.hpp"
 
 namespace Zap {
@@ -63,6 +64,10 @@ namespace Zap {
 		void cmpModel_setMaterial(Material material);
 
 		void cmpModel_setMaterial(uint32_t meshIndex, Material material);
+
+		void cmpModel_addMesh(Mesh mesh, Material material = Material());
+
+		void cmpModel_removeMesh(uint32_t meshIndex);
 
 		/* RigidDynamic */
 
