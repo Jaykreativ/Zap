@@ -257,6 +257,7 @@ void main() {
 			vec3 tangent, bitangent;
 			createCoordinateSystem(worldNormal, tangent, bitangent);
 
+			// when the surface has a diffuse part 50% chance to trace the diffuse part and 50% the specular
 			if(rnd(prd.randomSeed)<(1-metallic)/2){
 				isDiffuse = true;
 				L = samplingHemisphere(prd.randomSeed, tangent, bitangent, N);
@@ -306,12 +307,12 @@ void main() {
 		float NdotL = max(dot(N, L), 0.0);
 		vec3 BRDF = vec3(0);
 		if(isDiffuse){
-			BRDF =  max(kD * albedo, 0.0);/// PI; //don't know why this should be here
+			BRDF =  max(kD * albedo * (2-metallic) / PI, 0.0);// if the surface is not metallic multiply to correct for 50% chance to add up to 100% (diffuse*2 + specular*2)/2 == diffuse + specular
 			NdotL = 1;
 		} else
-			BRDF = max(specular, 0.0);
+			BRDF = max(specular * (2-metallic), 0.0);
 		Lo += emissive.xyz*emissive.w + BRDF * radiance * NdotL * 2;
 	}
 
-	prd.radiance  = Lo/sampleCount+albedo;
+	prd.radiance  = Lo/sampleCount;
 }

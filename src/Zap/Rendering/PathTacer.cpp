@@ -444,15 +444,15 @@ namespace Zap {
 		}
 
 		// procedural geometry lights
-		//i = 0;
-		//for (auto const& lightPair : m_pScene->m_lightComponents) {
-		//	instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasMap.at(lightPair.first)));
-		//	auto* transform = &glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
-		//	instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
-		//	instanceVector.back().setCustomIndex(i);
-		//	instanceVector.back().setMask(0x0F);
-		//	i++;
-		//}
+		i = 0;
+		for (auto const& lightPair : m_pScene->m_lightComponents) {
+			instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasMap.at(lightPair.first)));
+			auto* transform = &glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
+			instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
+			instanceVector.back().setCustomIndex(i);
+			instanceVector.back().setMask(0x0F);
+			i++;
+		}
 
 		m_tlas.setGeometry(instanceVector);
 		m_tlas.update();
