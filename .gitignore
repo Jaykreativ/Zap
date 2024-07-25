@@ -4,12 +4,12 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 #Special ignores
-Dependencies
 *.vcxproj*
 CMakeCache*
 CMakeFiles
 *.sln
 *.cmake
+*.spv
 
 # User-specific files
 *.rsuser

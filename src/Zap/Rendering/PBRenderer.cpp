@@ -1,37 +1,64 @@
 #include "Zap/Rendering/PBRenderer.h"
 #include "Zap/Rendering/Renderer.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "Zap/Rendering/stb_image.h"
+#include "Zap/Zap.h"
+#include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Transform.h"
-#include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/Model.h"
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Camera.h"
 
+void updateLightBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+	if (func != vk::eUPDATE)
+		return;
+
+	vk::Buffer* pBuffer = (vk::Buffer*)obj;
+	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
+	auto descriptor = pDescriptorSet->getDescriptor(1);
+	descriptor.bufferInfos[0].range = pBuffer->getSize();
+	pDescriptorSet->setDescriptor(1, descriptor);
+	
+	pDescriptorSet->update();
+}
+
+void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+	if (func != vk::eUPDATE)
+		return;
+
+	vk::Buffer* pBuffer = (vk::Buffer*)obj;
+	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
+	auto descriptor = pDescriptorSet->getDescriptor(2);
+	descriptor.bufferInfos[0].range = pBuffer->getSize();
+	pDescriptorSet->setDescriptor(2, descriptor);
+
+	pDescriptorSet->update();
+}
+
 namespace Zap {
-	PBRenderer::PBRenderer(Renderer& renderer)
-		: m_renderer(renderer)
+#ifdef _DEBUG
+	bool PBRenderer::areShadersCompiled = false;
+#endif
+
+	PBRenderer::PBRenderer(Scene* pScene)
+		: m_pScene(pScene)
+	{}
+
+	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
+		: m_pScene(pbrenderer.m_pScene)
 	{}
 
 	PBRenderer::~PBRenderer() {}
 
-	void PBRenderer::init() {
-		if (m_isInit) return;
-		m_isInit = true;
-
+	void PBRenderer::init(uint32_t width, uint32_t height, uint32_t imageCount) {
 		/*UniformBuffers*/
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		m_lightBuffer = vk::Buffer(sizeof(LightData) * std::max<size_t>(Light::all.size(), 1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-		m_perMeshBuffer = vk::Buffer(sizeof(PerMeshData) * MeshComponent::all.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-		m_perMeshBuffer.init(); m_perMeshBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
 		/*DescriptorPool*/ {
-			m_descriptorPool.addDescriptorSet();
-
-			VkDescriptorBufferInfo uniformBufferInfo;
-			uniformBufferInfo.buffer = m_uniformBuffer;
+			vk::DescriptorBufferInfo uniformBufferInfo{};
+			uniformBufferInfo.pBuffer = &m_uniformBuffer;
 			uniformBufferInfo.offset = 0;
 			uniformBufferInfo.range = m_uniformBuffer.getSize();
 
@@ -39,43 +66,69 @@ namespace Zap {
 			uniformBufferDescriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			uniformBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			uniformBufferDescriptor.binding = 0;
-			uniformBufferDescriptor.pBufferInfo = &uniformBufferInfo;
+			uniformBufferDescriptor.bufferInfos = { uniformBufferInfo };
 
-			m_descriptorPool.addDescriptor(uniformBufferDescriptor, 0);
+			m_descriptorSet.addDescriptor(uniformBufferDescriptor);
 
-			VkDescriptorBufferInfo lightBufferInfo;
-			lightBufferInfo.buffer = m_lightBuffer;
+			vk::DescriptorBufferInfo lightBufferInfo{};
+			lightBufferInfo.pBuffer = &m_pScene->m_lightBuffer;
 			lightBufferInfo.offset = 0;
-			lightBufferInfo.range = m_lightBuffer.getSize();
+			lightBufferInfo.range = m_pScene->m_lightBuffer.getSize();
 
 			vk::Descriptor lightBufferDescriptor{};
 			lightBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			lightBufferDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
 			lightBufferDescriptor.binding = 1;
-			lightBufferDescriptor.pBufferInfo = &lightBufferInfo;
+			lightBufferDescriptor.bufferInfos = { lightBufferInfo };
 
-			m_descriptorPool.addDescriptor(lightBufferDescriptor, 0);
+			m_descriptorSet.addDescriptor(lightBufferDescriptor);
 
-			VkDescriptorBufferInfo perMeshBufferInfo;
-			perMeshBufferInfo.buffer = m_perMeshBuffer;
+			vk::DescriptorBufferInfo perMeshBufferInfo;
+			perMeshBufferInfo.pBuffer = &m_pScene->m_perMeshInstanceBuffer;
 			perMeshBufferInfo.offset = 0;
-			perMeshBufferInfo.range = m_perMeshBuffer.getSize();
+			perMeshBufferInfo.range = m_pScene->m_perMeshInstanceBuffer.getSize();
 
 			vk::Descriptor perMeshBufferDescriptor{};
 			perMeshBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			perMeshBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT;
+			perMeshBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			perMeshBufferDescriptor.binding = 2;
-			perMeshBufferDescriptor.pBufferInfo = &perMeshBufferInfo;
+			perMeshBufferDescriptor.bufferInfos = { perMeshBufferInfo };
+			m_descriptorSet.addDescriptor(perMeshBufferDescriptor);
 
-			m_descriptorPool.addDescriptor(perMeshBufferDescriptor, 0);
+			Base* base = Base::getBase();// TODO add default texture
+			std::vector<vk::DescriptorImageInfo> textureImageInfos;
+			for (uint32_t i = 0; i < base->m_textures.size(); i++) {
+				vk::DescriptorImageInfo textureImageInfo{};
+				textureImageInfo.pSampler = &base->m_textureSampler;
+				textureImageInfo.pImage = &base->m_textures[i];
+				textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				textureImageInfos.push_back(textureImageInfo);
+			}
 
+			vk::Descriptor texturesDescriptor{};
+			texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			texturesDescriptor.count = base->m_textures.size();
+			texturesDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
+			texturesDescriptor.binding = 3;
+			texturesDescriptor.imageInfos = textureImageInfos;
+
+			m_descriptorSet.addDescriptor(texturesDescriptor);
+
+			m_descriptorPool.addDescriptorSet(m_descriptorSet);
 			m_descriptorPool.init();
+
+			m_descriptorSet.init();
+			m_descriptorSet.allocate();
+			m_descriptorSet.update();
+
+			base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPBR);
+			base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetPBR);
 		}
 
 		/*Depth Image*/
 		m_depthImage = vk::Image();
 		m_depthImage.setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-		m_depthImage.setExtent({ m_renderer.m_window.m_width, m_renderer.m_window.m_height, 1 });//TODO try with viewport scale
+		m_depthImage.setExtent({ width, height, 1 });//TODO try with viewport scale
 		m_depthImage.setFormat(Zap::GlobalSettings::getDepthStencilFormat());
 		m_depthImage.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
 		m_depthImage.setType(VK_IMAGE_TYPE_2D);
@@ -85,7 +138,7 @@ namespace Zap {
 		m_depthImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		m_depthImage.initView();
 
-		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
 		/*RenderPass*/
 		{
@@ -97,7 +150,7 @@ namespace Zap {
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;//TODO lookup what this means
+			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;//TODO lookup what this means
 			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 			m_renderPass.addAttachmentDescription(colorAttachment);
@@ -164,19 +217,14 @@ namespace Zap {
 		}
 
 		/*Framebuffer*/
-		m_framebuffers.resize(m_renderer.m_swapchain.getImageCount());
-		for (int i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
-			m_framebuffers[i].setWidth(m_renderer.m_window.m_width);
-			m_framebuffers[i].setHeight(m_renderer.m_window.m_height);
-			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
-			m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
-			m_framebuffers[i].setRenderPass(m_renderPass);
-			m_framebuffers[i].init();
-		}
+		m_framebuffers.resize(imageCount);
 
 		/*Shader*/
 #ifdef _DEBUG
-		vk::Shader::compile("../Zap/Shader/src/", { "PBRShader.vert", "PBRShader.frag" }, { "./" });
+		if (!areShadersCompiled) {
+			vk::Shader::compile("../Zap/Shader/src/", { "PBRShader.vert", "PBRShader.frag" }, { "./" });
+			areShadersCompiled = true;
+		}
 #endif
 
 		m_vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
@@ -192,7 +240,7 @@ namespace Zap {
 		m_pipeline.addShader(m_vertexShader.getShaderStage());
 		m_pipeline.addShader(m_fragmentShader.getShaderStage());
 
-		m_pipeline.addDescriptorSetLayout(m_descriptorPool.getVkDescriptorSetLayout(0));
+		m_pipeline.addDescriptorSetLayout(m_descriptorSet.getVkDescriptorSetLayout());
 		for (auto attributeDescription : Vertex::getVertexInputAttributeDescriptions()) {
 			m_pipeline.addVertexInputAttrubuteDescription(attributeDescription);
 		}
@@ -205,55 +253,103 @@ namespace Zap {
 		m_pipeline.enableDepthTest();
 
 		VkPushConstantRange pushConstantRange{};
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(uint32_t);
 
 		m_pipeline.addPushConstantRange(pushConstantRange);
 
 		m_pipeline.init();
+
+		RenderTaskTemplate::initTargetDependencies();
+	}
+
+	void PBRenderer::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		/*Framebuffer*/
+		m_framebuffers[imageIndex].setWidth(width);
+		m_framebuffers[imageIndex].setHeight(height);
+		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
+		m_framebuffers[imageIndex].addAttachment(m_depthImage.getVkImageView());
+		m_framebuffers[imageIndex].setRenderPass(m_renderPass);
+		m_framebuffers[imageIndex].init();
+	}
+
+	void PBRenderer::resize(uint32_t width, uint32_t height, uint32_t imageCount) {
+		m_depthImage.setWidth(width);
+		m_depthImage.setHeight(height);
+		m_depthImage.update();
+
+		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+
+		RenderTaskTemplate::resizeTargetDependencies();
+	}
+
+	void PBRenderer::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		m_framebuffers[imageIndex].setWidth(width);
+		m_framebuffers[imageIndex].setHeight(height);
+		m_framebuffers[imageIndex].delAttachment(0);
+		m_framebuffers[imageIndex].delAttachment(0);
+		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
+		m_framebuffers[imageIndex].addAttachment(m_depthImage.getVkImageView());
+		m_framebuffers[imageIndex].update();
 	}
 
 	void PBRenderer::destroy() {
-		if (!m_isInit) return;
-		m_isInit = false;
-
 		m_pipeline.~Pipeline();
 		m_fragmentShader.~Shader();
 		m_vertexShader.~Shader();
-		for (vk::Framebuffer framebuffer : m_framebuffers) framebuffer.destroy();
+		for (auto& framebuffer : m_framebuffers) framebuffer.destroy();
+		m_framebuffers.clear();
 		m_renderPass.~RenderPass();
-		m_depthImage.~Image();
-		m_descriptorPool.~DescriptorPool();
+		m_depthImage.destroy();
+		m_descriptorSet.destroy();
+		m_descriptorPool.destroy();
 		m_uniformBuffer.destroy();
-		m_lightBuffer.destroy();
-		m_perMeshBuffer.destroy();
 	}
 
-	void PBRenderer::beforeRender() {}
+	void PBRenderer::beforeRender(vk::Image* pTarget, uint32_t imageIndex) {
+		m_ubo.lightCount = m_pScene->m_lightComponents.size();
 
-	void PBRenderer::afterRender() {}
+		void* rawData; m_uniformBuffer.map(&rawData);
+		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
+		m_uniformBuffer.unmap();
+	}
 
-	void PBRenderer::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {
+	void PBRenderer::afterRender(vk::Image* pTarget, uint32_t imageIndex) {}
+
+	void PBRenderer::recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex) {
+		pTarget->cmdChangeLayout(*cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
 		VkRenderPassBeginInfo renderPassBeginInfo;
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
 		renderPassBeginInfo.renderPass = m_renderPass;
 		renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
+
 		VkRect2D renderArea{};
-		int32_t restX = m_renderer.m_window.m_width - (m_scissor.extent.width + m_scissor.offset.x);
-		renderArea.offset.x = std::max<int32_t>(0, m_renderer.m_window.m_width - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
-		renderArea.extent.width = std::min<int32_t>(m_renderer.m_window.m_width - (m_scissor.offset.x + restX), m_renderer.m_window.m_width);
-		int32_t restY = m_renderer.m_window.m_height - (m_scissor.extent.height + m_scissor.offset.y);
-		renderArea.offset.y = std::max<int32_t>(0, m_renderer.m_window.m_height - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
-		renderArea.extent.height = std::min<int32_t>(m_renderer.m_window.m_height - (m_scissor.offset.y + restY), m_renderer.m_window.m_height);
+		int32_t restX, restY;
+		uint32_t maxWidth, maxHeight;// render area cant be larger then the image to write to
+		maxWidth = pTarget->getExtent().width;
+		maxHeight = pTarget->getExtent().height;
+
+		restX = maxWidth - (m_scissor.extent.width + m_scissor.offset.x);
+		restY = maxHeight - (m_scissor.extent.height + m_scissor.offset.y);
+
+		renderArea.offset.x = std::max<int32_t>(0, maxWidth - (m_scissor.extent.width + std::max<int32_t>(0, restX)));
+		renderArea.offset.y = std::max<int32_t>(0, maxHeight - (m_scissor.extent.height + std::max<int32_t>(0, restY)));
+
+		renderArea.extent.width = std::min<int32_t>(maxWidth - (m_scissor.offset.x + restX), maxWidth);
+		renderArea.extent.height = std::min<int32_t>(maxHeight - (m_scissor.offset.y + restY), maxHeight);
+
 		renderPassBeginInfo.renderArea = renderArea;
-		VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
-		VkClearValue depthClearValue = { 1.0f, 0 };
+
+		VkClearValue clearValue = { clearColor.x, clearColor.y, clearColor.z, clearColor.a };
+		VkClearValue depthClearValue = { clearDepthStencil.x, clearDepthStencil.y };
 		std::vector<VkClearValue> clearValues = {
 			clearValue,
 			depthClearValue
 		};
+
 		renderPassBeginInfo.clearValueCount = clearValues.size();
 		renderPassBeginInfo.pClearValues = clearValues.data();
 
@@ -272,78 +368,43 @@ namespace Zap {
 		vkCmdSetViewport(*cmd, 0, 1, &renderAreaViewport);
 		vkCmdSetScissor(*cmd, 0, 1, &renderArea);
 
-		for (MeshComponent& meshCmp : MeshComponent::all) {
-			Mesh* mesh = &Mesh::all[meshCmp.m_mesh];
+		uint32_t i = 0;
+		for (auto const& modelPair : m_pScene->m_modelComponents) {
+			for (Mesh mesh : modelPair.second.meshes) {
+				auto* base = Base::getBase();
 
-			VkDeviceSize offsets[] = { 0 };
-			VkBuffer vertexBuffer = mesh->m_vertexBuffer;
-			vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
-			vkCmdBindIndexBuffer(*cmd, mesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+				VkDeviceSize offsets[] = { 0 };
+				const VkBuffer vertexBuffer = *mesh.getVertexBuffer();
+				vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
+				vkCmdBindIndexBuffer(*cmd, *mesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-			VkDescriptorSet descriptorSets[] = { m_descriptorPool.getVkDescriptorSet(0) };
-			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, descriptorSets, 0, nullptr);
+				VkDescriptorSet boundSets[] = { m_descriptorSet };
+				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, boundSets, 0, nullptr);
 
-			vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &meshCmp.m_id);
+				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &i);
 
-			vkCmdDrawIndexed(*cmd, mesh->getIndexbuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
+				vkCmdDrawIndexed(*cmd, mesh.getIndexBuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
+				i++;
+			}
 		}
 
 		vkCmdEndRenderPass(*cmd);
 	}
 
-	void PBRenderer::resize(int width, int height) {
-		m_depthImage.setWidth(width);
-		m_depthImage.setHeight(height);
-		m_depthImage.update();
-		
-		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-
-		for (uint32_t i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
-			m_framebuffers[i].setWidth(width);
-			m_framebuffers[i].setHeight(height);
-			m_framebuffers[i].delAttachment(0);
-			m_framebuffers[i].delAttachment(0);
-			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
-			m_framebuffers[i].addAttachment(m_depthImage.getVkImageView());
-			m_framebuffers[i].update();
-		}
+	void PBRenderer::updateCamera(Actor camera) {
+		m_ubo.view = camera.cmpCamera_getView();
+		m_ubo.perspective = camera.cmpCamera_getPerspective(m_viewport.width / m_viewport.height);
+		m_ubo.camPos = camera.cmpTransform_getPos() + glm::vec3(camera.cmpCamera_getOffset()[3]);
 	}
 
-	void PBRenderer::updateBuffers(uint32_t camera) {
-		m_ubo.view = Camera::all[camera].getView();
-		m_ubo.perspective = Camera::all[camera].getPerspective(m_viewport.width / m_viewport.height);
-		m_ubo.lightCount = Light::all.size();
+	void PBRenderer::changeScene(Scene* pScene) {
 
-		void* rawData; m_uniformBuffer.map(&rawData);
-		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
-		m_uniformBuffer.unmap();
-
-		if (Light::all.size() > 0) {
-			m_lightBuffer.map(&rawData);
-			{
-				LightData* lightData = (LightData*)(rawData);
-				for (uint32_t i = 0; i < Light::all.size(); i++) {
-					lightData[i].pos = Light::all[i].m_pActor->getTransformComponent()->getPos();
-					lightData[i].color = Light::all[i].getColor();
-				}
-
-			}
-			m_lightBuffer.unmap();
-		}
-
-		m_perMeshBuffer.map(&rawData);
-		{
-			PerMeshData* perMeshData = (PerMeshData*)(rawData);
-			for (uint32_t i = 0; i < MeshComponent::all.size(); i++) {
-				perMeshData[i].transform = MeshComponent::all[i].m_pActor->getTransform();
-				perMeshData[i].normalTransform = glm::transpose(glm::inverse(perMeshData[i].transform));
-				perMeshData[i].color = glm::vec4(MeshComponent::all[i].m_material.m_AlbedoColor, 0);
-			}
-		}
-		m_perMeshBuffer.unmap();
 	}
 
 	void PBRenderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
+		width = std::max<uint32_t>(width, x+1);
+		height = std::max<uint32_t>(height, y+1);
+
 		m_viewport.x = x;
 		m_viewport.y = y;
 		m_viewport.width = width;
@@ -355,5 +416,12 @@ namespace Zap {
 		m_scissor.offset.y = y;
 		m_scissor.extent.width = width;
 		m_scissor.extent.height = height;
+	}
+
+	void PBRenderer::getViewport(uint32_t& width, uint32_t& height, uint32_t& x, uint32_t& y) {
+		width = m_viewport.width;
+		height = m_viewport.height;
+		x = m_viewport.x;
+		y = m_viewport.y;
 	}
 }

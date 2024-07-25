@@ -1,58 +1,124 @@
 #pragma once
+
+#define ZP_ASSERT(val, str)\
+			if (!val){\
+				std::cerr << str << "\n";\
+				throw std::runtime_error(str);\
+			}
+
+#define ZP_IS_FLAG_ENABLED(val, flag) ((val & flag) == flag)
+
+#define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_QUAT_DATA_XYZW
+#include "Zap/UUID.h"
+#include "Zap/AssetHandler.h"
 #include "VulkanFramework.h"
+#define PX_PHYSX_STATIC_LIB
 #include "PxPhysicsAPI.h"
+#include <unordered_map>
 
 //TODO add standart renderer for windows with no renderer
 namespace Zap {
-    class Window;
-    class Renderer;
+	class Window;
+	class Renderer;
+	class Scene;
+	class Mesh;
 
-    class Base {
-    public:
-        void init();
+	typedef vk::Image Image;
 
-        void terminate();
+	enum Extension {
+		eNONE = 0x0,
+		eRAYTRACING = 0x1
+	};
 
-        static Base* createBase(const char* applicationName);
+	enum PhysicsType {
+		PHYSICS_TYPE_UNDEFINED = 0,
+		PHYSICS_TYPE_NONE = 1,
+		PHYSICS_TYPE_RIGID_DYNAMIC = 2,
+		PHYSICS_TYPE_RIGID_STATIC = 3,
+		PHYSICS_TYPE_RIGID_BODY = 4
+	};
 
-        static void releaseBase();
+	enum ComponentType {
+		COMPONENT_TYPE_NONE = 0,
+		COMPONENT_TYPE_TRANSFORM = 1,
+		COMPONENT_TYPE_MESH = 2,
+		COMPONENT_TYPE_RIGID_DYNAMIC = 3,
+		COMPONENT_TYPE_RIGID_STATIC = 4,
+		COMPONENT_TYPE_LIGHT = 5,
+		COMPONENT_TYPE_CAMERA = 6
+	};
 
-        static Base* getBase();
+	struct Settings {
+		uint32_t requestedGPU = 0;
+		bool enableRaytracing = false;
+	};
 
-    private:
-        Base(std::string applicationName);
-        ~Base();
+	class Base {
+	public:
+		void init();
 
-        bool m_isInit;
+		void update();
 
-        std::string m_applicationName;
+		void terminate();
 
-        //physx variables
-        physx::PxFoundation* m_pxFoundation;
-        physx::PxPvd* m_pxPvd;
-        physx::PxPhysics* m_pxPhysics;
-        physx::PxScene* m_pxScene;
+		Settings* getSettings();
 
-        static Base m_engineBase;
-        static bool m_exists;
+		const AssetHandler* getAssetHandler() const;
 
-        friend class Scene;
-        friend class PhysicsComponent;
-        friend class RigidBodyComponent;
-        friend class RigidDynamicComponent;
-        friend class RigidStaticComponent;
-        friend class Shape;
-        friend class PhysicsMaterial;
-    };
+		std::string getApplicationName();
 
-    namespace objects {
-        static std::vector<Window*> windows;// fix global variables
-    }
+		static Base* createBase(const char* applicationName);
 
-    namespace GlobalSettings {
-        VkFormat getColorFormat();
-        VkFormat getDepthStencilFormat();
-    }
+		static void releaseBase();
+
+		static Base* getBase();
+
+#ifndef ZP_ALL_PUBLIC
+	private:
+#endif
+		Base(std::string applicationName);
+		~Base();
+
+		bool m_isInit;
+
+		Settings m_settings = {};
+
+		std::string m_applicationName;
+
+		vk::Registery m_registery;
+
+		//physx variables
+		physx::PxFoundation* m_pxFoundation;
+		physx::PxPvd* m_pxPvd;
+		physx::PxPhysics* m_pxPhysics;
+		
+		AssetHandler m_assetHandler;
+		vk::Sampler m_textureSampler;
+		std::vector<vk::Image> m_textures = {};
+		std::vector<std::string> m_texturePaths = {};
+
+		static Base* m_engineBase;
+		static bool m_exists;
+
+		friend class Scene;
+		friend class Actor;
+		friend class Mesh;
+		friend class PBRenderer;
+		friend class RaytracingRenderer;
+		friend class PathTracer;
+		friend class ModelLoader;
+		friend class PhysicsComponent;
+		friend class RigidBodyComponent;
+		friend class RigidDynamic;
+		friend class RigidStatic;
+		friend class Shape;
+		friend class PhysicsMaterial;
+	};
+
+	namespace GlobalSettings {
+		VkFormat getColorFormat();
+		VkFormat getDepthStencilFormat();
+	}
 }

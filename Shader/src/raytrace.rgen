@@ -1,0 +1,40 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+layout(location = 0) rayPayloadEXT vec3 prd;
+
+layout(set = 0, binding = 0) uniform accelerationStructureEXT accelerationStructure;
+layout(set = 2, binding = 0, rgba32f) uniform image2D image;
+
+layout(set=1, binding = 0) uniform UBO{
+	mat4 inverseView;
+	mat4 inversePerspective;
+	uint lightCount;
+} ubo;
+
+void main(){
+	const vec2 pixelCenter  = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+	const vec2 pixelPos     = pixelCenter / vec2(gl_LaunchSizeEXT.xy)*2-1;
+
+	vec4 origin             = ubo.inverseView * vec4(0, 0, 0, 1);
+	vec4 localDir           = ubo.inversePerspective * vec4(pixelPos.x, -pixelPos.y, 1, 1);
+	vec4 direction          = ubo.inverseView * vec4(normalize(localDir.xyz), 0);
+
+	uint  rayFlags          = gl_RayFlagsOpaqueEXT;
+	float tMin              = 0.001;
+	float tMax              = 10000.0;
+
+	traceRayEXT(accelerationStructure,    // acceleration structure
+				rayFlags,                 // rayFlags
+				0xFF,                     // cullMask
+				0,                        // sbtRecordOffset
+				0,                        // sbtRecordStride
+				0,                        // missIndex
+				origin.xyz,               // ray origin
+				tMin,                     // ray min range
+				direction.xyz,            // ray direction
+				tMax,                     // ray max range
+				0                         // payload (location = 0)
+	);
+
+	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(prd, 1));
+}

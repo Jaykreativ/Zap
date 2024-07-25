@@ -1,203 +1,440 @@
+#include "Zap/Zap.h"
+#include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/Model.h"
 #include "Zap/Scene/PhysicsComponent.h"
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Camera.h"
 #include "Zap/Scene/Transform.h"
+#include "Zap/Scene/Material.h"
+
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/quaternion.hpp"
+
+physx::PxTransform convertGlmMat(glm::mat4 glmt) {
+	glmt[0] = glm::normalize(glmt[0]);
+	glmt[1] = glm::normalize(glmt[1]);
+	glmt[2] = glm::normalize(glmt[2]);
+
+	auto pos = *((physx::PxVec3*)&glm::vec3(glmt[3]));
+	auto quat = *((physx::PxQuat*)&glm::quat_cast(glm::mat3(glmt)));
+
+	return physx::PxTransform(pos, quat);
+}
 
 namespace Zap {
-	Actor::Actor(){
-		m_components.push_back(ComponentAccess{COMPONENT_TYPE_NONE, 0});
-	}
+	Actor::Actor(){}
+
+	Actor::Actor(UUID uuid, Scene* pScene)
+		: m_handle(uuid), m_pScene(pScene)
+	{}
 
 	Actor::~Actor(){}
 	
-	bool Actor::addTransform(glm::mat4 transform) {
-		if (m_transformState == TRANSFORM_STATE_NONE) {
-			uint32_t id;
-			id = Transform(transform, this).getID();
-			m_components[0].id = id;
-			m_components[0].type = COMPONENT_TYPE_TRANSFORM;
-			m_transformState = TRANSFORM_STATE_COMPONENT;
-			return true;
-		}
-		else {
-			return false;
-		}
+	/* Transform */
+	void Actor::addTransform(Transform transform) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_transformComponents.count(m_handle), "Actor can't have multiple transforms");
+		m_pScene->m_transformComponents[m_handle] = transform;
 	}
 
-	bool Actor::addMesh(uint32_t mesh) {
-		uint32_t id = MeshComponent(this, mesh).getID();
-		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_MESH, id });
-		return true;
+	void Actor::addTransform(glm::mat4 transform) {
+		addTransform(Transform{ transform });
 	}
 
-	bool Actor::addMeshes(std::vector<uint32_t> meshes) {
-		bool returnVal = true;
-		for (uint32_t mesh : meshes) {
-			returnVal &= addMesh(mesh);
-		}
-		return returnVal;
+	void Actor::destroyTransform() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_transformComponents.erase(m_handle);
+	}
+
+	bool Actor::hasTransform() const {
+		return m_pScene->m_transformComponents.count(m_handle);
+	}
+
+	void Actor::cmpTransform_translate(glm::vec3 vec) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
+		cmp->transform = glm::translate(cmp->transform, vec);
+	}
+
+	void Actor::cmpTransform_translate(float x, float y, float z) {
+		cmpTransform_translate({ x, y, z });
+	}
+
+	void Actor::cmpTransform_setPos(float x, float y, float z) {
+		cmpTransform_setPos(glm::vec3(x, y, z));
+	}
+
+	void Actor::cmpTransform_setPos(glm::vec3 pos) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
+		cmp->transform[3] = glm::vec4(pos, 1);
+	}
+
+	void Actor::cmpTransform_rotateX(float angle) {
+		cmpTransform_rotate(angle, glm::vec3(1, 0, 0));
+	}
+
+	void Actor::cmpTransform_rotateY(float angle) {
+		cmpTransform_rotate(angle, glm::vec3(0, 1, 0));
+	}
+
+	void Actor::cmpTransform_rotateZ(float angle) {
+		cmpTransform_rotate(angle, glm::vec3(0, 0, 1));
+	}
+
+	void Actor::cmpTransform_rotate(float angle, glm::vec3 axis) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
+		cmp->transform = glm::rotate(cmp->transform, glm::radians<float>(angle), axis);
+	}
+
+	void Actor::cmpTransform_setScale(glm::vec3 scale) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
+		cmp->transform = glm::scale(cmp->transform, scale);
+	}
+
+	void Actor::cmpTransform_setScale(float x, float y, float z) {
+		cmpTransform_setScale({ x, y, z });
+	}
+
+	void Actor::cmpTransform_setScale(float s) {
+		cmpTransform_setScale({ s, s, s });
+	}
+
+	void Actor::cmpTransform_setTransform(glm::mat4& transform) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
+		cmp->transform = transform;
+	}
+
+	glm::vec3 Actor::cmpTransform_getPos() const {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
+		return glm::vec3(cmp->transform[3]);
+	}
+
+	glm::mat4 Actor::cmpTransform_getTransform() const {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
+		return cmp->transform;
 	}
 	
-	bool Actor::addRigidDynamic(Shape shape) {
-		uint32_t id = RigidDynamicComponent(this, shape).getID();
-		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_RIGID_DYNAMIC, id });
-		return true;
+	bool Actor::addModel(Model model) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_modelComponents.count(m_handle), "Actor can't have multiple Models");
+		Model* cmp = &(m_pScene->m_modelComponents[m_handle] = model);
+		m_pScene->m_meshInstanceCount += cmp->meshes.size();
+
+		m_pScene->getAddModelEventHandler()->pushEvent(AddModelEvent(m_pScene, *this, m_pScene->m_modelComponents.size()));
 	}
 
-	bool Actor::addRigidStatic(Shape shape) {
-		uint32_t id = RigidStaticComponent(this, shape).getID();
-		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_RIGID_STATIC, id });
-		return true;
+	void Actor::destroyModel() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Model* cmp = &m_pScene->m_modelComponents[m_handle];
+		m_pScene->m_meshInstanceCount -= cmp->meshes.size();
+		m_pScene->m_modelComponents.erase(m_handle);
+
+		m_pScene->getRemoveModelEventHandler()->pushEvent(RemoveModelEvent(m_pScene, *this, m_pScene->m_modelComponents.size()));
 	}
 
-	bool Actor::addLight(glm::vec3 color) {
-		uint32_t id;
-		id = Light(this, color).getID();
-		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_LIGHT, id });
-		return true;
+	bool Actor::hasModel() {
+		return m_pScene->m_modelComponents.count(m_handle);
 	}
 
-	bool Actor::addCamera(glm::vec3 offset) {
-		uint32_t id;
-		id = Camera(this, offset).getID();
-		m_components.push_back(ComponentAccess{ COMPONENT_TYPE_CAMERA, id });
-		return true;
-	}
-
-	glm::mat4 Actor::getTransform() {// TODO cleanup Transform states
-		switch (m_transformState) {
-		case TRANSFORM_STATE_NONE:
-			return glm::mat4(1);
-		case TRANSFORM_STATE_COMPONENT || TRANSFORM_STATE_PHYSICS:
-			return Transform::all[m_components[0].id].m_transform;
-		default:
-			std::cerr << "Not a valid TransformState: " << m_transformState << "\n";
-			throw std::runtime_error("Not a valid TransformState\n");
+	void Actor::cmpModel_setMaterial(Material material) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
+		for (Material& mat : cmp->materials) {
+			mat = material;
 		}
 	}
 
-	void Actor::setTransform(glm::mat4 transform) {
-		switch (m_transformState) {
-		case TRANSFORM_STATE_NONE:
-			return;
-		case TRANSFORM_STATE_COMPONENT || TRANSFORM_STATE_PHYSICS:
-			Transform::all[m_components[0].id].m_transform = transform;
-			return;
-		default:
-			std::cerr << "Not a valid TransformState: " << m_transformState << "\n";
-			throw std::runtime_error("Not a valid TransformState\n");
+	void Actor::cmpModel_setMaterial(uint32_t meshIndex, Material material) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
+		cmp->materials[meshIndex] = material;
+	}
+
+	void Actor::cmpModel_addMesh(Mesh mesh, Material material) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
+		cmp->meshes.push_back(mesh);
+		cmp->materials.push_back(material);
+		m_pScene->m_meshInstanceCount++;
+	}
+
+	void Actor::cmpModel_removeMesh(uint32_t meshIndex) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
+		cmp->meshes.erase(cmp->meshes.begin()+meshIndex);
+		cmp->materials.erase(cmp->materials.begin()+meshIndex);
+		m_pScene->m_meshInstanceCount--;
+	}
+
+	void Actor::addRigidDynamic(RigidDynamic shape) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_rigidDynamicComponents.count(m_handle), "Actor can't have multiple RigidDynamics");
+		RigidDynamic* cmp = &(m_pScene->m_rigidDynamicComponents[m_handle] = RigidDynamic{});
+		m_pScene->m_pxScene->addActor(*cmp->pxActor);
+	}
+
+	void Actor::addRigidDynamic(Shape shape) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_rigidDynamicComponents.count(m_handle), "Actor can't have multiple RigidDynamics");
+		auto base = Base::getBase();
+		RigidDynamic* cmp = &(m_pScene->m_rigidDynamicComponents[m_handle] = RigidDynamic{});
+		cmp->pxActor = base->m_pxPhysics->createRigidDynamic(convertGlmMat(m_pScene->m_transformComponents.at(m_handle).transform));
+		cmp->pxActor->userData = (void*)(uint64_t)m_handle;
+		cmp->pxActor->attachShape(*shape.m_pxShape);
+		m_pScene->m_pxScene->addActor(*cmp->pxActor);
+	}
+
+	void Actor::destroyRigidDynamic() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_rigidDynamicComponents.erase(m_handle);
+	}
+
+	bool Actor::hasRigidDynamic() {
+		return m_pScene->m_rigidDynamicComponents.count(m_handle);
+	}
+
+	void Actor::cmpRigidDynamic_addForce(const glm::vec3& force) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		cmp->pxActor->addForce(*((physx::PxVec3*)&force), physx::PxForceMode::eIMPULSE, true);
+	}
+
+	void Actor::cmpRigidDynamic_clearForce() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		cmp->pxActor->clearForce();
+	}
+
+	void Actor::cmpRigidDynamic_addTorque(const glm::vec3& torque) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		cmp->pxActor->addTorque(*((physx::PxVec3*)&torque), physx::PxForceMode::eIMPULSE, true);
+	}
+
+	void Actor::cmpRigidDynamic_clearTorque() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		cmp->pxActor->clearTorque();
+	}
+
+	void Actor::cmpRigidDynamic_updatePose() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		cmp->pxActor->setGlobalPose(convertGlmMat(m_pScene->m_transformComponents.at(m_handle).transform));
+	}
+
+	void Actor::cmpRigidDynamic_wakeUp() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		cmp->pxActor->wakeUp();
+	}
+
+	void Actor::cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value) { // TODO Make own enum
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		cmp->pxActor->setActorFlag(flag, value);
+	}
+
+	bool Actor::cmpRigidDynamic_getFlag(physx::PxActorFlag::Enum flag) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		return (flag & (uint8_t)cmp->pxActor->getActorFlags()) == flag;
+	}
+
+	void Actor::addRigidStatic(RigidStatic rigidStatic) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_rigidStaticComponents.count(m_handle), "Actor can't have multiple RigidStatics");
+		RigidStatic* cmp = &(m_pScene->m_rigidStaticComponents[m_handle] = RigidStatic{});
+		m_pScene->m_pxScene->addActor(*cmp->pxActor);
+	}
+
+	void Actor::addRigidStatic(Shape shape) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_rigidStaticComponents.count(m_handle), "Actor can't have multiple RigidStatics");
+		auto base = Base::getBase();
+		RigidStatic* cmp = &(m_pScene->m_rigidStaticComponents[m_handle] = RigidStatic{});
+		cmp->pxActor = base->m_pxPhysics->createRigidStatic(convertGlmMat(m_pScene->m_transformComponents.at(m_handle).transform));
+		cmp->pxActor->userData = (void*)(uint64_t)m_handle;
+		cmp->pxActor->attachShape(*shape.m_pxShape);
+		m_pScene->m_pxScene->addActor(*cmp->pxActor);
+	}
+	
+	void Actor::destroyRigidStatic() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_rigidStaticComponents.erase(m_handle);
+	}
+
+	bool Actor::hasRigidStatic() {
+		return m_pScene->m_rigidStaticComponents.count(m_handle);
+	}
+
+	void Actor::addLight(Light light) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_lightComponents.count(m_handle), "Actor can't have multiple lights");
+		m_pScene->m_lightComponents[m_handle] = light;
+		m_pScene->m_addLightEventHandler.pushEvent(AddLightEvent(m_pScene, *this, m_pScene->m_lightComponents.size()));
+	}
+
+	void Actor::addLight(glm::vec3 color, float strength, float radius) {
+		addLight(Light{ color, strength, radius });
+	}
+
+	void Actor::destroyLight() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_lightComponents.erase(m_handle);
+		m_pScene->getRemoveLightEventHandler()->pushEvent(RemoveLightEvent(m_pScene, *this, m_pScene->m_lightComponents.size()));
+	}
+
+	bool Actor::hasLight() {
+		return m_pScene->m_lightComponents.count(m_handle);
+	}
+
+	void Actor::cmpLight_setColor(glm::vec3 color) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
+		cmp->color = color;
+	}
+
+	glm::vec3 Actor::cmpLight_getColor() const {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
+		return cmp->color;
+	}
+
+	void Actor::cmpLight_setStrength(float strength) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
+		cmp->strength = strength;
+	}
+
+	float Actor::cmpLight_getStrength() const {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
+		return cmp->strength;
+	}
+
+	void Actor::cmpLight_setRadius(float radius) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
+		cmp->radius = radius;
+	}
+
+	float Actor::cmpLight_getRadius() const {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
+		return cmp->radius;
+	}
+
+	void Actor::addCamera(Camera camera) {
+		ZP_ASSERT(!m_pScene->m_cameraComponents.count(m_handle), "Actor can't have multiple cameras");
+		m_pScene->m_cameraComponents[m_handle] = camera;
+	}
+
+	void Actor::addCamera(glm::mat4 offset) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_cameraComponents.count(m_handle), "Actor can't have multiple cameras");
+		m_pScene->m_cameraComponents[m_handle] = Camera{ false, offset };
+	}
+
+	void Actor::destroyCamera() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_cameraComponents.erase(m_handle);
+	}
+
+	bool Actor::hasCamera() const {
+		return m_pScene->m_cameraComponents.count(m_handle);
+	}
+
+	void Actor::cmpCamera_lookAtCenter() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
+		cmp->lookAtCenter = true;
+	}
+
+	void Actor::cmpCamera_lookAtFront() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
+		cmp->lookAtCenter = false;
+	}
+
+	void Actor::cmpCamera_setOffset(glm::mat4 offset) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
+		cmp->offset = offset;
+	}
+
+	glm::mat4 Actor::cmpCamera_getOffset() const {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
+		return cmp->offset;
+	}
+
+	glm::mat4 Actor::cmpCamera_getView() const {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		Camera* cmp = &m_pScene->m_cameraComponents.at(m_handle);
+		glm::mat4 transform = m_pScene->m_transformComponents.at(m_handle).transform;
+		if (cmp->lookAtCenter) {
+			return glm::lookAt(glm::vec3(transform[3]) + glm::vec3(cmp->offset[3]), glm::vec3(transform[3]), glm::vec3(cmp->offset[1]));
+		}
+		else {
+			return glm::lookAt(glm::vec3(transform[3]) + glm::vec3(cmp->offset[3]), glm::vec3(transform[3]) + glm::vec3(cmp->offset[3]) + glm::vec3(transform[2]), glm::vec3(cmp->offset * transform[1]));
 		}
 	}
 
-	std::vector<uint32_t> Actor::getComponentIDs(ComponentType type) {
-		std::vector<uint32_t> components;
-		for (ComponentAccess component : m_components) {
-			if (component.type == type) components.push_back(component.id);
-		}
-		return components;
+	glm::mat4 Actor::cmpCamera_getPerspective(float aspect) const {
+		return glm::perspective<float>(glm::radians<float>(60), aspect, 0.01, 1000);
 	}
 
-	Component* Actor::getComponent(ComponentType type, uint32_t index) {
-		uint32_t num = 0;
-		for (ComponentAccess component : m_components) {
-			if (component.type == type) {
-				if (num >= index) {
-					switch (type) {
-					case COMPONENT_TYPE_CAMERA:
-						return &Camera::all[component.id];
-					case COMPONENT_TYPE_LIGHT:
-						return &Light::all[component.id];
-					case COMPONENT_TYPE_MESH:
-						return &MeshComponent::all[component.id];
-					case COMPONENT_TYPE_NONE:
-						return nullptr;
-					default:
-						std::cerr << "No return case implemented for this ComponentType\n";
-						throw std::runtime_error("No return case implemented for this ComponentType\n");
-					}
-				}
-				num++;
-			}
-		}
+	Transform* Actor::getTransform() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		return &m_pScene->m_transformComponents.at(m_handle);
 	}
 
-	Transform* Actor::getTransformComponent() {
-		switch (m_transformState) {
-		case TRANSFORM_STATE_NONE:
-			return nullptr;
-		case TRANSFORM_STATE_COMPONENT || TRANSFORM_STATE_PHYSICS:
-			return &Transform::all[m_components[0].id];
-		default:
-			std::cerr << "Not a valid TransformState: " << m_transformState << "\n";
-			throw std::runtime_error("Not a valid TransformState\n");
-		}
+	Model* Actor::getModel() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		return &m_pScene->m_modelComponents.at(m_handle);
 	}
 
-	MeshComponent* Actor::getMeshComponent(uint32_t index) {
-		int num = 0;
-		for (ComponentAccess cA : m_components) {
-			if (cA.type == COMPONENT_TYPE_MESH) {
-				if (num >= index) {
-					return &MeshComponent::all[cA.id];
-				}
-				num++;
-			}
-		}
-		return nullptr;
+	RigidDynamic* Actor::getRigidDynamic() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		return &m_pScene->m_rigidDynamicComponents.at(m_handle);
 	}
 
-	RigidDynamicComponent* Actor::getRigidDynamic(uint32_t index) {
-		int num = 0;
-		for (ComponentAccess cA : m_components) {
-			if (cA.type == COMPONENT_TYPE_RIGID_DYNAMIC) {
-				if (num >= index) {
-					return &RigidDynamicComponent::all[cA.id];
-				}
-				num++;
-			}
-		}
-		return nullptr;
+	RigidStatic* Actor::getRigidStatic() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		return &m_pScene->m_rigidStaticComponents.at(m_handle);
 	}
 
-	RigidStaticComponent* Actor::getRigidStatic(uint32_t index) {
-		int num = 0;
-		for (ComponentAccess cA : m_components) {
-			if (cA.type == COMPONENT_TYPE_RIGID_STATIC) {
-				if (num >= index) {
-					return &RigidStaticComponent::all[cA.id];
-				}
-				num++;
-			}
-		}
-		return nullptr;
+	Light* Actor::getLight() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		return &m_pScene->m_lightComponents.at(m_handle);
 	}
 
-	Light* Actor::getLightComponent(uint32_t index) {
-		int num = 0;
-		for (ComponentAccess cA : m_components) {
-			if (cA.type == COMPONENT_TYPE_LIGHT) {
-				if (num >= index) {
-					return &Light::all[cA.id];
-				}
-				num++;
-			}
-		}
-		return nullptr;
+	Camera* Actor::getCamera() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		return &m_pScene->m_cameraComponents.at(m_handle);
 	}
 
-	Camera* Actor::getCameraComponent(uint32_t index) {
-		int num = 0;
-		for (ComponentAccess cA : m_components) {
-			if (cA.type == COMPONENT_TYPE_CAMERA) {
-				if (num >= index) {
-					return &Camera::all[cA.id];
-				}
-				num++;
-			}
-		}
-		return nullptr;
+	void Actor::destroy() {
+		m_pScene->getRemoveActorEventHandler()->pushEvent(RemoveActorEvent(m_pScene, *this));
+		if (hasCamera())
+			destroyCamera();
+		if (hasLight())
+			destroyLight();
+		if (hasModel())
+			destroyModel();
+		if (hasRigidDynamic())
+			destroyRigidDynamic();
+		if (hasRigidStatic())
+			destroyRigidStatic();
+		if (hasTransform())
+			destroyTransform();
 	}
 }

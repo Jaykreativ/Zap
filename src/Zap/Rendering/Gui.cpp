@@ -1,20 +1,133 @@
 #include "Zap/Rendering/Gui.h"
 #include "Zap/Rendering/Renderer.h"
+#include "Zap/Rendering/stb_image.h"
 #include "VulkanUtils.h"
 #include "imgui.h"
 #include "backends/imgui_impl_vulkan.h";
 #include "backends/imgui_impl_glfw.h";
 
 namespace Zap {
-	Gui::Gui(Renderer& renderer) 
-		: m_renderer(renderer)
-	{}
+	bool Gui::isImGuiInit = false;
+	VkDescriptorPool Gui::descriptorPool = VK_NULL_HANDLE;
+	vk::RenderPass Gui::renderPass = vk::RenderPass();
+	Window* Gui::pImGuiWindow = nullptr;
+
+	Gui::Gui(){}
 
 	Gui::~Gui(){}
 
-	void Gui::init() {
-		if (m_isInit) return;
-		m_isInit = true;
+	void Gui::init(uint32_t width, uint32_t height, uint32_t imageCount) {
+		/*Framebuffer*/
+		m_framebufferCount = imageCount;
+		m_framebuffers = new vk::Framebuffer[m_framebufferCount]();
+
+		m_textureSampler = vk::Sampler();
+		m_textureSampler.init();
+
+		RenderTaskTemplate::initTargetDependencies();
+	}
+
+	void Gui::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		m_framebuffers[imageIndex].setWidth(width);
+		m_framebuffers[imageIndex].setHeight(height);
+		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
+		m_framebuffers[imageIndex].setRenderPass(renderPass);
+		m_framebuffers[imageIndex].init();
+	}
+
+	void Gui::resize(uint32_t width, uint32_t height, uint32_t imageCount) {
+		RenderTaskTemplate::resizeTargetDependencies();
+	}
+
+	void Gui::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		m_framebuffers[imageIndex].setWidth(width);
+		m_framebuffers[imageIndex].setHeight(height);
+		m_framebuffers[imageIndex].delAttachment(0);
+		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
+		m_framebuffers[imageIndex].update();
+	}
+
+	void Gui::destroy() {
+		for (uint32_t i = 0; i < m_framebufferCount; i++) {
+			m_framebuffers[i].destroy();
+		}
+
+		for (auto image : m_textures)
+			image.destroy();
+		m_textureSampler.destroy();
+	}
+
+	void Gui::beforeRender(vk::Image* pTarget, uint32_t imageIndex) {
+		ImGui::Render();
+	}
+
+	void Gui::afterRender(vk::Image* pTarget, uint32_t imageIndex) {
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+	}
+
+	void Gui::recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex) {
+		pTarget->cmdChangeLayout(*cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+		VkExtent3D targetExtent = pTarget->getExtent();
+
+		VkRenderPassBeginInfo renderPassBeginInfo;
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.pNext = nullptr;
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
+		renderPassBeginInfo.renderArea = { 0, 0, targetExtent.width, targetExtent.height };
+		VkClearValue clearColor = { 0, 0, 0, 1 };
+		renderPassBeginInfo.clearValueCount = 1;
+		renderPassBeginInfo.pClearValues = &clearColor;
+
+		vkCmdBeginRenderPass(*cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *cmd);
+
+		vkCmdEndRenderPass(*cmd);
+	}
+
+	GuiTexture Gui::loadTexture(Zap::Image* pImage) {
+		return ImGui_ImplVulkan_AddTexture(m_textureSampler, pImage->getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
+	}
+
+	GuiTexture Gui::loadTexture(const char* texturePath) {
+		int width, height, channels;
+		stbi_set_flip_vertically_on_load(false);
+		auto data = stbi_load(texturePath, &width, &height, &channels, 4);
+		ZP_ASSERT(data, "Image not loaded correctly");
+		m_textures.push_back(vk::Image());
+		vk::Image* image = &m_textures.back();
+		image->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+		image->setExtent(VkExtent3D{ (uint32_t)width, (uint32_t)height, 1 });
+
+		image->setFormat(VK_FORMAT_R8G8B8A8_UNORM); // TODO look for 1cmp formats
+		image->setUsage(VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		image->setType(VK_IMAGE_TYPE_2D);
+
+		image->init();
+		image->allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		image->initView();
+
+		image->changeLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT);
+
+		image->uploadData(width * height * 4, data);
+
+		image->changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
+
+		return loadTexture(image);
+	}
+
+	void Gui::unloadTexture(GuiTexture texture) {
+		ImGui_ImplVulkan_RemoveTexture(texture);
+	}
+
+	void Gui::initImGui(Window* pWindow) { 
+		if (isImGuiInit) return;
+
+		pImGuiWindow = pWindow;
 
 		VkDescriptorPoolSize poolSizes[] =
 		{
@@ -38,7 +151,7 @@ namespace Zap {
 		poolInfo.poolSizeCount = std::size(poolSizes);
 		poolInfo.pPoolSizes = poolSizes;
 
-		vkCreateDescriptorPool(vk::getDevice(), &poolInfo, nullptr, &m_imguiPool);
+		vkCreateDescriptorPool(vk::getDevice(), &poolInfo, nullptr, &descriptorPool);
 
 		/*RenderPass*/
 		{
@@ -53,7 +166,7 @@ namespace Zap {
 			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;//TODO lookup what this means
 			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-			m_renderPass.addAttachmentDescription(colorAttachment);
+			renderPass.addAttachmentDescription(colorAttachment);
 
 			VkAttachmentReference* pColorAttachmentReference;
 			{
@@ -62,7 +175,7 @@ namespace Zap {
 				tmp.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 				pColorAttachmentReference = &tmp;
 
-				m_renderPass.addAttachmentReference(&pColorAttachmentReference);
+				renderPass.addAttachmentReference(&pColorAttachmentReference);
 			}
 
 			VkSubpassDescription subpassDescription;
@@ -77,7 +190,7 @@ namespace Zap {
 			subpassDescription.preserveAttachmentCount = 0;
 			subpassDescription.pPreserveAttachments = nullptr;
 
-			m_renderPass.addSubpassDescription(subpassDescription);
+			renderPass.addSubpassDescription(subpassDescription);
 
 			VkSubpassDependency subpassDependency;
 			subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -88,23 +201,20 @@ namespace Zap {
 			subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			subpassDependency.dependencyFlags = 0;
 
-			m_renderPass.addSubpassDependency(subpassDependency);
+			renderPass.addSubpassDependency(subpassDependency);
 
-			m_renderPass.init();
-		}
-
-		/*Framebuffer*/
-		m_framebufferCount = m_renderer.m_swapchain.getImageCount();
-		m_framebuffers = new vk::Framebuffer[m_framebufferCount]();
-		for (int i = 0; i < m_framebufferCount; i++) {
-			m_framebuffers[i].setWidth(m_renderer.m_window.m_width);
-			m_framebuffers[i].setHeight(m_renderer.m_window.m_height);
-			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
-			m_framebuffers[i].setRenderPass(m_renderPass);
-			m_framebuffers[i].init();
+			renderPass.init();
 		}
 
 		ImGui::CreateContext();
+
+		ImGuiIO& io = ImGui::GetIO();
+
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+		ImGuiStyle& style = ImGui::GetStyle();
+
+		style.DisplayWindowPadding = ImVec2(0, 0);
 
 		ImGui_ImplVulkan_InitInfo imguiInitInfo{};
 		imguiInitInfo.Instance = vk::getInstance();
@@ -112,83 +222,38 @@ namespace Zap {
 		imguiInitInfo.Device = vk::getDevice();
 		imguiInitInfo.QueueFamily = vk::getQueueFamily();
 		imguiInitInfo.Queue = vkUtils::queueHandler::getQueue();
-		imguiInitInfo.DescriptorPool = m_imguiPool;
+		imguiInitInfo.DescriptorPool = descriptorPool;
+		imguiInitInfo.RenderPass = renderPass;
 		imguiInitInfo.MinImageCount = VK_MIN_AMOUNT_OF_SWAPCHAIN_IMAGES;
 		imguiInitInfo.ImageCount = VK_MIN_AMOUNT_OF_SWAPCHAIN_IMAGES;
 		imguiInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-		ImGui_ImplVulkan_Init(&imguiInitInfo, m_renderPass);
+		ImGui_ImplVulkan_Init(&imguiInitInfo);
 
-		ImGui_ImplGlfw_InitForVulkan(m_renderer.m_window.m_window, true);
+		ImGui_ImplGlfw_InitForVulkan(*pImGuiWindow, true);
 
 		ImGui_ImplVulkan_NewFrame();
 
 		ImGui_ImplGlfw_NewFrame();
 
 		ImGui::NewFrame();
+
+		isImGuiInit = true;
 	}
 
-	void Gui::destroy() {
-		if (!m_isInit) return;
-		m_isInit = false;
+	void Gui::destroyImGui() {
+		if (!isImGuiInit) return;
 
 		ImGui::EndFrame();
 
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 
-		for (uint32_t i = 0; i < m_framebufferCount; i++) {
-			m_framebuffers[i].destroy();
-		}
-		m_renderPass.~RenderPass();
-		vkDestroyDescriptorPool(vk::getDevice(), m_imguiPool, nullptr);
-	}
+		renderPass.~RenderPass();
+		vkDestroyDescriptorPool(vk::getDevice(), descriptorPool, nullptr);
 
-	void Gui::beforeRender(){}
+		pImGuiWindow = nullptr;
 
-	void Gui::afterRender() {
-		if (m_renderer.m_window.m_width <= 0 || m_renderer.m_window.m_height <= 0) return;
-
-		ImGui::Render();
-
-		auto cmd = vk::CommandBuffer();
-		cmd.allocate();
-		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-		VkRenderPassBeginInfo renderPassBeginInfo;
-		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.pNext = nullptr;
-		renderPassBeginInfo.renderPass = m_renderPass;
-		renderPassBeginInfo.framebuffer = m_framebuffers[m_renderer.m_currentImageIndex];
-		renderPassBeginInfo.renderArea = { 0, 0, m_renderer.m_window.m_width, m_renderer.m_window.m_height };
-		renderPassBeginInfo.clearValueCount = 0;
-		renderPassBeginInfo.pClearValues = nullptr;
-
-		vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-
-		vkCmdEndRenderPass(cmd);
-		cmd.end();
-		cmd.submit();
-		cmd.free();
-
-		ImGui_ImplVulkan_NewFrame();
-
-		ImGui_ImplGlfw_NewFrame();
-
-		ImGui::NewFrame();
-
-	}
-
-	void Gui::recordCommands(const vk::CommandBuffer* cmd, uint32_t imageIndex) {}
-
-	void Gui::resize(int width, int height) {
-		for (uint32_t i = 0; i < m_renderer.m_swapchain.getImageCount(); i++) {
-			m_framebuffers[i].setWidth(width);
-			m_framebuffers[i].setHeight(height);
-			m_framebuffers[i].delAttachment(0);
-			m_framebuffers[i].addAttachment(m_renderer.m_swapchain.getImageView(i));
-			m_framebuffers[i].update();
-		}
+		isImGuiInit = false;
 	}
 }

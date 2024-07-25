@@ -1,5 +1,5 @@
 #include "Zap/Zap.h"
-#include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/Scene.h"
 #include "Zap/Scene/PhysicsComponent.h"
 
 class SimulationCallbacks : public physx::PxSimulationEventCallback {// TODO put this in scene class
@@ -46,7 +46,7 @@ namespace Zap {
 	Base::Base(std::string applicationName) {
 
 		m_applicationName = applicationName;
-	};
+	}
 
 	Base::~Base() {}
 
@@ -61,11 +61,124 @@ namespace Zap {
 		GlobalSettings::depthStencilFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
 
 		if (!glfwInit())
-			std::runtime_error("Can't initialize GLFW");
+			throw std::runtime_error("Can't initialize GLFW");
 
-		vk::initInfo initInfo = { m_applicationName.c_str(), 0};
+		vk::initInfo initInfo{};// init Instance
+		initInfo.applicationName = m_applicationName.c_str();
+		initInfo.requestedInstanceLayers = {
+#if _DEBUG
+			"VK_LAYER_KHRONOS_validation"
+#endif
+		};
+
+		vk::initInstance(initInfo);
+
+		// init device
+		initInfo.checkDeviceSupport = false;// request extensions, layers, features
+		initInfo.requestedDeviceExtensions = {
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		};
+
+		if (m_settings.enableRaytracing) {
+			initInfo.requestedDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+			initInfo.requestedDeviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+			initInfo.requestedDeviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+		}
+
+		VkPhysicalDeviceVulkan12Features vulkan12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+		vulkan12Features.runtimeDescriptorArray = true;
+		vulkan12Features.bufferDeviceAddress = true;
+
+		VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
+		accelerationStructureFeatures.pNext = &vulkan12Features;
+		accelerationStructureFeatures.accelerationStructure = true;
+
+		VkPhysicalDeviceRayTracingPipelineFeaturesKHR raytracingPipelineFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
+		raytracingPipelineFeatures.pNext = &accelerationStructureFeatures;
+		raytracingPipelineFeatures.rayTracingPipeline = true;
+
+		VkPhysicalDeviceFeatures2 features2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+		if (m_settings.enableRaytracing) {
+			features2.pNext = &raytracingPipelineFeatures;
+			features2.features.shaderInt64 = true;
+		}
+		else
+			features2.pNext = &vulkan12Features;
+
+		initInfo.features = features2;
+
+		bool requestedGPUSupported = false;
+		auto physicalDevices = vk::PhysicalDevice::getAllPhysicalDevices();// validation
+		uint32_t selectedDeviceIndex = 0xFFFFFFFF;
+		auto printSupport = [](bool b) {
+			if (b)
+				std::cout << "Supported\n";
+			else
+				std::cout << "Not Supported\n";
+		};
+		uint32_t physicalDeviceIndex = 0;
+		for (auto physicalDevice : physicalDevices) {
+			std::cout << 
+				"---------------- Device ----------------\n" << 
+				physicalDevice.getName() << "\n";
+
+			std::cout <<
+				"-------------- Extensions --------------\n";
+			bool allExtensionsSupported = true;
+			for (auto extension : initInfo.requestedDeviceExtensions) {
+				bool supported = physicalDevice.isExtensionSupported(extension);
+				allExtensionsSupported &= supported;
+				std::cout << extension << " | ";
+				printSupport(supported);
+			}
+
+			std::cout << 
+				"--------------- Features ---------------\n";
+			bool allFeaturesSupported = true;
+			auto supportedVk12Features = physicalDevice.getSupportedVulkan12Features();
+			allFeaturesSupported &= supportedVk12Features.runtimeDescriptorArray;
+			std::cout << "supportedVk12Features.runtimeDescriptorArray | ";
+			printSupport(supportedVk12Features.runtimeDescriptorArray);
+			allFeaturesSupported &= supportedVk12Features.bufferDeviceAddress;
+			std::cout << "supportedVk12Features.bufferDeviceAddress | ";
+			printSupport(supportedVk12Features.bufferDeviceAddress);
+			if (m_settings.enableRaytracing) {
+				auto supportedFeatures2 = physicalDevice.getSupportedFeatures2();
+				auto supportedASFeatures = physicalDevice.getSupportedAccelerationStructureFeatures();
+				auto supportedRTPipelineFeatures = physicalDevice.getSupportedRayTraycingPipelineFeatures();
+				allFeaturesSupported &= supportedFeatures2.features.shaderInt64;
+				std::cout << "supportedFeatures2.features.shaderInt64 | ";
+				printSupport(supportedFeatures2.features.shaderInt64);
+				allFeaturesSupported &= supportedASFeatures.accelerationStructure;
+				std::cout << "supportedASFeatures.accelerationStructure | ";
+				printSupport(supportedASFeatures.accelerationStructure);
+				allFeaturesSupported &= supportedRTPipelineFeatures.rayTracingPipeline;
+				std::cout << "supportedRTPipelineFeatures.rayTracingPipeline | ";
+				printSupport(supportedRTPipelineFeatures.rayTracingPipeline);
+			}
+
+			if (allExtensionsSupported && allFeaturesSupported) {
+				selectedDeviceIndex = physicalDeviceIndex;
+				if (m_settings.requestedGPU == physicalDeviceIndex) {
+					requestedGPUSupported = true;
+					initInfo.deviceIndex = m_settings.requestedGPU;
+				}
+			}
+
+			physicalDeviceIndex++;
+		}
+		
+		ZP_ASSERT(selectedDeviceIndex == 0xFFFFFFFF, "No supported device found");
+
+		if (!requestedGPUSupported)
+			initInfo.deviceIndex = selectedDeviceIndex;
+
 		initVulkan(initInfo);
-		printStats();
+
+		m_registery = vk::Registery();
+
+		m_textureSampler = vk::Sampler();
+		m_textureSampler.init();
 
 		//init physx
 		m_pxFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gDefaultErrorCallback);
@@ -83,55 +196,57 @@ namespace Zap {
 			std::cerr << "ERROR: PxCreatePhysics failed\n";
 			throw std::runtime_error("ERROR: PxCreatePhysics failed");
 		}
+	}
 
-		physx::PxSceneDesc sceneDesc(m_pxPhysics->getTolerancesScale());
-		sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
-		sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
-		sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
-		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
-		//sceneDesc.simulationEventCallback = &simulationCallbacks;
-		m_pxScene = m_pxPhysics->createScene(sceneDesc);
-		if (!m_pxScene) {
-			std::cerr << "ERROR: createScene failed\n";
-			throw std::runtime_error("ERROR: createScene failed");
-		}
 
-		physx::PxPvdSceneClient* pvdClient = m_pxScene->getScenePvdClient();
-		if (pvdClient)
-		{
-			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
-			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
-			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
-		}
+	void Base::update() { // TODO implement base update
+		return;
 	}
 
 	void Base::terminate() {
-		for (Mesh mesh : Mesh::all) mesh.destroy();
+		for (auto& meshPair : m_assetHandler.m_meshes) {
+			meshPair.second.m_vertexBuffer.destroy();
+			meshPair.second.m_indexBuffer.destroy();
+		}
 
-		for (PhysicsComponent& pc : RigidDynamicComponent::all) pc.m_pxActor->release();
-		
 		m_pxPhysics->release();
 		m_pxFoundation->release();
+
+		for (auto image : m_textures) 
+			image.destroy();
+		m_textureSampler.destroy();
 
 		terminateVulkan();
 		glfwTerminate();
 	}
 
+	Settings* Base::getSettings() {
+		return &m_settings;
+	}
+
+	const AssetHandler* Base::getAssetHandler() const {
+		return &m_assetHandler;
+	}
+
+	std::string Base::getApplicationName() {
+		return m_applicationName;
+	}
+
 	Base* Base::createBase(const char* applicationName) {
-		m_engineBase = Base(applicationName);
+		m_engineBase = new Base(applicationName);
 		m_exists = true;
-		return &m_engineBase;
+		return m_engineBase;
 	}
 
 	void Base::releaseBase() {
-		m_engineBase.~Base();
+		delete m_engineBase;
 		m_exists = false;
 	}
 
 	Base* Base::getBase() {
-		return &m_engineBase;
+		return m_engineBase;
 	}
 
-	Base Base::m_engineBase = Base("");
+	Base* Base::m_engineBase;
 	bool Base::m_exists;
 }

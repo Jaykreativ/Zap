@@ -17,6 +17,8 @@ layout(binding=0) uniform UBO{
 } ubo;
 
 void main(){
-    gl_Position = vec4(pos, 1);
+    vec4 pos = ubo.perspective * ubo.view * ubo.model * vec4(vertPos, 1);
+    pos.y = -pos.y;
+    gl_Position = pos;
     fragColor = ubo.color;
 }

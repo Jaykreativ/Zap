@@ -1,50 +1,49 @@
 #pragma once
-#include "Zap/Zap.h"
+
+#include "Zap/UUID.h"
 #include "Zap/Vertex.h"
-#include "Zap/Scene/Material.h"
-#include "assimp/Importer.hpp"
-#include "assimp/scene.h"
-#include "assimp/postprocess.h"
+#include "VulkanFramework.h"
 
 namespace Zap {
+    struct MeshData {
+        glm::mat4 m_transform = glm::mat4(1);
+        vk::Buffer m_vertexBuffer = vk::Buffer();
+        vk::Buffer m_indexBuffer = vk::Buffer();
+    };
+
     class Mesh
     {
     public:
         Mesh();
+        Mesh(UUID handle);
         ~Mesh();
 
         void init();
 
-        void destroy();
-
         void load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices);
         void load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray);
-        void load(const char* modelPath);
 
-        uint32_t getId();
+        void destroy();
 
-        vk::CommandBuffer* getCommandBuffer(int index);
+        bool exists() const;
 
-        vk::Buffer* getVertexBuffer();
+        UUID getHandle();
 
-        vk::Buffer* getIndexbuffer();
+        const glm::mat4* getTransform() const;
 
-        static Mesh* createMesh();
+        const vk::Buffer* getVertexBuffer() const;
+
+        const vk::Buffer* getIndexBuffer() const;
 
     private:
-        bool m_isInit = false;
-
-        uint32_t m_id;
-
-        std::vector<vk::CommandBuffer> m_commandBuffers;
-        vk::Buffer m_vertexBuffer = vk::Buffer();
-        vk::Buffer m_indexBuffer = vk::Buffer();
-
-        static std::vector<Mesh> all;
+        UUID m_handle;
 
         friend class Base;
+        friend class Scene;
         friend class Renderer;
         friend class PBRenderer;
+        friend class RaytracingRenderer;
+        friend class PathTracer;
         friend class ModelLoader;
     };
 }
