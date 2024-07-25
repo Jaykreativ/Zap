@@ -48,9 +48,9 @@ void main(){
 	float tMin              = 0.001;
 	float tMax              = 10000.0;
 
-	uint samples = 5;
+	uint samples = 1;
 	vec3 color = vec3(0, 0, 0);
-	for(uint i = 0; i<samples; i++){
+	//for(uint i = 0; i<samples; i++){
 		prd.rayOrigin           = vec3(ubo.inverseView * vec4(0, 0, 0, 1));
 		vec4 localDir           = ubo.inversePerspective * vec4(pixelPos.x, -pixelPos.y, 1, 1);
 		prd.rayDirection        = vec3(ubo.inverseView * vec4(normalize(localDir.xyz), 0));
@@ -70,7 +70,7 @@ void main(){
 		);
 
 		color += max(prd.radiance, vec3(0));
-	}
+	//}
 	color /= samples;
 
 	vec4 previousColor = imageLoad(storageImage, ivec2(gl_LaunchIDEXT.xy));
