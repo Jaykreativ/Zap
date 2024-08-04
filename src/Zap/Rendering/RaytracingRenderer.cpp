@@ -298,10 +298,10 @@ namespace Zap {
 		for (auto& descriptorSet : m_targetDescriptorSets)
 			descriptorSet.destroy();
 		m_descriptorPool.destroy();
-		m_rgenShader.~Shader();
-		m_rchitShader.~Shader();
-		m_rmissShader.~Shader();
-		m_rsmissShader.~Shader();
+		m_rgenShader.destroy();
+		m_rchitShader.destroy();
+		m_rmissShader.destroy();
+		m_rsmissShader.destroy();
 		m_UBO.destroy();
 		m_tlas.destroy();
 		for (auto& blasPair : m_blasMap) {

@@ -51,6 +51,7 @@ namespace Zap {
 		vk::CommandBuffer* m_commandBuffers;
 
 		//Fences
+		VkFence m_imageAvailable = VK_NULL_HANDLE;
 		VkFence m_renderComplete = VK_NULL_HANDLE;
 
 		std::vector<RenderTaskTemplate*> m_renderTasks;
@@ -80,3 +81,4 @@ namespace Zap {
 		friend class Gui;
 	};
 }
+

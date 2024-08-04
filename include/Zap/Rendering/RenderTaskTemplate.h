@@ -3,8 +3,18 @@
 #include "Zap/Zap.h"
 
 namespace Zap {
+	class Model;
+	class Mesh;
+	class Actor;
+
 	class RenderTaskTemplate {
 	public:
+		RenderTaskTemplate();
+		// Can be used by scene dependant tasks to gain access to private storage buffers
+		RenderTaskTemplate(Scene* pScene);
+
+		~RenderTaskTemplate();
+
 		void disable() { m_isEnabled = false; }
 
 		void enable() { m_isEnabled = true; }
@@ -12,14 +22,37 @@ namespace Zap {
 	protected:
 		// Executes the overwritten initTargetDependencies function
 		// Can be called in the init function
+		// Should not be overwritten
 		void initTargetDependencies();
 
 		// Executes the overwritten resizeTargetDependencies function
 		// Can be called in the resize function
+		// Should not be overwritten
 		void resizeTargetDependencies();
+
+		// returns a ptr to the engines global vulkan registery object
+		vk::Registery* getRegistery();
+
+		// Only works when a scene ptr was supplied in the constructor
+		// Returns nullptr when failed
+		vk::Buffer* getScenePerMeshInstanceBuffer();
+
+		// Only works when a scene ptr was supplied in the constructor
+		// Returns nullptr when failed
+		vk::Buffer* getSceneLightBuffer();
+
+		// Only works when a scene ptr was supplied in the constructor
+		// Returns nullptr when failed
+		Model* getActorModel(Actor actor);
+
+		// Only works when a scene ptr was supplied in the constructor
+		// Returns 0 when failing
+		uint32_t getMeshInstanceIndex(UUID actor, Mesh mesh);
+		uint32_t getMeshInstanceIndex(Actor actor, Mesh mesh);
 
 	private:
 		bool m_isEnabled = true;
+		Scene* m_pScene = nullptr;
 		Renderer* m_pRenderer = nullptr;
 
 		virtual void init(uint32_t width, uint32_t height, uint32_t imageCount) = 0;

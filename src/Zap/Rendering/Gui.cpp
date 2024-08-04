@@ -249,7 +249,7 @@ namespace Zap {
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 
-		renderPass.~RenderPass();
+		renderPass.destroy();
 		vkDestroyDescriptorPool(vk::getDevice(), descriptorPool, nullptr);
 
 		pImGuiWindow = nullptr;

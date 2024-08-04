@@ -20,7 +20,12 @@ public:
 		return 3;
 	}
 
-	static std::vector<VkVertexInputAttributeDescription> getVertexInputAttributeDescriptions() {
+// returns an array with following attribute descriptions
+// (binding = 0)
+// [0] position: [format](R32G32B32_SFLOAT) [location](0)
+// [1] uv coordinates: [format](R32G32_SFLOAT) [location](1)
+// [2] normal: [format](R32G32B32_SFLOAT) [location](2)
+static std::vector<VkVertexInputAttributeDescription> getVertexInputAttributeDescriptions() {
 		VkVertexInputAttributeDescription posAttributeDescription{};
 		posAttributeDescription.location = 0;
 		posAttributeDescription.binding = 0;
