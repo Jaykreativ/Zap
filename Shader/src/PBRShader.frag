@@ -15,8 +15,6 @@ layout( push_constant ) uniform PushConstants {
 } constants;
 
 layout(binding=0) uniform UBO{
-	mat4 model;
-	mat4 modelNormal;
 	mat4 view;
 	mat4 perspective;
 	vec3 camPos;

@@ -42,6 +42,8 @@ namespace Zap {
 
 		m_lightBuffer = vk::Buffer(std::max<size_t>(m_lightComponents.size(), 1)*sizeof(LightData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+		m_meshInstanceIndices = {};
 	}
 
 	void Scene::update() {
@@ -69,6 +71,8 @@ namespace Zap {
 
 		// resize buffer and fill in one time data
 		if (std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData) != m_perMeshInstanceBuffer.getSize()) {
+			m_meshInstanceIndices.clear();
+
 			m_perMeshInstanceBuffer.resize(std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData));
 			m_perMeshInstanceBuffer.map(&rawData);
 			{
@@ -78,6 +82,8 @@ namespace Zap {
 					for (Mesh mesh : modelPair.second.meshes) {
 						perMeshInstance[i].vertexBufferAddress = mesh.getVertexBuffer()->getVkDeviceAddress();
 						perMeshInstance[i].indexBufferAddress = mesh.getIndexBuffer()->getVkDeviceAddress();
+
+						m_meshInstanceIndices[mesh.getHandle()+modelPair.first] = i;
 						i++;
 					}
 				}

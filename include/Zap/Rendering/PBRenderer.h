@@ -52,8 +52,6 @@ namespace Zap {
 
 		//Buffers
 		struct UniformBufferObject {// definition of the uniform buffer layout
-			glm::mat4 model;
-			glm::mat4 modelNormal;
 			glm::mat4 view;
 			glm::mat4 perspective;
 			alignas(16) glm::vec3 camPos;
@@ -79,10 +77,6 @@ namespace Zap {
 		void afterRender(vk::Image* pTarget, uint32_t imageIndex);
 
 		void recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex);
-
-#ifdef _DEBUG
-		static bool areShadersCompiled;
-#endif
 	};
 }
 

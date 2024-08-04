@@ -37,12 +37,12 @@ void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable
 }
 
 namespace Zap {
-#ifdef _DEBUG
-	bool PBRenderer::areShadersCompiled = false;
-#endif
+//#ifdef _DEBUG
+//	bool PBRenderer::areShadersCompiled = false;
+//#endif
 
 	PBRenderer::PBRenderer(Scene* pScene)
-		: m_pScene(pScene)
+		: RenderTaskTemplate(pScene), m_pScene(pScene)
 	{}
 
 	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
@@ -128,9 +128,9 @@ namespace Zap {
 		/*Depth Image*/
 		m_depthImage = vk::Image();
 		m_depthImage.setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-		m_depthImage.setExtent({ width, height, 1 });//TODO try with viewport scale
+		m_depthImage.setExtent({ width, height, 1 });
 		m_depthImage.setFormat(Zap::GlobalSettings::getDepthStencilFormat());
-		m_depthImage.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+		m_depthImage.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
 		m_depthImage.setType(VK_IMAGE_TYPE_2D);
 		m_depthImage.setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 		m_depthImage.setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -221,6 +221,7 @@ namespace Zap {
 
 		/*Shader*/
 #ifdef _DEBUG
+		static bool areShadersCompiled = false;
 		if (!areShadersCompiled) {
 			vk::Shader::compile("../Zap/Shader/src/", { "PBRShader.vert", "PBRShader.frag" }, { "./" });
 			areShadersCompiled = true;
@@ -295,12 +296,12 @@ namespace Zap {
 	}
 
 	void PBRenderer::destroy() {
-		m_pipeline.~Pipeline();
-		m_fragmentShader.~Shader();
-		m_vertexShader.~Shader();
+		m_pipeline.destroy();
+		m_fragmentShader.destroy();
+		m_vertexShader.destroy();
 		for (auto& framebuffer : m_framebuffers) framebuffer.destroy();
 		m_framebuffers.clear();
-		m_renderPass.~RenderPass();
+		m_renderPass.destroy();
 		m_depthImage.destroy();
 		m_descriptorSet.destroy();
 		m_descriptorPool.destroy();

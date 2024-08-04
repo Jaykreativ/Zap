@@ -105,6 +105,7 @@ namespace Zap {
 		friend class Scene;
 		friend class Actor;
 		friend class Mesh;
+		friend class RenderTaskTemplate;
 		friend class PBRenderer;
 		friend class RaytracingRenderer;
 		friend class PathTracer;

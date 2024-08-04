@@ -178,15 +178,18 @@ namespace Zap {
 		};
 
 		uint32_t m_meshInstanceCount = 0;
+
 		vk::Buffer m_perMeshInstanceBuffer;
 		vk::Buffer m_lightBuffer;
-		//std::vector<uint32_t> m_meshReferences;
+		
+		std::unordered_map<UUID, uint32_t> m_meshInstanceIndices;
 
 		friend class Base;
 		friend class Serializer;
 		friend class Actor;
 		friend class RigidDynamic;
 		friend class RigidStatic;
+		friend class RenderTaskTemplate;
 		friend class PBRenderer;
 		friend class RaytracingRenderer;
 		friend class PathTracer;

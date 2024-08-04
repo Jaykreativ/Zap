@@ -61,7 +61,11 @@ namespace Zap {
 	}
 
 	void ModelLoader::processNode(const aiNode* node, const aiScene* aScene, std::string path, glm::mat4& transform, uint32_t flags, Model* pModel) {
-		glm::mat4 newTransform = ConvertMatrixToGLMFormat(node->mTransformation) * transform;
+#ifdef _DEBUG
+		std::cout << "Loading node " << node->mName.C_Str() << " with " << node->mNumChildren << " children\n";
+		//std::cout << "pos: " << node->mTransformation.Translation();
+#endif
+		glm::mat4 newTransform = transform * ConvertMatrixToGLMFormat(node->mTransformation);
 		for (uint32_t i = 0; i < node->mNumMeshes; i++) {
 #ifdef _DEBUG
 			auto timeStartLoad = std::chrono::high_resolution_clock::now();
