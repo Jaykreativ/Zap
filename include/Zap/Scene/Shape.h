@@ -4,58 +4,71 @@
 #include "glm.hpp"
 
 namespace Zap {
-    class PhysicsMaterial {
-    public:
-        PhysicsMaterial(uint32_t staticFriction, uint32_t dynamicFriction, uint32_t restitution);
-        ~PhysicsMaterial();
+	class PhysicsMaterial {
+	public:
+		PhysicsMaterial(float staticFriction, float dynamicFriction, float restitution);
+		~PhysicsMaterial();
 
-    private:
-        physx::PxMaterial* m_pxMaterial;
+		void release();
 
-        friend class Shape;
-    };
+	private:
+		physx::PxMaterial* m_pxMaterial;
 
-    class PhysicsGeometry {
-    public:
-        PhysicsGeometry() = default;
+		friend class Shape;
+	};
 
-    protected:
-        physx::PxGeometry* m_pxGeometry;
+	class PhysicsGeometry {
+	public:
+		PhysicsGeometry() = default;
 
-    private:
+	protected:
+		physx::PxGeometry* m_pxGeometry = nullptr;
 
-        friend class Shape;
-    };
+	private:
 
-    class BoxGeometry : public PhysicsGeometry {
-    public:
-        BoxGeometry(glm::vec3 size);
-        ~BoxGeometry();
-    };
+		friend class Shape;
+	};
 
-    class PlaneGeometry : public PhysicsGeometry {
-    public:
-        PlaneGeometry();
-        ~PlaneGeometry();
-    };
+	enum PhysicsGeometryType {
+		eGEOMETRY_TYPE_NONE = 0,
+		eGEOMETRY_TYPE_BOX = 1,
+		eGEOMETRY_TYPE_PLANE = 2
+	};
 
-    class Shape
-    {
-    public:
-        Shape(PhysicsGeometry geometry, PhysicsMaterial material, bool isExclusive = false, glm::mat4 offsetTransform = glm::mat4(1));
-        ~Shape();
-        Shape(Shape& shape);
+	class BoxGeometry : public PhysicsGeometry {
+	public:
+		BoxGeometry(glm::vec3 size);
+		~BoxGeometry();
+		BoxGeometry(BoxGeometry& boxGeometry);
+	};
 
-    private:
-        bool m_hasShape = false;
+	class PlaneGeometry : public PhysicsGeometry {
+	public:
+		PlaneGeometry();
+		~PlaneGeometry();
+		PlaneGeometry(PlaneGeometry& planeGeometry);
+	};
 
-        physx::PxShape* m_pxShape;
+	class Shape
+	{
+	public:
+		Shape() = default;
+		Shape(PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive = false, glm::mat4 offsetTransform = glm::mat4(1));
+		Shape(physx::PxShape* pxShape);
+		~Shape();
+ 
+		void release();
 
-        friend class Actor;
-        friend class PhysicsComponent;
-        friend class RigidBodyComponent;
-        friend class RigidDynamic;
-        friend class RigidStatic;
-    };
+		physx::PxShape* getPxShape();
+
+	private:
+		physx::PxShape* m_pxShape = nullptr;
+
+		friend class Actor;
+		friend class PhysicsComponent;
+		friend class RigidBodyComponent;
+		friend class RigidDynamic;
+		friend class RigidStatic;
+	};
 }
 

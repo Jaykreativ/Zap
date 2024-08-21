@@ -27,7 +27,7 @@ namespace Zap {
 		/* Transform */
 		void addTransform(Transform transform);
 
-		void addTransform(glm::mat4 transform);
+		void addTransform(glm::mat4 transform = glm::mat4(1));
 
 		void destroyTransform();
 
@@ -71,6 +71,8 @@ namespace Zap {
 
 		/* RigidDynamic */
 
+		void addRigidDynamic();
+
 		void addRigidDynamic(RigidDynamic rigidDynamic);
 
 		void addRigidDynamic(Shape shape);
@@ -91,11 +93,17 @@ namespace Zap {
 
 		void cmpRigidDynamic_wakeUp();
 
+		void cmpRigidDynamic_addShape(Shape shape);
+
 		void cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value);
+
+		std::vector<Shape> cmpRigidDynamic_getShapes();
 
 		bool cmpRigidDynamic_getFlag(physx::PxActorFlag::Enum flag);
 
 		/* RigidStatic */
+		void addRigidStatic();
+
 		void addRigidStatic(RigidStatic rigidStatic);
 
 		void addRigidStatic(Shape shape);
@@ -103,6 +111,8 @@ namespace Zap {
 		void destroyRigidStatic();
 
 		bool hasRigidStatic();
+
+		std::vector<Shape> cmpRigidStatic_getShapes();
 
 		/* Light */
 		void addLight(Light light);

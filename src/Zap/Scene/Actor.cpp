@@ -32,6 +32,7 @@ namespace Zap {
 	Actor::~Actor(){}
 	
 	/* Transform */
+	// unsafe function
 	void Actor::addTransform(Transform transform) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_transformComponents.count(m_handle), "Actor can't have multiple transforms");
@@ -120,7 +121,7 @@ namespace Zap {
 		Transform* cmp = &m_pScene->m_transformComponents.at(m_handle);
 		return cmp->transform;
 	}
-	
+
 	bool Actor::addModel(Model model) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_modelComponents.count(m_handle), "Actor can't have multiple Models");
@@ -173,10 +174,22 @@ namespace Zap {
 		m_pScene->m_meshInstanceCount--;
 	}
 
-	void Actor::addRigidDynamic(RigidDynamic shape) {
+	void Actor::addRigidDynamic() {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_rigidDynamicComponents.count(m_handle), "Actor can't have multiple RigidDynamics");
+		ZP_ASSERT(m_pScene->m_transformComponents.count(m_handle), "Actor must have a transform for rigid bodies");
+		auto base = Base::getBase();
 		RigidDynamic* cmp = &(m_pScene->m_rigidDynamicComponents[m_handle] = RigidDynamic{});
+		cmp->pxActor = base->m_pxPhysics->createRigidDynamic(convertGlmMat(m_pScene->m_transformComponents.at(m_handle).transform));
+		cmp->pxActor->userData = (void*)(uint64_t)m_handle;
+		m_pScene->m_pxScene->addActor(*cmp->pxActor);
+	}
+
+	// unsafe function
+	void Actor::addRigidDynamic(RigidDynamic rigidDynamic) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_rigidDynamicComponents.count(m_handle), "Actor can't have multiple RigidDynamics");
+		RigidDynamic* cmp = &(m_pScene->m_rigidDynamicComponents[m_handle] = rigidDynamic);
 		m_pScene->m_pxScene->addActor(*cmp->pxActor);
 	}
 
@@ -236,10 +249,33 @@ namespace Zap {
 		cmp->pxActor->wakeUp();
 	}
 
+	void Actor::cmpRigidDynamic_addShape(Shape shape) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		cmp->pxActor->attachShape(*shape.getPxShape());
+	}
+
 	void Actor::cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value) { // TODO Make own enum
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
 		cmp->pxActor->setActorFlag(flag, value);
+	}
+
+	std::vector<Shape> Actor::cmpRigidDynamic_getShapes() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidDynamic* cmp = &m_pScene->m_rigidDynamicComponents.at(m_handle);
+		auto* pxActor = cmp->pxActor;
+		uint32_t nbShapes = pxActor->getNbShapes();
+		physx::PxShape** shapeBuffer = new physx::PxShape * [nbShapes];
+		pxActor->getShapes(shapeBuffer, nbShapes, 0);
+		std::vector<Shape> shapeVector = {};
+		shapeVector.resize(nbShapes);
+		for (uint32_t i = 0; i < nbShapes; i++) {
+			auto* pxShape = shapeBuffer[i];
+			Shape shape = Shape(pxShape);
+			shapeVector[i] = shape;
+		}
+		return shapeVector;
 	}
 
 	bool Actor::cmpRigidDynamic_getFlag(physx::PxActorFlag::Enum flag) {
@@ -248,16 +284,29 @@ namespace Zap {
 		return (flag & (uint8_t)cmp->pxActor->getActorFlags()) == flag;
 	}
 
+	void Actor::addRigidStatic() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_rigidStaticComponents.count(m_handle), "Actor can't have multiple RigidStatics");
+		ZP_ASSERT(m_pScene->m_transformComponents.count(m_handle), "Actor must have a transform for rigid bodies");
+		auto base = Base::getBase();
+		RigidStatic* cmp = &(m_pScene->m_rigidStaticComponents[m_handle] = RigidStatic{});
+		cmp->pxActor = base->m_pxPhysics->createRigidStatic(convertGlmMat(m_pScene->m_transformComponents.at(m_handle).transform));
+		cmp->pxActor->userData = (void*)(uint64_t)m_handle;
+		m_pScene->m_pxScene->addActor(*cmp->pxActor);
+	}
+
+	// unsafe function
 	void Actor::addRigidStatic(RigidStatic rigidStatic) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_rigidStaticComponents.count(m_handle), "Actor can't have multiple RigidStatics");
-		RigidStatic* cmp = &(m_pScene->m_rigidStaticComponents[m_handle] = RigidStatic{});
+		RigidStatic* cmp = &(m_pScene->m_rigidStaticComponents[m_handle] = rigidStatic);
 		m_pScene->m_pxScene->addActor(*cmp->pxActor);
 	}
 
 	void Actor::addRigidStatic(Shape shape) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_rigidStaticComponents.count(m_handle), "Actor can't have multiple RigidStatics");
+		ZP_ASSERT(m_pScene->m_transformComponents.count(m_handle), "Actor must have a transform for rigid bodies");
 		auto base = Base::getBase();
 		RigidStatic* cmp = &(m_pScene->m_rigidStaticComponents[m_handle] = RigidStatic{});
 		cmp->pxActor = base->m_pxPhysics->createRigidStatic(convertGlmMat(m_pScene->m_transformComponents.at(m_handle).transform));
@@ -275,6 +324,24 @@ namespace Zap {
 		return m_pScene->m_rigidStaticComponents.count(m_handle);
 	}
 
+	std::vector<Shape> Actor::cmpRigidStatic_getShapes() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		RigidStatic* cmp = &m_pScene->m_rigidStaticComponents.at(m_handle);
+		auto* pxActor = cmp->pxActor;
+		uint32_t nbShapes = pxActor->getNbShapes();
+		physx::PxShape** shapeBuffer = new physx::PxShape*[nbShapes];
+		pxActor->getShapes(shapeBuffer, nbShapes, 0);
+		std::vector<Shape> shapeVector = {};
+		shapeVector.resize(nbShapes);
+		for (uint32_t i = 0; i < nbShapes; i++) {
+			auto* pxShape = shapeBuffer[i];
+			Shape shape = Shape(pxShape);
+			shapeVector[i] = shape;
+		}
+		return shapeVector;
+	}
+
+	// unsafe function
 	void Actor::addLight(Light light) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_lightComponents.count(m_handle), "Actor can't have multiple lights");
@@ -332,6 +399,7 @@ namespace Zap {
 		return cmp->radius;
 	}
 
+	// unsafe function
 	void Actor::addCamera(Camera camera) {
 		ZP_ASSERT(!m_pScene->m_cameraComponents.count(m_handle), "Actor can't have multiple cameras");
 		m_pScene->m_cameraComponents[m_handle] = camera;

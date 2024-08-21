@@ -34,7 +34,9 @@ namespace Zap {
 
 		void addRenderTask(RenderTaskTemplate* pRenderTemplate);
 
+		//called before init
 		void setTarget(vk::Image* imageTarget);
+		//called before init
 		void setTarget(Window* windowTarget);
 
 #ifndef ZP_ALL_PUBLIC
