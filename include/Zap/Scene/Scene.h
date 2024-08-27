@@ -116,6 +116,7 @@ namespace Zap {
 
 		void update();
 
+		const physx::PxRenderBuffer* getPxRenderBuffer();
 
 		EventHandler<SceneUpdateEvent>* getSceneUpdateEventHandler();
 

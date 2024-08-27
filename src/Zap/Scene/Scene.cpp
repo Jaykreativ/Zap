@@ -37,6 +37,10 @@ namespace Zap {
 			pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
 		}
 
+		m_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f);
+		m_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eACTOR_AXES, 1.0f);
+		m_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
+
 		m_perMeshInstanceBuffer = vk::Buffer(std::max<size_t>(m_meshInstanceCount, 1)*sizeof(PerMeshInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_perMeshInstanceBuffer.init(); m_perMeshInstanceBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
@@ -174,6 +178,10 @@ namespace Zap {
 			}
 			}
 		}
+	}
+
+	const physx::PxRenderBuffer* Scene::getPxRenderBuffer() {
+		return &m_pxScene->getRenderBuffer();
 	}
 
 	EventHandler<SceneUpdateEvent>* Scene::getSceneUpdateEventHandler() {
