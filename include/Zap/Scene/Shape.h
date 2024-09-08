@@ -53,11 +53,16 @@ namespace Zap {
 	{
 	public:
 		Shape() = default;
-		Shape(PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive = false, glm::mat4 offsetTransform = glm::mat4(1));
+		Shape(PhysicsGeometry& geometry, PhysicsMaterial material,
+			bool isExclusive = false, glm::mat4 offsetTransform = glm::mat4(1),
+			physx::PxShapeFlags shapeFlags = physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE | physx::PxShapeFlag::eSIMULATION_SHAPE
+		);
 		Shape(physx::PxShape* pxShape);
 		~Shape();
  
 		void release();
+
+		void setGeometry(PhysicsGeometry& geometry);
 
 		physx::PxShape* getPxShape();
 

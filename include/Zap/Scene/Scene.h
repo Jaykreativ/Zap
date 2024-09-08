@@ -110,7 +110,7 @@ namespace Zap {
 
 		void attachActor(Actor& actor);
 
-		bool raycast(glm::vec3 origin, glm::vec3 unitDir, uint32_t maxDistance, RaycastOutput* out, physx::PxQueryFilterCallback* filterCallback); // cleanup query filter
+		bool raycast(glm::vec3 origin, glm::vec3 unitDir, uint32_t maxDistance, RaycastOutput* out, physx::PxQueryFilterCallback* filterCallback = nullptr); // cleanup query filter
 
 		void simulate(float elapsedTime);
 

@@ -37,10 +37,10 @@ namespace Zap {
 		m_pxGeometry = new physx::PxPlaneGeometry();
 	}
 
-	Shape::Shape(PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform) {
+	Shape::Shape(PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform, physx::PxShapeFlags shapeFlags) {
 		auto base = Base::getBase();
 
-		m_pxShape = base->m_pxPhysics->createShape(*geometry.m_pxGeometry, &material.m_pxMaterial, 1, isExclusive);
+		m_pxShape = base->m_pxPhysics->createShape(*geometry.m_pxGeometry, &material.m_pxMaterial, 1, isExclusive, shapeFlags);
 		ZP_ASSERT(m_pxShape, "Failed to create pxShape");
 
 		offsetTransform[0] = glm::vec4(glm::normalize(glm::vec3(offsetTransform[0])), offsetTransform[0].w);
@@ -60,6 +60,10 @@ namespace Zap {
 
 	void Shape::release() {
 		m_pxShape->release();
+	}
+
+	void Shape::setGeometry(PhysicsGeometry& geometry) {
+		m_pxShape->setGeometry(*geometry.m_pxGeometry);
 	}
 
 	physx::PxShape* Shape::getPxShape() {
