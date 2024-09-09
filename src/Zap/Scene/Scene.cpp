@@ -95,13 +95,13 @@ namespace Zap {
 		{
 			PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
 			uint32_t i = 0;
-			for (auto const& modelPair : m_modelComponents) {
+			for (auto& modelPair : m_modelComponents) {
 				uint32_t j = 0;
 				for (Mesh mesh : modelPair.second.meshes) {
 					auto* base = Base::getBase();
 					perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * *mesh.getTransform();
 					perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
-					perMeshInstance[i].material = modelPair.second.materials[j];
+					perMeshInstance[i].material = *base->m_assetHandler.getMaterialDataPtr(modelPair.second.materials[j].getHandle());
 					j++; i++;
 
 				}

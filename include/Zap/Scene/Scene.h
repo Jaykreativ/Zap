@@ -172,7 +172,7 @@ namespace Zap {
 		struct PerMeshInstanceData {
 			alignas(16) glm::mat4 transform;
 			alignas(16) glm::mat4 normalTransform;
-			alignas(16) Material material;
+			alignas(16) MaterialData material;
 			alignas(8) VkDeviceAddress vertexBufferAddress;
 			alignas(8) VkDeviceAddress indexBufferAddress;
 		};
