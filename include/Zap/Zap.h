@@ -122,4 +122,29 @@ namespace Zap {
 		VkFormat getColorFormat();
 		VkFormat getDepthStencilFormat();
 	}
+
+	namespace PxUtils {
+		/*
+		* Return a PxTransform consisting of a position vector and a rotation quaternion, ingores scale
+		*/
+		physx::PxTransform glmMat4ToTransform(glm::mat4 glmt);
+
+		physx::PxVec2 glmVec2toVec2(glm::vec2 vec);
+
+		physx::PxVec3 glmVec3toVec3(glm::vec3 vec);
+
+		physx::PxVec4 glmVec4toVec4(glm::vec4 vec);
+
+		glm::mat4 transformToGlmMat4(physx::PxTransform transform);
+
+		glm::vec2 vec2ToGlmVec2(physx::PxVec2 vec);
+
+		glm::vec3 vec3ToGlmVec3(physx::PxVec3 vec);
+
+		glm::vec4 vec4ToGlmVec4(physx::PxVec4 vec);
+
+		physx::PxQuat glmQuatToQuat(glm::quat quat);
+
+		glm::quat quatToGlmQuat(physx::PxQuat quat);
+	}
 }

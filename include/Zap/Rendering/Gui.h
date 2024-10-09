@@ -3,8 +3,28 @@
 #include "Zap/Zap.h"
 #include "Zap/Rendering/RenderTaskTemplate.h"
 
+
 namespace Zap {
 	typedef VkDescriptorSet GuiTexture;
+
+	class GuiImage : public Image {
+	public:
+		GuiImage();
+		GuiImage(VkImage image);
+		~GuiImage();
+
+		void initView();
+
+		void destroyView();
+
+		void update();
+
+		operator VkDescriptorSet() { return m_guiTexture; }
+
+	private:
+		vk::Sampler m_texSampler;
+		VkDescriptorSet m_guiTexture;
+	};
 
 	class Gui : public RenderTaskTemplate {
 	public:
@@ -25,7 +45,7 @@ namespace Zap {
 		static void destroyImGui();
 
 	private:
-		bool m_shouldClear = false;// TODO implement enable/disable Clear in Gui (make Gui a singleton)
+		bool m_shouldClear = false;// TODO make Gui a singleton
 
 		uint32_t m_framebufferCount = 0;
 		vk::Framebuffer* m_framebuffers = nullptr;

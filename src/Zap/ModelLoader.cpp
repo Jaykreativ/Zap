@@ -39,7 +39,7 @@ namespace Zap {
 		model.filepath = std::string(modelPath);
 
 		Assimp::Importer importer;
-		const aiScene* aScene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_GenUVCoords);
+		const aiScene* aScene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes);
 
 		auto pathSeperate = std::string(modelPath);
 		pathSeperate.erase(pathSeperate.find_last_of("/")+1);
@@ -72,7 +72,7 @@ namespace Zap {
 			auto timeStartMeshLoad = std::chrono::high_resolution_clock::now();
 #endif
 
-			pModel->meshes.push_back(loadMesh(aScene->mMeshes[node->mMeshes[i]], newTransform));
+			pModel->meshes.push_back(loadMesh(aScene->mMeshes[node->mMeshes[i]], newTransform, pModel->m_boundMin, pModel->m_boundMax));
 
 #ifdef _DEBUG
 			auto timeMeshLoad = std::chrono::high_resolution_clock::now() - timeStartMeshLoad;
@@ -195,7 +195,7 @@ namespace Zap {
 		return loadTexture(data, width, height);
 	}
 
-	Mesh ModelLoader::loadMesh(aiMesh* aMesh, glm::mat4& transform) {
+	Mesh ModelLoader::loadMesh(aiMesh* aMesh, glm::mat4& transform, glm::vec3& modelBoundMin, glm::vec3& modelBoundMax) {
 		Base* base = Base::getBase();
 
 		vk::Buffer vertexStgBuffer = vk::Buffer(aMesh->mNumVertices * sizeof(Vertex), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
@@ -247,6 +247,14 @@ namespace Zap {
 
 		vertexStgBuffer.destroy();
 		indexStgBuffer.destroy();
+
+		// Bounding box
+		glm::vec3 boundMin = transform * glm::vec4(*((glm::vec3*)&aMesh->mAABB.mMin), 1);
+		glm::vec3 boundMax = transform * glm::vec4(*((glm::vec3*)&aMesh->mAABB.mMax), 1);
+		mesh.setBoundingBox(boundMin, boundMax);
+
+		modelBoundMin = glm::min(modelBoundMin, boundMin);
+		modelBoundMax = glm::max(modelBoundMax, boundMax);
 
 		return mesh;
 	}

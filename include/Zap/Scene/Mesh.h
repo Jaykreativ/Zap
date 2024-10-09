@@ -9,6 +9,8 @@ namespace Zap {
         glm::mat4 m_transform = glm::mat4(1);
         vk::Buffer m_vertexBuffer = vk::Buffer();
         vk::Buffer m_indexBuffer = vk::Buffer();
+        glm::vec3 m_boundMin = { 0, 0, 0 };
+        glm::vec3 m_boundMax = { 0, 0, 0 };
     };
 
     class Mesh
@@ -25,6 +27,8 @@ namespace Zap {
 
         void destroy();
 
+        void setBoundingBox(glm::vec3 boundMin, glm::vec3 boundMax);
+        
         bool exists() const;
 
         UUID getHandle();

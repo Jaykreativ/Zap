@@ -10,7 +10,8 @@ namespace Zap {
 	class Transform;
 	class Model;
 	class Material;
-	class PhysicsComponent;
+	class RigidDynamic;
+	class RigidStatic;
 	class Light;
 	class Camera;
 
@@ -18,16 +19,25 @@ namespace Zap {
 	{
 	public:
 		Actor();
+		Actor(UUID uuid, Scene* pScene);
 		~Actor();
 
 		operator UUID() { return m_handle; }
 
 		bool operator ==(const Actor& act) { return m_handle == act.m_handle; }
 
+		void destroy();
+
+		UUID getHandle();
+
 		/* Transform */
+
+		//internally used method
+		Transform& getTransformCmp();
+
 		void addTransform(Transform transform);
 
-		void addTransform(glm::mat4 transform);
+		void addTransform(glm::mat4 transform = glm::mat4(1));
 
 		void destroyTransform();
 
@@ -55,6 +65,10 @@ namespace Zap {
 		glm::mat4 cmpTransform_getTransform() const;
 
 		/* Model */
+
+		//internally used method
+		Model& getModelCmp();
+
 		bool addModel(Model meshes);
 
 		void destroyModel();
@@ -69,11 +83,21 @@ namespace Zap {
 
 		void cmpModel_removeMesh(uint32_t meshIndex);
 
+		Model cmpModel_getModel();
+
 		/* RigidDynamic */
 
-		void addRigidDynamic(RigidDynamic rigidDynamic);
+		//internally used method
+		RigidDynamic& getRigidDynamicCmp();
+
+		//internally used method
+		void addRigidDynamic(const RigidDynamic& rigidDynamic);
+
+		void addRigidDynamic();
 
 		void addRigidDynamic(Shape shape);
+
+		void addRigidDynamic(const std::vector<Shape>& shapes);
 
 		void destroyRigidDynamic();
 
@@ -91,20 +115,53 @@ namespace Zap {
 
 		void cmpRigidDynamic_wakeUp();
 
+		void cmpRigidDynamic_attachShape(Shape shape);
+
+		void cmpRigidDynamic_detachShape(Shape shape);
+
+		void cmpRigidDynamic_detachAllShapes();
+
+		std::vector<Shape> cmpRigidDynamic_getShapes();
+
 		void cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value);
 
 		bool cmpRigidDynamic_getFlag(physx::PxActorFlag::Enum flag);
 
 		/* RigidStatic */
-		void addRigidStatic(RigidStatic rigidStatic);
+
+		//internally used method
+		RigidStatic& getRigidStaticCmp();
+
+		//internally used method
+		void addRigidStatic(const RigidStatic& rigidStatic);
+
+		void addRigidStatic();
 
 		void addRigidStatic(Shape shape);
+
+		void addRigidStatic(const std::vector<Shape>& shapes);
 
 		void destroyRigidStatic();
 
 		bool hasRigidStatic();
 
+		void cmpRigidStatic_attachShape(Shape shape);
+
+		void cmpRigidStatic_detachShape(Shape shape);
+
+		void cmpRigidDynamic_setShapes(std::vector<Shape> shapes);
+
+		std::vector<Shape> cmpRigidStatic_getShapes();
+
+		void cmpRigidStatic_setFlag(physx::PxActorFlag::Enum flag, bool value);
+
+		bool cmpRigidStatic_getFlag(physx::PxActorFlag::Enum flag);
+
 		/* Light */
+
+		//internally used method
+		Light& getLightCmp();
+
 		void addLight(Light light);
 
 		void addLight(glm::vec3 color = {1, 1, 1}, float strength = 1, float radius = 1);
@@ -126,6 +183,10 @@ namespace Zap {
 		float cmpLight_getRadius() const;
 
 		/* Camera */
+
+		//internally used method
+		Camera& Actor::getCameraCmp();
+
 		void addCamera(Camera camera);
 
 		void addCamera(glm::mat4 offset = glm::mat4(1));
@@ -146,27 +207,9 @@ namespace Zap {
 
 		glm::mat4 cmpCamera_getPerspective(float aspect) const;
 
-		void destroy();
-
 	private:
-
-#ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
-	public:
-#endif
-		Actor(UUID uuid, Scene* pScene);
-
-		Transform* getTransform();
-		Model* getModel();
-		RigidDynamic* getRigidDynamic();
-		RigidStatic* getRigidStatic();
-		Light* getLight();
-		Camera* getCamera();
-
 		UUID m_handle = UUID();
 		Scene* m_pScene = nullptr;
-#ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
-	private:
-#endif
 
 		friend class Scene;
 		friend class PBRenderer;

@@ -2,6 +2,8 @@
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/PhysicsComponent.h"
 
+#include "glm/gtc/quaternion.hpp"
+
 class SimulationCallbacks : public physx::PxSimulationEventCallback {// TODO put this in scene class
 	void onConstraintBreak(physx::PxConstraintInfo* constraints, physx::PxU32 count) {
 		PX_UNUSED(constraints); PX_UNUSED(count);
@@ -198,7 +200,6 @@ namespace Zap {
 		}
 	}
 
-
 	void Base::update() { // TODO implement base update
 		return;
 	}
@@ -249,4 +250,59 @@ namespace Zap {
 
 	Base* Base::m_engineBase;
 	bool Base::m_exists;
+
+	namespace PxUtils {
+		physx::PxTransform glmMat4ToTransform(glm::mat4 glmt) {
+			glmt[0] = glm::normalize(glmt[0]);
+			glmt[1] = glm::normalize(glmt[1]);
+			glmt[2] = glm::normalize(glmt[2]);
+
+			auto pos = *((physx::PxVec3*)&glm::vec3(glmt[3]));
+			auto quat = *((physx::PxQuat*)&glm::quat_cast(glm::mat3(glmt)));
+
+			return physx::PxTransform(pos, quat);
+		}
+
+		physx::PxVec2 glmVec2toVec2(glm::vec2 vec) {
+			return { vec.x, vec.y };
+		}
+
+		physx::PxVec3 glmVec3toVec3(glm::vec3 vec) {
+			return { vec.x, vec.y, vec.z };
+		}
+
+		physx::PxVec4 glmVec4toVec4(glm::vec4 vec) {
+			return { vec.x, vec.y, vec.z, vec.w };
+		}
+
+		glm::mat4 transformToGlmMat4(physx::PxTransform transform) {
+			physx::PxMat44 pxMat4(transform);
+			glm::mat4 mat4;
+			mat4[0] = vec4ToGlmVec4(pxMat4.column0);
+			mat4[1] = vec4ToGlmVec4(pxMat4.column1);
+			mat4[2] = vec4ToGlmVec4(pxMat4.column2);
+			mat4[3] = vec4ToGlmVec4(pxMat4.column3);
+			return mat4;
+		}
+
+		glm::vec2 vec2ToGlmVec2(physx::PxVec2 vec) {
+			return { vec.x, vec.y };
+		}
+
+		glm::vec3 vec3ToGlmVec3(physx::PxVec3 vec) {
+			return { vec.x, vec.y, vec.z };
+		}
+
+		glm::vec4 vec4ToGlmVec4(physx::PxVec4 vec) {
+			return { vec.x, vec.y, vec.z, vec.w };
+		}
+
+		physx::PxQuat glmQuatToQuat(glm::quat quat) {
+			return physx::PxQuat(quat.x, quat.y, quat.z, quat.w);
+		}
+
+		glm::quat quatToGlmQuat(physx::PxQuat quat) {
+			return glm::quat(quat.x, quat.y, quat.z, quat.w);
+		}
+	}
 }

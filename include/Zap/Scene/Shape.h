@@ -4,58 +4,121 @@
 #include "glm.hpp"
 
 namespace Zap {
-    class PhysicsMaterial {
-    public:
-        PhysicsMaterial(uint32_t staticFriction, uint32_t dynamicFriction, uint32_t restitution);
-        ~PhysicsMaterial();
+	class PhysicsMaterial {
+	public:
+		PhysicsMaterial(float staticFriction, float dynamicFriction, float restitution);
+		~PhysicsMaterial();
 
-    private:
-        physx::PxMaterial* m_pxMaterial;
+		void release();
 
-        friend class Shape;
-    };
+	private:
+		physx::PxMaterial* m_pxMaterial;
 
-    class PhysicsGeometry {
-    public:
-        PhysicsGeometry() = default;
+		friend class Shape;
+	};
 
-    protected:
-        physx::PxGeometry* m_pxGeometry;
+	class PhysicsGeometry {
+	public:
+		PhysicsGeometry() = default;
+		~PhysicsGeometry() = default;
 
-    private:
+		operator physx::PxGeometry& () { return *getPxGeometry(); };
+		operator physx::PxGeometry* () { return getPxGeometry(); };
+		operator const physx::PxGeometry& () const { return *getPxGeometry(); };
+		operator const physx::PxGeometry* () const { return getPxGeometry(); };
 
-        friend class Shape;
-    };
+		virtual physx::PxGeometryType::Enum getType() const = 0;
 
-    class BoxGeometry : public PhysicsGeometry {
-    public:
-        BoxGeometry(glm::vec3 size);
-        ~BoxGeometry();
-    };
+		virtual physx::PxGeometry* getPxGeometry() = 0;
+		virtual const physx::PxGeometry* getPxGeometry() const = 0;
+	};
 
-    class PlaneGeometry : public PhysicsGeometry {
-    public:
-        PlaneGeometry();
-        ~PlaneGeometry();
-    };
+	enum PhysicsGeometryType {
+		eGEOMETRY_TYPE_NONE = 0,
+		eGEOMETRY_TYPE_BOX = 1,
+		eGEOMETRY_TYPE_PLANE = 2
+	};
 
-    class Shape
-    {
-    public:
-        Shape(PhysicsGeometry geometry, PhysicsMaterial material, bool isExclusive = false, glm::mat4 offsetTransform = glm::mat4(1));
-        ~Shape();
-        Shape(Shape& shape);
+	class BoxGeometry : public PhysicsGeometry {
+	public:
+		BoxGeometry(glm::vec3 size);
+		BoxGeometry(const physx::PxBoxGeometry& geometry);
+		BoxGeometry(BoxGeometry& boxGeometry);
 
-    private:
-        bool m_hasShape = false;
+		physx::PxGeometryType::Enum getType() const override;
 
-        physx::PxShape* m_pxShape;
+		physx::PxGeometry* getPxGeometry() override;
+		const physx::PxGeometry* getPxGeometry() const override;
 
-        friend class Actor;
-        friend class PhysicsComponent;
-        friend class RigidBodyComponent;
-        friend class RigidDynamic;
-        friend class RigidStatic;
-    };
+		void setHalfExtents(glm::vec3 halfExtents);
+
+		glm::vec3 getHalfExtents();
+
+	private:
+		physx::PxBoxGeometry m_geometry;
+	};
+
+	class PlaneGeometry : public PhysicsGeometry {
+	public:
+		PlaneGeometry();
+		PlaneGeometry(const physx::PxPlaneGeometry& geometry);
+		PlaneGeometry(PlaneGeometry& planeGeometry);
+
+		physx::PxGeometryType::Enum getType() const override;
+
+		physx::PxGeometry* getPxGeometry() override;
+		const physx::PxGeometry* getPxGeometry() const override;
+
+	private:
+		physx::PxPlaneGeometry m_geometry;
+	};
+
+	class Shape
+	{
+	public:
+		Shape() = default;
+		Shape(const PhysicsGeometry& geometry, PhysicsMaterial material,
+			bool isExclusive = false, glm::mat4 offsetTransform = glm::mat4(1),
+			physx::PxShapeFlags shapeFlags = physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE | physx::PxShapeFlag::eSIMULATION_SHAPE
+		);
+		Shape(physx::PxShape* pxShape);
+		~Shape();
+
+		operator physx::PxShape&() { return *getPxShape(); }
+		operator physx::PxShape*() { return getPxShape(); }
+ 
+		void release();
+
+		void setGeometry(const PhysicsGeometry& geometry);
+
+		std::unique_ptr<PhysicsGeometry> getGeometry();
+
+		/*
+		* Sets the local pose relative to the actors transform
+		* Ignores scaling, because this is handled by the underlying geometry
+		*/
+		void setLocalPose(glm::mat4 transform);
+
+		void setLocalPosition(glm::vec3 pos);
+
+		void setLocalRotation(glm::quat quat);
+
+		glm::mat4 getLocalPose();
+
+		glm::vec3 getLocalPosition();
+
+		glm::quat getLocalRotation();
+
+		physx::PxShape* getPxShape();
+
+	private:
+		physx::PxShape* m_pxShape = nullptr;
+
+		friend class Actor;
+		friend class PhysicsComponent;
+		friend class RigidBodyComponent;
+		friend class RigidDynamic;
+		friend class RigidStatic;
+	};
 }
 
