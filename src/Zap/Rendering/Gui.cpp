@@ -12,6 +12,40 @@ namespace Zap {
 	vk::RenderPass Gui::renderPass = vk::RenderPass();
 	Window* Gui::pImGuiWindow = nullptr;
 
+	GuiImage::GuiImage()
+		: Image()
+	{
+		m_texSampler = vk::Sampler();
+		m_texSampler.init();
+	}
+
+	GuiImage::GuiImage(VkImage image)
+		: Image(image)
+	{
+		m_texSampler = vk::Sampler();
+		m_texSampler.init();
+	}
+
+	GuiImage::~GuiImage(){
+		m_texSampler.destroy();
+	}
+
+	void GuiImage::initView() {
+		Image::initView();
+		m_guiTexture = ImGui_ImplVulkan_AddTexture(m_texSampler, m_imageView, VK_IMAGE_LAYOUT_GENERAL);
+	}
+
+	void GuiImage::destroyView() {
+		ImGui_ImplVulkan_RemoveTexture(m_guiTexture);
+		Image::destroyView();
+	}
+
+	void GuiImage::update() {
+		ImGui_ImplVulkan_RemoveTexture(m_guiTexture);
+		Image::update();
+		m_guiTexture = ImGui_ImplVulkan_AddTexture(m_texSampler, m_imageView, VK_IMAGE_LAYOUT_GENERAL);
+	}
+
 	Gui::Gui(){}
 
 	Gui::~Gui(){}

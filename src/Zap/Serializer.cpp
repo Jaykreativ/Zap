@@ -247,32 +247,32 @@ namespace Zap {
 			
 			if (actor.hasCamera()) {
 				stream << "[Camera]{\n";
-				serializeCamera(stream, *actor.getCamera());
+				serializeCamera(stream, actor.getCameraCmp());
 				stream << "}\n";
 			}
 			if (actor.hasLight()) {
 				stream << "[Light]{\n";
-				serializeLight(stream, *actor.getLight());
+				serializeLight(stream, actor.getLightCmp());
 				stream << "}\n";
 			}
 			if (actor.hasModel()) {
 				stream << "[Model]{\n";
-				serializeModel(stream, *actor.getModel());
+				serializeModel(stream, actor.getModelCmp());
 				stream << "}\n";
 			}
 			if (actor.hasRigidDynamic()) {
 				stream << "[RigidDynamic]{\n";
-				serializeRigidDynamic(stream, *actor.getRigidDynamic());
+				serializeRigidDynamic(stream, actor.getRigidDynamicCmp());
 				stream << "}\n";
 			}
 			if (actor.hasRigidStatic()) {
 				stream << "[RigidStatic]{\n";
-				serializeRigidStatic(stream, *actor.getRigidStatic());
+				serializeRigidStatic(stream, actor.getRigidStaticCmp());
 				stream << "}\n";
 			}
 			if (actor.hasTransform()) {
 				stream << "[Transform]{\n";
-				serializeTransform(stream, *actor.getTransform());
+				serializeTransform(stream, actor.getTransformCmp());
 				stream << "}\n";
 			}
 			stream << "}\n";

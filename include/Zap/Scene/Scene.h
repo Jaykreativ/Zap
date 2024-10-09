@@ -17,6 +17,7 @@
 
 namespace Zap {
 	class Actor; // forward declaration
+	class DebugRenderVertex;
 
 	class SceneUpdateEvent : public Event {
 	public:
@@ -118,6 +119,11 @@ namespace Zap {
 
 		const physx::PxRenderBuffer* getPxRenderBuffer();
 
+		/*
+		* Writes all Lines from the PhysX RenderBuffer to the back of the given vector
+		*/
+		bool getPxDebugVertices(std::vector<DebugRenderVertex>& debugVertices);
+
 		EventHandler<SceneUpdateEvent>* getSceneUpdateEventHandler();
 
 		EventHandler<AddActorEvent>* getAddActorEventHandler();
@@ -137,7 +143,7 @@ namespace Zap {
 #endif
 		UUID m_handle;
 
-		physx::PxScene* m_pxScene;
+		physx::PxScene* m_pxScene = nullptr;
 
 		//TODO add parent/child system to actors
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS

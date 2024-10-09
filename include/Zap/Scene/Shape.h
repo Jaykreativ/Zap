@@ -20,13 +20,17 @@ namespace Zap {
 	class PhysicsGeometry {
 	public:
 		PhysicsGeometry() = default;
+		~PhysicsGeometry() = default;
 
-	protected:
-		physx::PxGeometry* m_pxGeometry = nullptr;
+		operator physx::PxGeometry& () { return *getPxGeometry(); };
+		operator physx::PxGeometry* () { return getPxGeometry(); };
+		operator const physx::PxGeometry& () const { return *getPxGeometry(); };
+		operator const physx::PxGeometry* () const { return getPxGeometry(); };
 
-	private:
+		virtual physx::PxGeometryType::Enum getType() const = 0;
 
-		friend class Shape;
+		virtual physx::PxGeometry* getPxGeometry() = 0;
+		virtual const physx::PxGeometry* getPxGeometry() const = 0;
 	};
 
 	enum PhysicsGeometryType {
@@ -38,31 +42,72 @@ namespace Zap {
 	class BoxGeometry : public PhysicsGeometry {
 	public:
 		BoxGeometry(glm::vec3 size);
-		~BoxGeometry();
+		BoxGeometry(const physx::PxBoxGeometry& geometry);
 		BoxGeometry(BoxGeometry& boxGeometry);
+
+		physx::PxGeometryType::Enum getType() const override;
+
+		physx::PxGeometry* getPxGeometry() override;
+		const physx::PxGeometry* getPxGeometry() const override;
+
+		void setHalfExtents(glm::vec3 halfExtents);
+
+		glm::vec3 getHalfExtents();
+
+	private:
+		physx::PxBoxGeometry m_geometry;
 	};
 
 	class PlaneGeometry : public PhysicsGeometry {
 	public:
 		PlaneGeometry();
-		~PlaneGeometry();
+		PlaneGeometry(const physx::PxPlaneGeometry& geometry);
 		PlaneGeometry(PlaneGeometry& planeGeometry);
+
+		physx::PxGeometryType::Enum getType() const override;
+
+		physx::PxGeometry* getPxGeometry() override;
+		const physx::PxGeometry* getPxGeometry() const override;
+
+	private:
+		physx::PxPlaneGeometry m_geometry;
 	};
 
 	class Shape
 	{
 	public:
 		Shape() = default;
-		Shape(PhysicsGeometry& geometry, PhysicsMaterial material,
+		Shape(const PhysicsGeometry& geometry, PhysicsMaterial material,
 			bool isExclusive = false, glm::mat4 offsetTransform = glm::mat4(1),
 			physx::PxShapeFlags shapeFlags = physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE | physx::PxShapeFlag::eSIMULATION_SHAPE
 		);
 		Shape(physx::PxShape* pxShape);
 		~Shape();
+
+		operator physx::PxShape&() { return *getPxShape(); }
+		operator physx::PxShape*() { return getPxShape(); }
  
 		void release();
 
-		void setGeometry(PhysicsGeometry& geometry);
+		void setGeometry(const PhysicsGeometry& geometry);
+
+		std::unique_ptr<PhysicsGeometry> getGeometry();
+
+		/*
+		* Sets the local pose relative to the actors transform
+		* Ignores scaling, because this is handled by the underlying geometry
+		*/
+		void setLocalPose(glm::mat4 transform);
+
+		void setLocalPosition(glm::vec3 pos);
+
+		void setLocalRotation(glm::quat quat);
+
+		glm::mat4 getLocalPose();
+
+		glm::vec3 getLocalPosition();
+
+		glm::quat getLocalRotation();
 
 		physx::PxShape* getPxShape();
 

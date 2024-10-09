@@ -42,7 +42,7 @@ namespace Zap {
 	private:
 		void processNode(const aiNode* node, const aiScene* aScene, std::string path, glm::mat4& transform, uint32_t flags, Model* pModel);
 
-		Mesh loadMesh(aiMesh* aMesh, glm::mat4& transform);
+		Mesh loadMesh(aiMesh* aMesh, glm::mat4& transform, glm::vec3& modelBoundMin, glm::vec3& modelBoundMax);
 
 		void loadMaterial(const aiScene* aScene, const aiMaterial* aMaterial, std::string path, uint32_t flags, Material* pMaterial);
 	};

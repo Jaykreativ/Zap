@@ -3,11 +3,12 @@
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Material.h"
 #include "Zap/Scene/PhysicsComponent.h"
+#include "Zap/Rendering/DebugRenderTask.h"
 
 namespace Zap {
-	Scene::Scene() {
-		m_handle = UUID();
-	}
+	Scene::Scene()
+		: m_handle()
+	{}
 	Scene::Scene(UUID handle)
 		: m_handle(handle)
 	{}
@@ -168,12 +169,11 @@ namespace Zap {
 			case physx::PxActorType::eRIGID_DYNAMIC: {
 				RigidDynamic* cmp = &m_rigidDynamicComponents.at((uint64_t)pxActor->userData);
 				glm::mat4* transform = &m_transformComponents.at((uint64_t)pxActor->userData).transform;
-				physx::PxMat44 pxMat = physx::PxMat44(((physx::PxRigidDynamic*)pxActor)->getGlobalPose());
-				glm::mat4 mat = *((glm::mat4*)&pxMat);
+				glm::mat4 mat = PxUtils::transformToGlmMat4(((physx::PxRigidDynamic*)pxActor)->getGlobalPose());
 				mat[0] = mat[0] * glm::length((*transform)[0]);
 				mat[1] = mat[1] * glm::length((*transform)[1]);
 				mat[2] = mat[2] * glm::length((*transform)[2]);
-				*transform = { mat };
+				*transform = mat;
 			}
 			}
 		}
@@ -181,6 +181,29 @@ namespace Zap {
 
 	const physx::PxRenderBuffer* Scene::getPxRenderBuffer() {
 		return &m_pxScene->getRenderBuffer();
+	}
+
+	bool Scene::getPxDebugVertices(std::vector<DebugRenderVertex>& debugVertices) {
+		if (!m_pxScene)
+			return false;
+
+		auto* renderBuffer = getPxRenderBuffer();
+		size_t offset = debugVertices.size();
+		uint32_t pxSize = renderBuffer->getNbLines();
+		auto* lines = renderBuffer->getLines();
+
+		debugVertices.resize(pxSize*2+offset);
+		for (uint32_t i = 0; i < pxSize; i++) {
+			uint8_t r0 = lines[i].color0;
+			uint8_t g0 = lines[i].color0 >> 8;
+			uint8_t b0 = lines[i].color0 >> 16;
+			uint8_t r1 = lines[i].color1;
+			uint8_t g1 = lines[i].color1 >> 8;
+			uint8_t b1 = lines[i].color1 >> 16;
+			debugVertices[i * 2 + offset]     = Zap::DebugRenderVertex({ lines[i].pos0.x, lines[i].pos0.y, lines[i].pos0.z }, { r0, g0, b0 });
+			debugVertices[i * 2 + 1 + offset] = Zap::DebugRenderVertex({ lines[i].pos1.x, lines[i].pos1.y, lines[i].pos1.z }, { r1, g1, b1 });
+		}
+		return true;
 	}
 
 	EventHandler<SceneUpdateEvent>* Scene::getSceneUpdateEventHandler() {

@@ -41,6 +41,13 @@ namespace Zap {
 		data->m_indexBuffer.destroy();
 	}
 
+	void Mesh::setBoundingBox(glm::vec3 boundMin, glm::vec3 boundMax) {
+		auto* base = Base::getBase();
+		MeshData* data = base->m_assetHandler.getMeshDataPtr(m_handle);
+		data->m_boundMin = boundMin;
+		data->m_boundMax = boundMax;
+	}
+
 	bool Mesh::exists() const {
 		auto* base = Base::getBase();
 		return base->getAssetHandler()->existsMeshData(m_handle);

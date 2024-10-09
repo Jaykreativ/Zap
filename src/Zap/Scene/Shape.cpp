@@ -1,5 +1,7 @@
 #include "Zap/Scene/Shape.h"
 
+#include "glm/gtc/quaternion.hpp"
+
 namespace Zap {
 	PhysicsMaterial::PhysicsMaterial(float staticFriction, float dynamicFriction, float restitution) {
 		auto base = Base::getBase();
@@ -13,34 +15,63 @@ namespace Zap {
 	}
 
 	BoxGeometry::BoxGeometry(glm::vec3 size) {
-		m_pxGeometry = new physx::PxBoxGeometry(size.x, size.y, size.z);
+		m_geometry = physx::PxBoxGeometry(size.x, size.y, size.z);
 	}
 
-	BoxGeometry::~BoxGeometry() {
-		delete m_pxGeometry;
+	BoxGeometry::BoxGeometry(const physx::PxBoxGeometry& geometry) {
+		m_geometry = geometry;
 	}
 
 	BoxGeometry::BoxGeometry(BoxGeometry& boxGeometry) {
-		auto* pGeometry = (physx::PxBoxGeometry*)boxGeometry.m_pxGeometry;
-		m_pxGeometry = new physx::PxBoxGeometry(pGeometry->halfExtents.x, pGeometry->halfExtents.y, pGeometry->halfExtents.z);
+		m_geometry = boxGeometry.m_geometry;
 	}
 
-	PlaneGeometry::PlaneGeometry() {
-		m_pxGeometry = new physx::PxPlaneGeometry();
+	physx::PxGeometryType::Enum BoxGeometry::getType() const {
+		return m_geometry.getType();
 	}
 
-	PlaneGeometry::~PlaneGeometry() {
-		delete m_pxGeometry;
+	physx::PxGeometry* BoxGeometry::getPxGeometry() {
+		return &m_geometry;
+	}
+	const physx::PxGeometry* BoxGeometry::getPxGeometry() const {
+		return &m_geometry;
 	}
 
-	PlaneGeometry::PlaneGeometry(PlaneGeometry& planeGeometry) {
-		m_pxGeometry = new physx::PxPlaneGeometry();
+	void BoxGeometry::setHalfExtents(glm::vec3 halfExtents) {
+		m_geometry.halfExtents = { halfExtents.x, halfExtents.y, halfExtents.z };
 	}
 
-	Shape::Shape(PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform, physx::PxShapeFlags shapeFlags) {
+	glm::vec3 BoxGeometry::getHalfExtents() {
+		return { m_geometry.halfExtents.x, m_geometry.halfExtents.y, m_geometry.halfExtents.z };
+	}
+
+	PlaneGeometry::PlaneGeometry()
+		: m_geometry()
+	{}
+
+	PlaneGeometry::PlaneGeometry(const physx::PxPlaneGeometry& geometry)
+		: m_geometry(geometry)
+	{}
+
+	PlaneGeometry::PlaneGeometry(PlaneGeometry& planeGeometry)
+		: m_geometry(planeGeometry.m_geometry)
+	{}
+
+	physx::PxGeometryType::Enum PlaneGeometry::getType() const {
+		return m_geometry.getType();
+	}
+
+	physx::PxGeometry* PlaneGeometry::getPxGeometry() {
+		return &m_geometry;
+	}
+	const physx::PxGeometry* PlaneGeometry::getPxGeometry() const {
+		return &m_geometry;
+	}
+
+	Shape::Shape(const PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform, physx::PxShapeFlags shapeFlags) {
 		auto base = Base::getBase();
 
-		m_pxShape = base->m_pxPhysics->createShape(*geometry.m_pxGeometry, &material.m_pxMaterial, 1, isExclusive, shapeFlags);
+		m_pxShape = base->m_pxPhysics->createShape(geometry, &material.m_pxMaterial, 1, isExclusive, shapeFlags);
 		ZP_ASSERT(m_pxShape, "Failed to create pxShape");
 
 		offsetTransform[0] = glm::vec4(glm::normalize(glm::vec3(offsetTransform[0])), offsetTransform[0].w);
@@ -62,8 +93,50 @@ namespace Zap {
 		m_pxShape->release();
 	}
 
-	void Shape::setGeometry(PhysicsGeometry& geometry) {
-		m_pxShape->setGeometry(*geometry.m_pxGeometry);
+	void Shape::setGeometry(const PhysicsGeometry& geometry) {
+		m_pxShape->setGeometry(geometry);
+	}
+
+	std::unique_ptr<PhysicsGeometry> Shape::getGeometry() {
+		const auto& geometry = m_pxShape->getGeometry();
+		switch (geometry.getType())
+		{
+		case physx::PxGeometryType::eBOX:
+			return std::unique_ptr<PhysicsGeometry>(new BoxGeometry(static_cast<const physx::PxBoxGeometry&>(m_pxShape->getGeometry())));
+		case physx::PxGeometryType::ePLANE:
+			return std::unique_ptr<PhysicsGeometry>(new PlaneGeometry(static_cast<const physx::PxPlaneGeometry&>(m_pxShape->getGeometry())));
+		}
+	}
+
+	void Shape::setLocalPose(glm::mat4 transform) {
+		m_pxShape->setLocalPose(PxUtils::glmMat4ToTransform(transform));
+	}
+
+	void Shape::setLocalPosition(glm::vec3 pos) {
+		auto pxTransform = m_pxShape->getLocalPose();
+		pxTransform.p = PxUtils::glmVec3toVec3(pos);
+		m_pxShape->setLocalPose(pxTransform);
+	}
+
+	void Shape::setLocalRotation(glm::quat quat) {
+		auto pxTransform = m_pxShape->getLocalPose();
+		pxTransform.q = PxUtils::glmQuatToQuat(quat);
+		m_pxShape->setLocalPose(pxTransform);
+	}
+
+	glm::mat4 Shape::getLocalPose() {
+		auto pxTransform = m_pxShape->getLocalPose();
+		return PxUtils::transformToGlmMat4(pxTransform);
+	}
+
+	glm::vec3 Shape::getLocalPosition() {
+		auto pxTransform = m_pxShape->getLocalPose();
+		return PxUtils::vec3ToGlmVec3(pxTransform.p);
+	}
+
+	glm::quat Shape::getLocalRotation() {
+		auto pxTransform = m_pxShape->getLocalPose();
+		return PxUtils::quatToGlmQuat(pxTransform.q);
 	}
 
 	physx::PxShape* Shape::getPxShape() {
