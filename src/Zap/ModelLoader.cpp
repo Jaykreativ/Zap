@@ -110,47 +110,48 @@ namespace Zap {
 
 	void ModelLoader::loadMaterial(const aiScene* aScene, const aiMaterial* aMaterial, std::string path, uint32_t flags, Material* pMaterial) {;
 		aiColor4D aDiffuse; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_DIFFUSE, &aDiffuse);
-		pMaterial->albedoColor = glm::vec3(aDiffuse.r, aDiffuse.g, aDiffuse.b);
-		aiGetMaterialFloat(aMaterial, AI_MATKEY_METALLIC_FACTOR, &pMaterial->metallic);
-		aiGetMaterialFloat(aMaterial, AI_MATKEY_ROUGHNESS_FACTOR, &pMaterial->roughness);
+		MaterialData* pMaterialData = Base::getBase()->m_assetHandler.getMaterialDataPtr(pMaterial->getHandle());
+		pMaterialData->albedoColor = glm::vec4(aDiffuse.r, aDiffuse.g, aDiffuse.b, 1);
+		aiGetMaterialFloat(aMaterial, AI_MATKEY_METALLIC_FACTOR, &pMaterialData->metallic);
+		aiGetMaterialFloat(aMaterial, AI_MATKEY_ROUGHNESS_FACTOR, &pMaterialData->roughness);
 		aiColor4D aEmissive; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_EMISSIVE, &aEmissive);
-		pMaterial->emissive = glm::vec4(aEmissive.r, aEmissive.g, aEmissive.b, 0);
-		aiGetMaterialFloat(aMaterial, AI_MATKEY_EMISSIVE_INTENSITY, &pMaterial->emissive.w);
+		pMaterialData->emissive = glm::vec4(aEmissive.r, aEmissive.g, aEmissive.b, 0);
+		aiGetMaterialFloat(aMaterial, AI_MATKEY_EMISSIVE_INTENSITY, &pMaterialData->emissive.w);
 		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE) > 0) {
 			aiString diffuseTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
 			auto embeddedTexture = aScene->GetEmbeddedTexture(diffuseTexturePath.C_Str());
 			if (embeddedTexture) {
-				pMaterial->albedoMap = loadTexture(embeddedTexture);
+				pMaterialData->albedoMap = loadTexture(embeddedTexture);
 			}
 			else {
-				pMaterial->albedoMap = loadTexture((path + std::string(diffuseTexturePath.C_Str())).c_str());
+				pMaterialData->albedoMap = loadTexture((path + std::string(diffuseTexturePath.C_Str())).c_str());
 			}
 			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
-				pMaterial->albedoColor = glm::vec3(1, 1, 1);
+				pMaterialData->albedoColor = glm::vec4(1, 1, 1, 1);
 		}
 		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_METALNESS) > 0) {
 			aiString metallicTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_METALNESS, 0, &metallicTexturePath);
 			auto embeddedTexture = aScene->GetEmbeddedTexture(metallicTexturePath.C_Str());
 			if (embeddedTexture) {
-				pMaterial->metallicMap = loadTexture(embeddedTexture);
+				pMaterialData->metallicMap = loadTexture(embeddedTexture);
 			}
 			else {
-				pMaterial->metallicMap = loadTexture((path + std::string(metallicTexturePath.C_Str())).c_str());
+				pMaterialData->metallicMap = loadTexture((path + std::string(metallicTexturePath.C_Str())).c_str());
 			}
 			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
-				pMaterial->metallic = 1;
+				pMaterialData->metallic = 1;
 		}
 		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
 			aiString roughnessTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS, 0, &roughnessTexturePath);
 			auto embeddedTexture = aScene->GetEmbeddedTexture(roughnessTexturePath.C_Str());
 			if (embeddedTexture) {
-				pMaterial->roughnessMap = loadTexture(embeddedTexture);
+				pMaterialData->roughnessMap = loadTexture(embeddedTexture);
 			}
 			else {
-				pMaterial->roughnessMap = loadTexture((path + std::string(roughnessTexturePath.C_Str())).c_str());
+				pMaterialData->roughnessMap = loadTexture((path + std::string(roughnessTexturePath.C_Str())).c_str());
 			}
 			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
-				pMaterial->roughness = 1;
+				pMaterialData->roughness = 1;
 		}
 	}
 

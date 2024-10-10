@@ -34,12 +34,12 @@ layout(set=0, binding=1) readonly buffer LightBuffer{
 } lightBuffer;
 
 struct Material {
-    vec3 albedo;
-    uint albedoMap;
+	vec4 albedo;
+	uint albedoMap;
 	float metallic;
-    uint metallicMap;
+	uint metallicMap;
 	float roughness;
-    uint roughnessMap;
+	uint roughnessMap;
 	vec4 emissive;
 	uint emissiveMap;
 };
@@ -99,9 +99,9 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 void main(){
 	Material material = perMeshInstance.data[constants.instanceIndex].material;
-	vec3 albedo = material.albedo;
+	vec4 albedo = material.albedo;
 	if(material.albedoMap < 0xFFFFFFFF)
-		albedo *= texture(textures[material.albedoMap], fragTexCoords).rgb;
+		albedo *= texture(textures[material.albedoMap], fragTexCoords);
 	float metallic = material.metallic;
 	if(material.metallicMap < 0xFFFFFFFF)
 		metallic *= texture(textures[material.metallicMap], fragTexCoords).b;
@@ -117,7 +117,7 @@ void main(){
 	vec3 V = normalize(ubo.camPos - fragPos);
 
 	vec3 F0 = vec3(0.04); 
-	F0 = mix(F0, albedo, metallic);
+	F0 = mix(F0, albedo.rgb, metallic);
 			   
 	// reflectance equation
 	vec3 Lo = vec3(0.0);
@@ -146,7 +146,7 @@ void main(){
 			
 		// add to outgoing radiance Lo
 		float NdotL = max(dot(N, L), 0.0);
-		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+		Lo += (kD * albedo.rgb / PI + specular) * radiance * NdotL;
 	}   
   
 	vec3 color = emissive.xyz * emissive.w + Lo;

@@ -49,7 +49,7 @@ layout(set=1, binding=1) readonly buffer LightBuffer {
 } lightBuffer;
 
 struct Material {
-	vec3 albedo;
+	vec4 albedo;
 	uint albedoMap;
 	float metallic;
 	uint metallicMap;
@@ -215,9 +215,9 @@ void main() {
 	const vec3 worldNormal = normalize(vec3(normal * gl_WorldToObjectEXT));  // Transforming the normal to world space
 	
 	Material material = perMeshInstanceData.material;
-	vec3 albedo = material.albedo;
+	vec4 albedo = material.albedo;
 	if(material.albedoMap < 0xFFFFFFFF)
-		albedo *= texture(textures[material.albedoMap], texCoords).rgb;
+		albedo *= texture(textures[material.albedoMap], texCoords);
 	float metallic = material.metallic;
 	if(material.metallicMap < 0xFFFFFFFF)
 		metallic *= texture(textures[material.metallicMap], texCoords).b;
@@ -235,7 +235,7 @@ void main() {
 	vec3 V = -prd.rayDirection;
 
 	vec3 F0 = vec3(0.04); 
-	F0 = mix(F0, albedo, metallic);
+	F0 = mix(F0, albedo.rgb, metallic);
 
 	// reflectance equation
 	vec3 Lo = vec3(0);
@@ -307,7 +307,7 @@ void main() {
 		float NdotL = max(dot(N, L), 0.0);
 		vec3 BRDF = vec3(0);
 		if(isDiffuse){
-			BRDF =  max(kD * albedo * (2-metallic) / PI, 0.0);// if the surface is not metallic multiply to correct for 50% chance to add up to 100% (diffuse*2 + specular*2)/2 == diffuse + specular
+			BRDF =  max(kD * albedo.rgb * (2-metallic) / PI, 0.0);// if the surface is not metallic multiply to correct for 50% chance to add up to 100% (diffuse*2 + specular*2)/2 == diffuse + specular
 			NdotL = 1;
 		} else
 			BRDF = max(specular * (2-metallic), 0.0);

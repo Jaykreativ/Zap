@@ -25,7 +25,7 @@ layout(binding=0) uniform UBO{
 } ubo;
 
 struct Material {
-    vec3 albedo;
+    vec4 albedo;
     uint albedoMap;
 	float metallic;
     uint metallicMap;
