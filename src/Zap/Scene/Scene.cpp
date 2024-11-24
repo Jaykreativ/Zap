@@ -105,7 +105,26 @@ namespace Zap {
 					auto* base = Base::getBase();
 					perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * *mesh.getTransform();
 					perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
-					perMeshInstance[i].material = *base->m_assetHandler.getMaterialDataPtr(modelPair.second.materials[j].getHandle());
+					auto& material = *base->m_assetHandler.getMaterialDataPtr(modelPair.second.materials[j].getHandle());
+					MaterialGpuData gpuMaterial = {
+						material.albedoColor,
+						0xFFFFFFFF,
+						material.metallic,
+						0xFFFFFFFF,
+						material.roughness,
+						0xFFFFFFFF,
+						material.emissive,
+						0xFFFFFFFF,
+					};
+					if (base->m_textureIndices.count(material.albedoMap.getHandle()))
+						gpuMaterial.albedoMap = base->m_textureIndices.at(material.albedoMap.getHandle());
+					if (base->m_textureIndices.count(material.metallicMap.getHandle()))
+						gpuMaterial.metallicMap = base->m_textureIndices.at(material.metallicMap.getHandle());
+					if (base->m_textureIndices.count(material.roughnessMap.getHandle()))
+						gpuMaterial.roughnessMap = base->m_textureIndices.at(material.roughnessMap.getHandle());
+					if (base->m_textureIndices.count(material.emissiveMap.getHandle()))
+						gpuMaterial.emissiveMap = base->m_textureIndices.at(material.emissiveMap.getHandle());
+					perMeshInstance[i].material = gpuMaterial;
 					j++; i++;
 
 				}

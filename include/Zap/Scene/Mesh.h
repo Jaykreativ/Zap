@@ -20,8 +20,6 @@ namespace Zap {
         Mesh(UUID handle);
         ~Mesh();
 
-        void init();
-
         void load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices);
         void load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray);
 

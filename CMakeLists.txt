@@ -33,6 +33,7 @@ source_group("Shader" FILES ${Zap_Shader_SRC})
 source_group("Imgui" FILES ${Imgui_SRC})
 
 set(${BUILD_SHARED_LIBS} false)
+set(${CMAKE_BUILD_PARALLEL_LEVEL} 16)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Zap)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework)

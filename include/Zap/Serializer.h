@@ -3,6 +3,9 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Actor.h"
 
+#include <fstream>
+#include <iostream>
+
 namespace Zap {
 	class Serializer
 	{
@@ -10,28 +13,59 @@ namespace Zap {
 		Serializer();
 		~Serializer();
 
-		void serialize(const char* filePath);
+		bool beginSerialization(const char* filePath);
 
-		void deserialize(const char* filePath, std::vector<Actor>* actors, std::vector<Scene>* scenes);
+		void endSerialization();
 
-		void addActor(Actor actor);
+		bool beginDeserialization(const char* filePath);
 
-		std::ofstream beginCustomSerialization(const char* filePath);
+		void endDeserialization();
 
-		void endCustomSerialization();
+		char getIgnore(std::istream& stream);
 
-		std::ifstream beginCustomDeserialization(const char* filePath);
+		char peekIgnore(std::istream& stream);
 
-		void endCustomDeserialization();
+		void goToNextSymbol(std::istream& stream, char symbol);
+
+		bool beginElement(std::string name);
+
+		void endElement();
+
+		std::string readAttribute(std::string attribute, bool* success = nullptr);
+		int readAttributei(std::string attribute, bool* success = nullptr);
+		float readAttributef(std::string attribute, bool* success = nullptr);
+		glm::vec3 readAttributeVec3(std::string attribute, bool* success = nullptr);
+		glm::vec4 readAttributeVec4(std::string attribute, bool* success = nullptr);
+		glm::mat4 readAttributeMat4(std::string attribute, bool* success = nullptr);
+
+		void writeAttribute(std::string attribute, std::string data);
+		void writeAttribute(std::string attribute, int data);
+		void writeAttribute(std::string attribute, float data);
+		void writeAttribute(std::string attribute, glm::vec3 data);
+		void writeAttribute(std::string attribute, glm::vec4 data);
+		void writeAttribute(std::string attribute, glm::mat4 data);
+
+		// Can be called while deserializing
+		// Looks for a matching element in current scope
+		bool existsElement(std::string element);
+
+		// Can be called while deserializing
+		bool existsAttribute(std::string attribute);
 
 	private:
-		std::vector<Actor> m_actorQueue = {};
+		bool m_isActive = false;
+		bool m_isInput = false;
 
-		void serializeScene(std::ofstream& stream, Zap::Scene* pScene);
+		struct Element {
+			std::unordered_map<std::string, Element> m_elements = {};
+			std::unordered_map<std::string, std::string> m_attributes = {};
+		};
 
-		void deserializeSceneFile(std::ifstream& stream, std::vector<Scene>& scenes, std::unordered_map<UUID, uint32_t>& scenesHandleMap);
-		
-		void deserializeActorFile(std::ifstream& stream, std::vector<Actor>& actors, std::vector<Scene>& scenes, std::unordered_map<UUID, uint32_t>& scenesHandleMap);
+		Element m_rootElement = {};
+		std::vector<Element*> m_elementTree = {};
+		Element* m_focusedElement = &m_rootElement;
+
+		std::ofstream m_ofstream;
 	};
 }
 

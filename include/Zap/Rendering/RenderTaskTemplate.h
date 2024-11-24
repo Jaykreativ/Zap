@@ -5,6 +5,7 @@
 namespace Zap {
 	class Model;
 	class Mesh;
+	class Texture;
 	class Actor;
 
 	class RenderTaskTemplate {
@@ -49,6 +50,10 @@ namespace Zap {
 		// Returns 0 when failing
 		uint32_t getMeshInstanceIndex(UUID actor, Mesh mesh);
 		uint32_t getMeshInstanceIndex(Actor actor, Mesh mesh);
+
+		std::unordered_map<UUID, TextureData>* getTextureDataMap();
+
+		uint32_t getTextureIndex(UUID texture);
 
 	private:
 		bool m_isEnabled = true;

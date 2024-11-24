@@ -4,6 +4,9 @@
 
 #include "glm/gtc/quaternion.hpp"
 
+#include "assimp/vector3.h"
+#include "assimp/matrix4x4.h"
+
 class SimulationCallbacks : public physx::PxSimulationEventCallback {// TODO put this in scene class
 	void onConstraintBreak(physx::PxConstraintInfo* constraints, physx::PxU32 count) {
 		PX_UNUSED(constraints); PX_UNUSED(count);
@@ -198,6 +201,8 @@ namespace Zap {
 			std::cerr << "ERROR: PxCreatePhysics failed\n";
 			throw std::runtime_error("ERROR: PxCreatePhysics failed");
 		}
+
+		m_assetHandler.loadFromFile(m_assetDir + "Editor.zal");
 	}
 
 	void Base::update() { // TODO implement base update
@@ -205,6 +210,8 @@ namespace Zap {
 	}
 
 	void Base::terminate() {
+		m_assetHandler.saveToFile(m_assetDir + "Editor.zal");
+
 		for (auto& meshPair : m_assetHandler.m_meshes) {
 			meshPair.second.m_vertexBuffer.destroy();
 			meshPair.second.m_indexBuffer.destroy();
@@ -213,8 +220,6 @@ namespace Zap {
 		m_pxPhysics->release();
 		m_pxFoundation->release();
 
-		for (auto image : m_textures) 
-			image.destroy();
 		m_textureSampler.destroy();
 
 		terminateVulkan();
@@ -303,6 +308,22 @@ namespace Zap {
 
 		glm::quat quatToGlmQuat(physx::PxQuat quat) {
 			return glm::quat(quat.x, quat.y, quat.z, quat.w);
+		}
+	}
+
+	namespace AssimpUtils {
+		glm::mat4 mat4ToGlmMat4(const aiMatrix4x4& from) {
+			glm::mat4 to;
+			//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+			to[0][0] = from.a1; to[1][0] = from.a2; to[2][0] = from.a3; to[3][0] = from.a4;
+			to[0][1] = from.b1; to[1][1] = from.b2; to[2][1] = from.b3; to[3][1] = from.b4;
+			to[0][2] = from.c1; to[1][2] = from.c2; to[2][2] = from.c3; to[3][2] = from.c4;
+			to[0][3] = from.d1; to[1][3] = from.d2; to[2][3] = from.d3; to[3][3] = from.d4;
+			return to;
+		}
+
+		glm::vec3 vec3ToGlmVec3(const aiVector3D& vec) {
+			return glm::vec3(vec.x, vec.y, vec.z);
 		}
 	}
 }

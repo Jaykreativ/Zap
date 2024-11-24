@@ -101,16 +101,16 @@ void main(){
 	Material material = perMeshInstance.data[constants.instanceIndex].material;
 	vec4 albedo = material.albedo;
 	if(material.albedoMap < 0xFFFFFFFF)
-		albedo *= texture(textures[material.albedoMap], fragTexCoords);
+		albedo *= texture(textures[int(material.albedoMap)], fragTexCoords);
 	float metallic = material.metallic;
 	if(material.metallicMap < 0xFFFFFFFF)
-		metallic *= texture(textures[material.metallicMap], fragTexCoords).b;
+		metallic *= texture(textures[int(material.metallicMap)], fragTexCoords).b;
 	float roughness = material.roughness;
 	if(material.roughnessMap < 0xFFFFFFFF)
-		roughness *= texture(textures[material.roughnessMap], fragTexCoords).g;
+		roughness *= texture(textures[int(material.roughnessMap)], fragTexCoords).g;
 	vec4 emissive = material.emissive;
 	if(material.emissiveMap < 0xFFFFFFFF)
-		emissive *= vec4(texture(textures[material.emissiveMap], fragTexCoords).xyz, 1);
+		emissive *= vec4(texture(textures[int(material.emissiveMap)], fragTexCoords).xyz, 1);
 
 
 	vec3 N = normalize(fragNormal);

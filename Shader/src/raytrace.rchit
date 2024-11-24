@@ -157,16 +157,16 @@ void main() {
 	Material material = perMeshInstanceData.material;
 	vec4 albedo = material.albedo;
 	if(material.albedoMap < 0xFFFFFFFF)
-		albedo *= texture(textures[material.albedoMap], texCoords);
+		albedo *= texture(textures[int(material.albedoMap)], texCoords);
 	float metallic = material.metallic;
 	if(material.metallicMap < 0xFFFFFFFF)
-		metallic *= texture(textures[material.metallicMap], texCoords).b;
+		metallic *= texture(textures[int(material.metallicMap)], texCoords).b;
 	float roughness = material.roughness;
 	if(material.roughnessMap < 0xFFFFFFFF)
-		roughness *= texture(textures[material.roughnessMap], texCoords).g;
+		roughness *= texture(textures[int(material.roughnessMap)], texCoords).g;
 	vec4 emissive = material.emissive;
 	if(material.emissiveMap < 0xFFFFFFFF)
-		emissive *= vec4(texture(textures[material.emissiveMap], texCoords).xyz, 1);
+		emissive *= vec4(texture(textures[int(material.emissiveMap)], texCoords).xyz, 1);
 
 	uint rayFlags = gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT;
 	float tMin = 0.001;

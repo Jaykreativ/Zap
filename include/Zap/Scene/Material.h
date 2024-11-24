@@ -2,9 +2,10 @@
 
 #include "glm.hpp"
 #include "Zap/UUID.h"
+#include "Zap/Scene/Texture.h"
 
 namespace Zap {
-	struct MaterialData {
+	struct MaterialGpuData {
 		alignas(16) glm::vec4 albedoColor = { 1, 1, 1, 1 };
 		alignas(4) uint32_t albedoMap = 0xFFFFFFFF;
 		alignas(4) float metallic = 0;
@@ -14,13 +15,27 @@ namespace Zap {
 		alignas(16) glm::vec4 emissive = { 0, 0, 0, 0 };
 		alignas(4) uint32_t emissiveMap = 0xFFFFFFFF;
 	};
+
+	struct MaterialData {
+		glm::vec4 albedoColor = { 1, 1, 1, 1 };
+		Texture albedoMap = (UUID)0;
+		float metallic = 0;
+		Texture metallicMap = (UUID)0;
+		float roughness = 0.5;
+		Texture roughnessMap = (UUID)0;
+		glm::vec4 emissive = { 0, 0, 0, 0 };
+		Texture emissiveMap = (UUID)0;
+	};
 	
 	class Material {
 	public:
 		Material();
+		Material(UUID handle);
 		~Material();
 
 		void destroy();
+
+		bool exists() const;
 
 		UUID getHandle();
 
@@ -32,6 +47,16 @@ namespace Zap {
 		void setRoughness(float roughness);
 
 		void setEmissive(glm::vec4 emissive);
+
+		glm::vec4 getAlbedo();
+
+		float getMetallic();
+
+		float getRoughness();
+
+		glm::vec3 getEmissive();
+
+		float getEmissiveValue();
 
 	private:
 		UUID m_handle;

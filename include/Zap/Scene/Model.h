@@ -9,7 +9,7 @@ namespace Zap {
 		std::string filepath = "";
 		std::vector<Material> materials;
 		std::vector<Mesh> meshes;
-		glm::vec3 m_boundMin = { 0, 0, 0 };
-		glm::vec3 m_boundMax = { 0, 0, 0 };
+		glm::vec3 boundMin = { 0, 0, 0 };
+		glm::vec3 boundMax = { 0, 0, 0 };
 	};
 }

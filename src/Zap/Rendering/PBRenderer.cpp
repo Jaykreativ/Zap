@@ -96,18 +96,20 @@ namespace Zap {
 			m_descriptorSet.addDescriptor(perMeshBufferDescriptor);
 
 			Base* base = Base::getBase();// TODO add default texture
-			std::vector<vk::DescriptorImageInfo> textureImageInfos;
-			for (uint32_t i = 0; i < base->m_textures.size(); i++) {
+			auto* textureMap = RenderTaskTemplate::getTextureDataMap();
+			std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
+			for (auto& texturePair : *textureMap) {
+				uint32_t i = RenderTaskTemplate::getTextureIndex(texturePair.first);
 				vk::DescriptorImageInfo textureImageInfo{};
 				textureImageInfo.pSampler = &base->m_textureSampler;
-				textureImageInfo.pImage = &base->m_textures[i];
+				textureImageInfo.pImage = &texturePair.second.image;
 				textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-				textureImageInfos.push_back(textureImageInfo);
+				textureImageInfos[i] = textureImageInfo;
 			}
 
 			vk::Descriptor texturesDescriptor{};
 			texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			texturesDescriptor.count = base->m_textures.size();
+			texturesDescriptor.count = textureImageInfos.size();
 			texturesDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
 			texturesDescriptor.binding = 3;
 			texturesDescriptor.imageInfos = textureImageInfos;
