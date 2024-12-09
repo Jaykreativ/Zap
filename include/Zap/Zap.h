@@ -2,8 +2,13 @@
 
 #define ZP_ASSERT(val, str)\
 			if (!val){\
-				std::cerr << str << "\n";\
+				std::cerr << "ERROR: " << str << "\n";\
 				throw std::runtime_error(str);\
+			}
+
+#define ZP_WARN(val, str)\
+			if (!val){\
+				std::cerr << "WARNING: " << str << "\n";\
 			}
 
 #define ZP_IS_FLAG_ENABLED(val, flag) ((val & flag) == flag)

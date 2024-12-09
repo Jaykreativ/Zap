@@ -50,13 +50,21 @@ namespace Zap {
 
 		glm::vec4 getAlbedo();
 
+		Texture getAlbedoMap();
+
 		float getMetallic();
 
+		Texture getMetallicMap();
+
 		float getRoughness();
+
+		Texture getRoughnessMap();
 
 		glm::vec3 getEmissive();
 
 		float getEmissiveValue();
+
+		Texture getEmissiveMap();
 
 	private:
 		UUID m_handle;

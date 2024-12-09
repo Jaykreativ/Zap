@@ -47,7 +47,7 @@ namespace Zap {
 		auto data = stbi_load(filepath.c_str(), &width, &height, &channels, 4);
 		ZP_ASSERT(data, "Image not loaded correctly");
 		Texture texture = Texture(handle);
-		assetHandler.m_textures[texture.getHandle()] = TextureData{};
+		texture.create();
 		assetHandler.getTextureDataPtr(texture.getHandle())->image = ImageLoader::load(data, width, height);
 		assetHandler.m_loadedTextures.push_back(texture);
 		return texture;
@@ -61,7 +61,7 @@ namespace Zap {
 		auto data = stbi_load_from_memory((stbi_uc*)aiTexture->pcData, aiTexture->mWidth, &width, &height, &channels, 4);
 		ZP_ASSERT(data, "Image not loaded correctly");
 		Texture texture = Texture(handle);
-		assetHandler.m_textures[texture.getHandle()] = TextureData{};
+		texture.create();
 		assetHandler.getTextureDataPtr(texture.getHandle())->image = ImageLoader::load(data, width, height);
 		assetHandler.m_loadedTextures.push_back(texture);
 		return texture;
@@ -191,7 +191,9 @@ namespace Zap {
 		Assimp::Importer importer;
 		const aiScene* aScene = importer.ReadFile(filepath.c_str(), aiProcess_Triangulate | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes);
 
-		ZP_ASSERT(aScene, (std::string("Scene can't be loaded, check the filepath: ") + std::string(filepath)).c_str());
+		ZP_WARN(aScene, (std::string("Scene can't be loaded, check the filepath: ") + std::string(filepath)).c_str());
+		if (!aScene)
+			return Mesh(0);
 
 		glm::vec3 boundMin, boundMax;
 		auto mesh = load(aScene->mMeshes[index], transform, boundMin, boundMax, handle);

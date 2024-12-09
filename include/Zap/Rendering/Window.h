@@ -73,6 +73,18 @@ namespace Zap
 		double yoffset = 0;
 	};
 
+	class DragDropEvent : public Event {
+	public:
+		DragDropEvent(Window* pWindow, int pathCount, const char** paths)
+			: pWindow(pWindow), pathCount(pathCount), paths(paths)
+		{}
+		~DragDropEvent() = default;
+
+		Window* pWindow = nullptr;
+		int pathCount;
+		const char** paths;
+	};
+
 	class Window
 	{
 	public:
@@ -100,6 +112,7 @@ namespace Zap
 		EventHandler<CursorPosEvent>* getCursorPosEventHandler();
 		EventHandler<MouseButtonEvent>* getMouseButtonEventHandler();
 		EventHandler<ScrollEvent>* getScrollEventHandler();
+		EventHandler<DragDropEvent>* getDragDropEventHandler();
 
 		/*Getter*/
 		uint32_t getWidth();
@@ -137,6 +150,7 @@ namespace Zap
 		EventHandler<CursorPosEvent> m_cursorPosEventHandler;
 		EventHandler<MouseButtonEvent> m_mouseButtonEventHandler;
 		EventHandler<ScrollEvent> m_scrollEventHandler;
+		EventHandler<DragDropEvent> m_dragDropEventHandler;
 
 		void resize(GLFWwindow* window, int width, int height);
 
@@ -147,8 +161,7 @@ namespace Zap
 		static void cursorPosGLFWCallback(GLFWwindow* window, double xPos, double yPos);
 		static void mouseButtonGLFWCallback(GLFWwindow* window, int button, int action, int mods);
 		static void scrollGLFWCallback(GLFWwindow* window, double xoffset, double yoffset);
-
-		static void resizeEventCallback(Zap::ResizeEvent& resizeEvent, void* data);
+		static void dragDropGLFWCallback(GLFWwindow* window, int path_count, const char* paths[]);
 
 		friend class Renderer;
 		friend class PBRenderer;

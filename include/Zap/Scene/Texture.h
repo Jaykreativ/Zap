@@ -17,6 +17,8 @@ namespace Zap {
 		Texture(UUID handle);
 		~Texture();
 
+		bool isValid();
+
 		/*
 		* sets the texture image
 		* takes data in the format R8G8B8A8
@@ -34,6 +36,10 @@ namespace Zap {
 
 	private:
 		UUID m_handle;
+
+		void create();
+
+		friend class TextureLoader;
 	};
 }
 

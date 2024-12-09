@@ -7,8 +7,7 @@ namespace Zap {
 		: m_handle()
 	{
 		auto* base = Base::getBase();
-		base->m_textureIndices[m_handle] = base->m_assetHandler.m_textures.size();
-		base->m_assetHandler.m_textures[m_handle] = TextureData{};
+		create();
 	}
 
 	Texture::Texture(UUID handle)
@@ -16,6 +15,11 @@ namespace Zap {
 	{}
 
 	Texture::~Texture() {}
+
+	bool Texture::isValid() {
+		if(m_handle == 0) return false;
+		return true;
+	}
 
 	void Texture::load(void* data, uint32_t width, uint32_t height) {
 		auto base = Base::getBase();
@@ -56,5 +60,11 @@ namespace Zap {
 	}
 	const Image* Texture::getImage() const {
 		return &Base::getBase()->m_assetHandler.getTextureData(m_handle).image;
+	}
+
+	void Texture::create() {
+		auto base = Base::getBase();
+		base->m_textureIndices[m_handle] = base->m_assetHandler.m_textures.size();
+		base->m_assetHandler.m_textures[m_handle] = TextureData{};
 	}
 }

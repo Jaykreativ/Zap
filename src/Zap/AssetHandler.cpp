@@ -123,7 +123,7 @@ namespace Zap {
 				std::string filepath = serializer.readAttribute("filepath");
 				int index = std::stoi(serializer.readAttribute("index"));
 				glm::mat4 transform = serializer.readAttributeMat4("transform");
-		
+
 				MeshLoader meshloader;
 				meshloader.loadFromFile(filepath, index, transform, handle);
 				serializer.endElement();

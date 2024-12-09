@@ -40,6 +40,11 @@ namespace Zap {
 		return m_handle;
 	}
 
+	bool Actor::isValid() {
+		if (!m_pScene) return false;
+		return true;
+	}
+
 	/* Transform */
 
 	Transform& Actor::getTransformCmp() {

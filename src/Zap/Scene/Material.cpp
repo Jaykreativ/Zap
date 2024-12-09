@@ -59,16 +59,37 @@ namespace Zap {
 		return data->albedoColor;
 	}
 
+	Texture Material::getAlbedoMap() {
+		auto* base = Base::getBase();
+		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
+		ZP_WARN(data->albedoMap.isValid(), "Invalid albedoMap requested");
+		return data->albedoMap;
+	}
+
 	float Material::getMetallic() {
 		auto* base = Base::getBase();
 		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
 		return data->metallic;
 	}
 
+	Texture Material::getMetallicMap() {
+		auto* base = Base::getBase();
+		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
+		ZP_WARN(data->metallicMap.isValid(), "Invalid metallicMap requested");
+		return data->metallicMap;
+	}
+
 	float Material::getRoughness() {
 		auto* base = Base::getBase();
 		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
 		return data->roughness;
+	}
+
+	Texture Material::getRoughnessMap() {
+		auto* base = Base::getBase();
+		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
+		ZP_WARN(data->roughnessMap.isValid(), "Invalid roughnessMap requested");
+		return data->roughnessMap;
 	}
 
 	glm::vec3 Material::getEmissive() {
@@ -83,4 +104,10 @@ namespace Zap {
 		return data->emissive.w;
 	}
 
+	Texture Material::getEmissiveMap() {
+		auto* base = Base::getBase();
+		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
+		ZP_WARN(data->emissiveMap.isValid(), "Invalid emissiveMap requested");
+		return data->emissiveMap;
+	}
 }

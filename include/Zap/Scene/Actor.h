@@ -30,6 +30,8 @@ namespace Zap {
 
 		UUID getHandle();
 
+		bool isValid();
+
 		/* Transform */
 
 		//internally used method
