@@ -39,11 +39,12 @@ namespace Zap {
 		glm::mat4 readAttributeMat4(std::string attribute, bool* success = nullptr);
 
 		void writeAttribute(std::string attribute, std::string data);
-		void writeAttribute(std::string attribute, int data);
-		void writeAttribute(std::string attribute, float data);
-		void writeAttribute(std::string attribute, glm::vec3 data);
-		void writeAttribute(std::string attribute, glm::vec4 data);
-		void writeAttribute(std::string attribute, glm::mat4 data);
+		void writeAttribute(std::string attribute, int         data);
+		void writeAttribute(std::string attribute, float       data);
+		void writeAttribute(std::string attribute, glm::vec3   data);
+		void writeAttribute(std::string attribute, glm::vec4   data);
+		void writeAttribute(std::string attribute, glm::mat4   data);
+		void writeAttribute(std::string attribute, UUID        data);
 
 		// Can be called while deserializing
 		// Looks for a matching element in current scope

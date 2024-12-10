@@ -256,6 +256,9 @@ namespace Zap {
 	void Serializer::writeAttribute(std::string attribute, glm::mat4 data) {
 		writeAttribute(attribute, glm::to_string(data));
 	}
+	void Serializer::writeAttribute(std::string attribute, UUID data) {
+		writeAttribute(attribute, std::to_string(data));
+	}
 
 	bool Serializer::existsElement(std::string element) {
 		return m_focusedElement->m_elements.count(element);

@@ -189,9 +189,17 @@ namespace Zap {
 			serializer.beginElement("Material" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(material.getHandle()));
 			serializer.writeAttribute("albedo", material.getAlbedo());
+			if (material.hasAlbedoMap())
+				serializer.writeAttribute("albedoMap", material.getAlbedoMap().getHandle());
 			serializer.writeAttribute("metallic", material.getMetallic());
+			if (material.hasMetallicMap())
+				serializer.writeAttribute("metallicMap", material.getMetallicMap().getHandle());
 			serializer.writeAttribute("roughness", material.getRoughness());
+			if (material.hasRoughnessMap())
+				serializer.writeAttribute("roughnessMap", material.getRoughnessMap().getHandle());
 			serializer.writeAttribute("emissive", { material.getEmissive(), material.getEmissiveValue() });
+			if (material.hasEmissiveMap())
+				serializer.writeAttribute("emissiveMap", material.getEmissiveMap().getHandle());
 			serializer.writeAttribute("filepath", m_materialPaths[material.getHandle()].first);
 			serializer.writeAttribute("index", std::to_string(m_materialPaths[material.getHandle()].second));
 			serializer.endElement();
@@ -202,6 +210,9 @@ namespace Zap {
 		for (Texture texture : m_loadedTextures) {
 			serializer.beginElement("Texture" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(texture.getHandle()));
+			serializer.writeAttribute("filepath", m_texturePaths[texture.getHandle()].first);
+			if (m_texturePaths[texture.getHandle()].second)
+				serializer.writeAttribute("embedded", m_texturePaths[texture.getHandle()].second);
 			serializer.endElement();
 			i++;
 		}

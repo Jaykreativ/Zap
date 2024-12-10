@@ -50,19 +50,27 @@ namespace Zap {
 
 		glm::vec4 getAlbedo();
 
+		bool hasAlbedoMap();
+
 		Texture getAlbedoMap();
 
 		float getMetallic();
 
+		bool hasMetallicMap();
+
 		Texture getMetallicMap();
 
 		float getRoughness();
+		
+		bool hasRoughnessMap();
 
 		Texture getRoughnessMap();
 
 		glm::vec3 getEmissive();
 
 		float getEmissiveValue();
+
+		bool hasEmissiveMap();
 
 		Texture getEmissiveMap();
 

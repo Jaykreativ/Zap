@@ -59,6 +59,12 @@ namespace Zap {
 		return data->albedoColor;
 	}
 
+	bool Material::hasAlbedoMap() {
+		auto* base = Base::getBase();
+		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
+		return data->albedoMap.isValid();
+	}
+
 	Texture Material::getAlbedoMap() {
 		auto* base = Base::getBase();
 		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
@@ -72,6 +78,12 @@ namespace Zap {
 		return data->metallic;
 	}
 
+	bool Material::hasMetallicMap() {
+		auto* base = Base::getBase();
+		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
+		return data->metallicMap.isValid();
+	}
+
 	Texture Material::getMetallicMap() {
 		auto* base = Base::getBase();
 		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
@@ -83,6 +95,12 @@ namespace Zap {
 		auto* base = Base::getBase();
 		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
 		return data->roughness;
+	}
+
+	bool Material::hasRoughnessMap() {
+		auto* base = Base::getBase();
+		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
+		return data->roughnessMap.isValid();
 	}
 
 	Texture Material::getRoughnessMap() {
@@ -102,6 +120,12 @@ namespace Zap {
 		auto* base = Base::getBase();
 		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
 		return data->emissive.w;
+	}
+
+	bool Material::hasEmissiveMap() {
+		auto* base = Base::getBase();
+		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
+		return data->emissiveMap.isValid();
 	}
 
 	Texture Material::getEmissiveMap() {

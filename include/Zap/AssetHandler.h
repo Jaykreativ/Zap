@@ -104,6 +104,7 @@ namespace Zap {
 
 		std::unordered_map<UUID, TextureData> m_textures = {};
 		std::vector<Texture> m_loadedTextures = {};
+		std::unordered_map<UUID, std::pair<std::string, bool>> m_texturePaths = {}; // path and is texture embedded
 
 		friend class Base;
 		friend class Mesh;

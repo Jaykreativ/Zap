@@ -85,9 +85,13 @@ namespace Zap {
 			auto embeddedTexture = aScene->GetEmbeddedTexture(diffuseTexturePath.C_Str());
 			if (embeddedTexture) {
 				pMaterialData->albedoMap = TextureLoader::load(embeddedTexture);
+				assetHandler.m_texturePaths[pMaterialData->albedoMap.getHandle()].second = true;
+				assetHandler.m_texturePaths[pMaterialData->albedoMap.getHandle()].first = diffuseTexturePath.C_Str();
 			}
 			else {
 				pMaterialData->albedoMap = TextureLoader::load((path + std::string(diffuseTexturePath.C_Str())).c_str());
+				assetHandler.m_texturePaths[pMaterialData->albedoMap.getHandle()].second = false;
+				assetHandler.m_texturePaths[pMaterialData->albedoMap.getHandle()].first = path + std::string(diffuseTexturePath.C_Str());
 			}
 			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
 				pMaterialData->albedoColor = glm::vec4(1, 1, 1, 1);
@@ -97,9 +101,13 @@ namespace Zap {
 			auto embeddedTexture = aScene->GetEmbeddedTexture(metallicTexturePath.C_Str());
 			if (embeddedTexture) {
 				pMaterialData->metallicMap = TextureLoader::load(embeddedTexture);
+				assetHandler.m_texturePaths[pMaterialData->metallicMap.getHandle()].second = true;
+				assetHandler.m_texturePaths[pMaterialData->metallicMap.getHandle()].first = metallicTexturePath.C_Str();
 			}
 			else {
 				pMaterialData->metallicMap = TextureLoader::load((path + std::string(metallicTexturePath.C_Str())).c_str());
+				assetHandler.m_texturePaths[pMaterialData->metallicMap.getHandle()].second = false;
+				assetHandler.m_texturePaths[pMaterialData->metallicMap.getHandle()].first = path + std::string(metallicTexturePath.C_Str());
 			}
 			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
 				pMaterialData->metallic = 1;
@@ -109,9 +117,13 @@ namespace Zap {
 			auto embeddedTexture = aScene->GetEmbeddedTexture(roughnessTexturePath.C_Str());
 			if (embeddedTexture) {
 				pMaterialData->roughnessMap = TextureLoader::load(embeddedTexture);
+				assetHandler.m_texturePaths[pMaterialData->roughnessMap.getHandle()].second = true;
+				assetHandler.m_texturePaths[pMaterialData->roughnessMap.getHandle()].first = roughnessTexturePath.C_Str();
 			}
 			else {
 				pMaterialData->roughnessMap = TextureLoader::load((path + std::string(roughnessTexturePath.C_Str())).c_str());
+				assetHandler.m_texturePaths[pMaterialData->roughnessMap.getHandle()].second = false;
+				assetHandler.m_texturePaths[pMaterialData->roughnessMap.getHandle()].first = path + std::string(roughnessTexturePath.C_Str());
 			}
 			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
 				pMaterialData->roughness = 1;
