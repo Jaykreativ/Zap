@@ -78,11 +78,13 @@ namespace Zap {
 		
 		TextureData* getTextureDataPtr(UUID handle);
 
-	private:
+		// loads/reloads all assets from the given .zal file
+		// will invalidate all current assets
 		void loadFromFile(std::string filepath);
 
 		void saveToFile(std::string filepath);
-		
+
+	private:
 		class pairhash {
 		public:
 			template <typename T, typename U>
@@ -104,7 +106,7 @@ namespace Zap {
 
 		std::unordered_map<UUID, TextureData> m_textures = {};
 		std::vector<Texture> m_loadedTextures = {};
-		std::unordered_map<UUID, std::pair<std::string, bool>> m_texturePaths = {}; // path and is texture embedded
+		std::unordered_map<UUID, std::pair<std::string, std::string>> m_texturePaths = {}; // path and modelpath if texture is embedded
 
 		friend class Base;
 		friend class Mesh;

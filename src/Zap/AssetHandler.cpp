@@ -108,6 +108,21 @@ namespace Zap {
 	/* Load / Save */
 
 	void AssetHandler::loadFromFile(std::string filepath) {
+		// clear AssetHandler
+		m_meshes = {};
+		m_loadedMeshes = {};
+		m_meshPaths = {};
+		m_pathMeshMap = {};
+
+		m_materials = {};
+		m_loadedMaterials = {};
+		m_materialPaths = {};
+		m_pathMaterialMap = {};
+
+		m_textures = {};
+		m_loadedTextures = {};
+		m_texturePaths = {};
+
 		Serializer serializer;
 		serializer.beginDeserialization(filepath.c_str());
 
@@ -119,7 +134,8 @@ namespace Zap {
 
 		for (int i = 0; i < meshCount; i++) {
 			if (serializer.beginElement("Mesh" + std::to_string(i))) {
-				UUID handle = std::stoull(serializer.readAttribute("handle"));
+				std::cout << "Mesh -> " << i << " (AssetHandler)\n";
+				UUID handle = serializer.readAttributeUUID("handle");
 				std::string filepath = serializer.readAttribute("filepath");
 				int index = std::stoi(serializer.readAttribute("index"));
 				glm::mat4 transform = serializer.readAttributeMat4("transform");
@@ -134,13 +150,22 @@ namespace Zap {
 		}
 		for (int i = 0; i < materialCount; i++){
 			if (serializer.beginElement("Material" + std::to_string(i))) {
-				Material material = Material(std::stoull(serializer.readAttribute("handle")));
+				std::cout << "Material -> " << i << " (AssetHandler)\n";
+				Material material = Material(serializer.readAttributeUUID("handle"));
 				m_materials[material.getHandle()] = MaterialData{};
 
 				material.setAlbedo(serializer.readAttributeVec4("albedo"));
+				if(serializer.existsAttribute("albedoMap"))
+					m_materials[material.getHandle()].albedoMap = serializer.readAttributeUUID("albedoMap");
 				material.setMetallic(serializer.readAttributef("metallic"));
+				if (serializer.existsAttribute("metallicMap"))
+					m_materials[material.getHandle()].metallicMap = serializer.readAttributeUUID("metallicMap");
 				material.setRoughness(serializer.readAttributef("roughness"));
+				if (serializer.existsAttribute("roughnessMap"))
+					m_materials[material.getHandle()].roughnessMap = serializer.readAttributeUUID("roughnessMap");
 				material.setEmissive(serializer.readAttributeVec4("emissive"));
+				if (serializer.existsAttribute("emissiveMap"))
+					m_materials[material.getHandle()].emissiveMap = serializer.readAttributeUUID("emissiveMap");
 
 				std::string path = serializer.readAttribute("filepath");
 				int index = serializer.readAttributei("index");
@@ -157,7 +182,19 @@ namespace Zap {
 		}
 		for (int i = 0; i < textureCount; i++){
 			if (serializer.beginElement("Texture" + std::to_string(i))) {
-				std::cout << "Texture -> " << serializer.readAttribute("handle") << "\n";
+				std::cout << "Texture -> " << i << " (AssetHandler)\n";
+				TextureLoader textureLoader = TextureLoader();
+				UUID handle = serializer.readAttributeUUID("handle");
+				// check for embedded textures
+				if (serializer.existsAttribute("embedded")) {// embedded
+					std::string textureID = serializer.readAttribute("filepath");
+					std::string modelpath = serializer.readAttribute("embedded");
+					textureLoader.load(modelpath, textureID, handle);
+				}
+				else {// file
+					std::string filepath = serializer.readAttribute("filepath");
+					textureLoader.load(filepath, handle);
+				}
 				serializer.endElement();
 			}
 			else {
@@ -211,7 +248,7 @@ namespace Zap {
 			serializer.beginElement("Texture" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(texture.getHandle()));
 			serializer.writeAttribute("filepath", m_texturePaths[texture.getHandle()].first);
-			if (m_texturePaths[texture.getHandle()].second)
+			if (m_texturePaths[texture.getHandle()].second != "")
 				serializer.writeAttribute("embedded", m_texturePaths[texture.getHandle()].second);
 			serializer.endElement();
 			i++;

@@ -61,13 +61,15 @@ namespace Zap {
 	protected:
 		Texture load(const aiTexture* texture, UUID handle = UUID());
 
+		Texture load(std::string modelpath, std::string textureID, UUID handle = UUID());
+
 		friend class AssetHandler;
 	};
 
 	class MaterialLoader : protected TextureLoader
 	{
 	protected:
-		Material load(const aiScene* aScene, const aiMaterial* aMaterial, std::string path, UUID handle = UUID());
+		Material load(const aiScene* aScene, const aiMaterial* aMaterial, std::string path, std::string filename, UUID handle = UUID());
 
 		friend class AssetHandler;
 	};

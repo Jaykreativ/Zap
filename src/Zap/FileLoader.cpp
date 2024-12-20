@@ -67,7 +67,19 @@ namespace Zap {
 		return texture;
 	}
 
-	Material MaterialLoader::load(const aiScene* aScene, const aiMaterial* aMaterial, std::string path, UUID handle) {
+	Texture TextureLoader::load(std::string modelpath, std::string textureID, UUID handle) {
+		auto& assetHandler = Base::getBase()->m_assetHandler;
+		Assimp::Importer importer;
+		const aiScene* aScene = importer.ReadFile(modelpath.c_str(), 0);
+		ZP_ASSERT(aScene, "Failed to load the modelfile for embedded texture");
+
+		auto texture = load(aScene->GetEmbeddedTexture(textureID.c_str()), handle);
+		assetHandler.m_texturePaths[handle].second = modelpath;
+		assetHandler.m_texturePaths[handle].first = textureID;
+		return texture;
+	}
+
+	Material MaterialLoader::load(const aiScene* aScene, const aiMaterial* aMaterial, std::string path, std::string filename, UUID handle) {
 		Material material = Material(handle);
 		auto& assetHandler = Base::getBase()->m_assetHandler;
 		assetHandler.m_materials[material.getHandle()] = MaterialData{};
@@ -85,12 +97,12 @@ namespace Zap {
 			auto embeddedTexture = aScene->GetEmbeddedTexture(diffuseTexturePath.C_Str());
 			if (embeddedTexture) {
 				pMaterialData->albedoMap = TextureLoader::load(embeddedTexture);
-				assetHandler.m_texturePaths[pMaterialData->albedoMap.getHandle()].second = true;
+				assetHandler.m_texturePaths[pMaterialData->albedoMap.getHandle()].second = path + filename;
 				assetHandler.m_texturePaths[pMaterialData->albedoMap.getHandle()].first = diffuseTexturePath.C_Str();
 			}
 			else {
 				pMaterialData->albedoMap = TextureLoader::load((path + std::string(diffuseTexturePath.C_Str())).c_str());
-				assetHandler.m_texturePaths[pMaterialData->albedoMap.getHandle()].second = false;
+				assetHandler.m_texturePaths[pMaterialData->albedoMap.getHandle()].second = "";
 				assetHandler.m_texturePaths[pMaterialData->albedoMap.getHandle()].first = path + std::string(diffuseTexturePath.C_Str());
 			}
 			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
@@ -101,12 +113,12 @@ namespace Zap {
 			auto embeddedTexture = aScene->GetEmbeddedTexture(metallicTexturePath.C_Str());
 			if (embeddedTexture) {
 				pMaterialData->metallicMap = TextureLoader::load(embeddedTexture);
-				assetHandler.m_texturePaths[pMaterialData->metallicMap.getHandle()].second = true;
+				assetHandler.m_texturePaths[pMaterialData->metallicMap.getHandle()].second = path + filename;
 				assetHandler.m_texturePaths[pMaterialData->metallicMap.getHandle()].first = metallicTexturePath.C_Str();
 			}
 			else {
 				pMaterialData->metallicMap = TextureLoader::load((path + std::string(metallicTexturePath.C_Str())).c_str());
-				assetHandler.m_texturePaths[pMaterialData->metallicMap.getHandle()].second = false;
+				assetHandler.m_texturePaths[pMaterialData->metallicMap.getHandle()].second = "";
 				assetHandler.m_texturePaths[pMaterialData->metallicMap.getHandle()].first = path + std::string(metallicTexturePath.C_Str());
 			}
 			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
@@ -117,12 +129,12 @@ namespace Zap {
 			auto embeddedTexture = aScene->GetEmbeddedTexture(roughnessTexturePath.C_Str());
 			if (embeddedTexture) {
 				pMaterialData->roughnessMap = TextureLoader::load(embeddedTexture);
-				assetHandler.m_texturePaths[pMaterialData->roughnessMap.getHandle()].second = true;
+				assetHandler.m_texturePaths[pMaterialData->roughnessMap.getHandle()].second = path + filename;
 				assetHandler.m_texturePaths[pMaterialData->roughnessMap.getHandle()].first = roughnessTexturePath.C_Str();
 			}
 			else {
 				pMaterialData->roughnessMap = TextureLoader::load((path + std::string(roughnessTexturePath.C_Str())).c_str());
-				assetHandler.m_texturePaths[pMaterialData->roughnessMap.getHandle()].second = false;
+				assetHandler.m_texturePaths[pMaterialData->roughnessMap.getHandle()].second = "";
 				assetHandler.m_texturePaths[pMaterialData->roughnessMap.getHandle()].first = path + std::string(roughnessTexturePath.C_Str());
 			}
 			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
@@ -271,6 +283,7 @@ namespace Zap {
 
 			auto pathSeperate = std::string(path);
 			pathSeperate.erase(pathSeperate.find_last_of("/") + 1);
+			auto filename = path.substr(pathSeperate.size(), path.size()-pathSeperate.size());
 
 			// Check if material already exists
 			if (Base::getBase()->m_assetHandler.m_pathMaterialMap.count({ path, aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex })) {
@@ -279,7 +292,7 @@ namespace Zap {
 			else {
 				// Load material
 				aiMaterial* aMaterial = aScene->mMaterials[aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex];
-				model.materials.push_back(MaterialLoader::load(aScene, aMaterial, pathSeperate));
+				model.materials.push_back(MaterialLoader::load(aScene, aMaterial, pathSeperate, filename));
 				assetHandler.m_loadedMaterials.push_back(model.materials.back());
 				Base::getBase()->m_assetHandler.m_materialPaths[model.materials.back().getHandle()] = { path, aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex };
 				Base::getBase()->m_assetHandler.m_pathMaterialMap[{ path, aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex }] = model.materials.back().getHandle();

@@ -202,7 +202,7 @@ namespace Zap {
 			throw std::runtime_error("ERROR: PxCreatePhysics failed");
 		}
 
-		//m_assetHandler.loadFromFile(m_assetDir + "Editor.zal");
+		m_assetHandler.loadFromFile(m_assetDir + "Editor.zal");
 	}
 
 	void Base::update() { // TODO implement base update

@@ -237,6 +237,9 @@ namespace Zap {
 
 		return mat4;
 	}
+	UUID Serializer::readAttributeUUID(std::string attribute, bool* success) {
+		return std::stoull(readAttribute(attribute, success));
+	}
 
 	void Serializer::writeAttribute(std::string attribute, std::string data) {
 		m_ofstream << attribute << ": " << data << ";\n";

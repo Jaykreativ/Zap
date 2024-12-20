@@ -37,6 +37,7 @@ namespace Zap {
 		glm::vec3 readAttributeVec3(std::string attribute, bool* success = nullptr);
 		glm::vec4 readAttributeVec4(std::string attribute, bool* success = nullptr);
 		glm::mat4 readAttributeMat4(std::string attribute, bool* success = nullptr);
+		UUID readAttributeUUID(std::string attribute, bool* success = nullptr);
 
 		void writeAttribute(std::string attribute, std::string data);
 		void writeAttribute(std::string attribute, int         data);
