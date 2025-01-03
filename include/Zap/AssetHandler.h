@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/UUID.h"
+#include "Zap/EventHandler.h"
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Material.h"
 #include "Zap/Scene/Texture.h"
@@ -27,9 +28,23 @@
 * keeps track of the load status and dynamically allocates and destroys assets
 * assets can be created and stored during runtime, those assets are not saved to file
 * contents of the assetlibrary are controlled by the asset handler, not the user
+* 
+* Generated/Added assets are all assets that are handled by the AssetHandler
+* Loaded assets have some sort of file associated with it
 */
 
 namespace Zap {
+
+	class TextureLoadEvent {
+	public:
+		TextureLoadEvent(Texture texture)
+			: texture(texture)
+		{}
+		~TextureLoadEvent() = default;
+
+		Texture texture;
+	};
+
 	class AssetHandler
 	{
 	public:
@@ -84,6 +99,9 @@ namespace Zap {
 
 		void saveToFile(std::string filepath);
 
+		// events
+		EventHandler<TextureLoadEvent>* getTextureLoadEventHandler();
+
 	private:
 		class pairhash {
 		public:
@@ -107,6 +125,15 @@ namespace Zap {
 		std::unordered_map<UUID, TextureData> m_textures = {};
 		std::vector<Texture> m_loadedTextures = {};
 		std::unordered_map<UUID, std::pair<std::string, std::string>> m_texturePaths = {}; // path and modelpath if texture is embedded
+
+		// Events
+		EventHandler<TextureLoadEvent> m_textureLoadEventHandler;
+
+		void addTexture(Texture texture);
+
+		void addLoadedTexture(Texture texture);
+
+		void destroyVulkanResources();
 
 		friend class Base;
 		friend class Mesh;

@@ -58,7 +58,7 @@ namespace Zap {
 
 		Settings* getSettings();
 
-		const AssetHandler* getAssetHandler() const;
+		AssetHandler* getAssetHandler();
 
 		std::string getApplicationName();
 

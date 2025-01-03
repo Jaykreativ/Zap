@@ -40,17 +40,26 @@ namespace Zap {
 		return image;
 	}
 
+	Texture TextureLoader::load(std::string filepath) {
+		return load(filepath, UUID());
+	}
+
+	Texture TextureLoader::load(void* data, uint32_t width, uint32_t height, UUID handle) {
+		auto& assetHandler = Base::getBase()->m_assetHandler;
+		Texture texture = Texture(handle);
+		texture.create();
+		assetHandler.getTextureDataPtr(texture.getHandle())->image = ImageLoader::load(data, width, height);
+		assetHandler.addLoadedTexture(texture);
+		return texture;
+	}
+
 	Texture TextureLoader::load(std::string filepath, UUID handle) {
 		auto& assetHandler = Base::getBase()->m_assetHandler;
 		int width, height, channels;
 		stbi_set_flip_vertically_on_load(true);
 		auto data = stbi_load(filepath.c_str(), &width, &height, &channels, 4);
-		ZP_ASSERT(data, "Image not loaded correctly");
-		Texture texture = Texture(handle);
-		texture.create();
-		assetHandler.getTextureDataPtr(texture.getHandle())->image = ImageLoader::load(data, width, height);
-		assetHandler.m_loadedTextures.push_back(texture);
-		return texture;
+		ZP_ASSERT(data, ("Image not loaded correctly: " + filepath).c_str());
+		return load(data, width, height, handle);
 	}
 
 	Texture TextureLoader::load(const aiTexture* aiTexture, UUID handle) {
@@ -60,11 +69,7 @@ namespace Zap {
 		stbi_set_flip_vertically_on_load(true);
 		auto data = stbi_load_from_memory((stbi_uc*)aiTexture->pcData, aiTexture->mWidth, &width, &height, &channels, 4);
 		ZP_ASSERT(data, "Image not loaded correctly");
-		Texture texture = Texture(handle);
-		texture.create();
-		assetHandler.getTextureDataPtr(texture.getHandle())->image = ImageLoader::load(data, width, height);
-		assetHandler.m_loadedTextures.push_back(texture);
-		return texture;
+		return load(data, width, height, handle);
 	}
 
 	Texture TextureLoader::load(std::string modelpath, std::string textureID, UUID handle) {

@@ -7,13 +7,9 @@
 #include <string>
 
 namespace Zap {
-	AssetHandler::AssetHandler() {
+	AssetHandler::AssetHandler() {}
 
-	}
-
-	AssetHandler::~AssetHandler() {
-
-	}
+	AssetHandler::~AssetHandler() {}
 
 	/* Mesh */
 
@@ -255,5 +251,29 @@ namespace Zap {
 		}
 
 		serializer.endSerialization();
+	}
+
+	EventHandler<TextureLoadEvent>* AssetHandler::getTextureLoadEventHandler() {
+		return &m_textureLoadEventHandler;
+	}
+
+	void AssetHandler::addTexture(Texture texture) {
+		m_textures[texture.getHandle()] = TextureData{};
+	}
+
+	void AssetHandler::addLoadedTexture(Texture texture) {
+		m_loadedTextures.push_back(texture);
+		m_textureLoadEventHandler.pushEvent(TextureLoadEvent(texture));
+	}
+
+	void AssetHandler::destroyVulkanResources() {
+		std::cout << "Releasing vulkan resources for assets\n";
+		for (auto& meshPair : m_meshes) {
+			meshPair.second.m_vertexBuffer.destroy();
+			meshPair.second.m_indexBuffer.destroy();
+		}
+		for (auto& texturePair : m_textures) {
+			texturePair.second.image.destroy();
+		}
 	}
 }

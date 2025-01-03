@@ -42,6 +42,7 @@ namespace Zap {
 
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 		vk::DescriptorSet m_descriptorSet = vk::DescriptorSet();
+		vk::DescriptorSet m_textureSet = vk::DescriptorSet();
 
 		vk::Shader m_vertexShader = vk::Shader();
 		vk::Shader m_fragmentShader = vk::Shader();
@@ -62,6 +63,10 @@ namespace Zap {
 		UniformBufferObject m_ubo{};// the host uniform buffer
 		vk::Buffer m_uniformBuffer = vk::Buffer();// the vulkan uniform buffer;
 
+		bool m_areTexturesOutdated = false;
+
+		uint32_t m_loadedTextureCount = 0;
+
 		void init(uint32_t width, uint32_t height, uint32_t imageCount);
 
 		void initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex);
@@ -77,6 +82,10 @@ namespace Zap {
 		void afterRender(vk::Image* pTarget, uint32_t imageIndex);
 
 		void recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex);
+
+		void updateTextureDescriptor();
+
+		static void textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams);
 	};
 }
 

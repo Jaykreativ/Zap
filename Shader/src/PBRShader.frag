@@ -55,7 +55,7 @@ layout(set=0, binding=2) readonly buffer PerMeshInstanceBuffer {
 	PerMeshInstanceData data[];
 } perMeshInstance;
 
-layout(set=0, binding=3) uniform sampler2D textures[];
+layout(set=1, binding=0) uniform sampler2D textures[];
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {

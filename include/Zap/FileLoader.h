@@ -56,9 +56,13 @@ namespace Zap {
 	class TextureLoader : public ImageLoader, public FileLoader
 	{
 	public:
-		Texture load(std::string filepath, UUID handle = UUID());
+		Texture load(std::string filepath);
 
 	protected:
+		Texture load(void* data, uint32_t width, uint32_t height, UUID handle = UUID());
+
+		Texture load(std::string filepath, UUID handle);
+
 		Texture load(const aiTexture* texture, UUID handle = UUID());
 
 		Texture load(std::string modelpath, std::string textureID, UUID handle = UUID());

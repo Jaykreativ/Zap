@@ -210,12 +210,9 @@ namespace Zap {
 	}
 
 	void Base::terminate() {
-		m_assetHandler.saveToFile(m_assetDir + "Editor.zal");
+		//m_assetHandler.saveToFile(m_assetDir + "Editor.zal");
 
-		for (auto& meshPair : m_assetHandler.m_meshes) {
-			meshPair.second.m_vertexBuffer.destroy();
-			meshPair.second.m_indexBuffer.destroy();
-		}
+		m_assetHandler.destroyVulkanResources();
 
 		m_pxPhysics->release();
 		m_pxFoundation->release();
@@ -230,7 +227,7 @@ namespace Zap {
 		return &m_settings;
 	}
 
-	const AssetHandler* Base::getAssetHandler() const {
+	AssetHandler* Base::getAssetHandler() {
 		return &m_assetHandler;
 	}
 

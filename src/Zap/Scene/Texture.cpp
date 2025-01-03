@@ -65,6 +65,6 @@ namespace Zap {
 	void Texture::create() {
 		auto base = Base::getBase();
 		base->m_textureIndices[m_handle] = base->m_assetHandler.m_textures.size();
-		base->m_assetHandler.m_textures[m_handle] = TextureData{};
+		base->m_assetHandler.addTexture(*this);
 	}
 }
