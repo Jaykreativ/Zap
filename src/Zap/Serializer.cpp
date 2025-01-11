@@ -143,6 +143,7 @@ namespace Zap {
 		}
 	}
 
+
 	std::string Serializer::readAttribute(std::string attribute, bool* success) {
 		if (success && !existsAttribute(attribute)) {
 			*success = false;
@@ -151,6 +152,7 @@ namespace Zap {
 
 		return m_focusedElement->m_attributes.at(attribute);
 	}
+	
 	int Serializer::readAttributei(std::string attribute, bool* success) {
 		if (success && !existsAttribute(attribute)) {
 			*success = false;
@@ -159,6 +161,41 @@ namespace Zap {
 
 		return std::stoi(m_focusedElement->m_attributes.at(attribute));
 	}
+	
+	long Serializer::readAttributel(std::string attribute, bool* success) {
+		if (success && !existsAttribute(attribute)) {
+			*success = false;
+			return 0;
+		}
+
+		return std::stol(m_focusedElement->m_attributes.at(attribute));
+	}
+	unsigned long Serializer::readAttributeul(std::string attribute, bool* success) {
+		if (success && !existsAttribute(attribute)) {
+			*success = false;
+			return 0;
+		}
+
+		return std::stoul(m_focusedElement->m_attributes.at(attribute));
+	}
+	
+	long long Serializer::readAttributell(std::string attribute, bool* success) {
+		if (success && !existsAttribute(attribute)) {
+			*success = false;
+			return 0;
+		}
+
+		return std::stoll(m_focusedElement->m_attributes.at(attribute));
+	}
+	unsigned long long Serializer::readAttributeull(std::string attribute, bool* success) {
+		if (success && !existsAttribute(attribute)) {
+			*success = false;
+			return 0;
+		}
+
+		return std::stoull(m_focusedElement->m_attributes.at(attribute));
+	}
+	
 	float Serializer::readAttributef(std::string attribute, bool* success) {
 		if (success && !existsAttribute(attribute)) {
 			*success = false;
@@ -167,6 +204,15 @@ namespace Zap {
 
 		return std::stof(m_focusedElement->m_attributes.at(attribute));
 	}
+	double Serializer::readAttributed(std::string attribute, bool* success) {
+		if (success && !existsAttribute(attribute)) {
+			*success = false;
+			return 0;
+		}
+
+		return std::stod(m_focusedElement->m_attributes.at(attribute));
+	}
+	
 	glm::vec3 Serializer::readAttributeVec3(std::string attribute, bool* success) {
 		if (success && !existsAttribute(attribute)) {
 			*success = false;
@@ -207,6 +253,7 @@ namespace Zap {
 		}
 		return vec4;
 	}
+	
 	glm::mat4 Serializer::readAttributeMat4(std::string attribute, bool* success) {
 		if (success && !existsAttribute(attribute)) {
 			*success = false;
@@ -237,31 +284,60 @@ namespace Zap {
 
 		return mat4;
 	}
+	
 	UUID Serializer::readAttributeUUID(std::string attribute, bool* success) {
 		return std::stoull(readAttribute(attribute, success));
 	}
 
+
 	void Serializer::writeAttribute(std::string attribute, std::string data) {
 		m_ofstream << attribute << ": " << data << ";\n";
 	}
+	
 	void Serializer::writeAttribute(std::string attribute, int data) {
 		writeAttribute(attribute, std::to_string(data));
 	}
+	void Serializer::writeAttribute(std::string attribute, unsigned int data) {
+		writeAttribute(attribute, std::to_string(data));
+	}
+	
+	void Serializer::writeAttribute(std::string attribute, long data) {
+		writeAttribute(attribute, std::to_string(data));
+	}
+	void Serializer::writeAttribute(std::string attribute, unsigned long data) {
+		writeAttribute(attribute, std::to_string(data));
+	}
+	
+	void Serializer::writeAttribute(std::string attribute, long long data) {
+		writeAttribute(attribute, std::to_string(data));
+	}
+	void Serializer::writeAttribute(std::string attribute, unsigned long long data) {
+		writeAttribute(attribute, std::to_string(data));
+	}
+		
 	void Serializer::writeAttribute(std::string attribute, float data) {
 		writeAttribute(attribute, std::to_string(data));
 	}
+	void Serializer::writeAttribute(std::string attribute, double data) {
+		writeAttribute(attribute, std::to_string(data));
+	}
+	
 	void Serializer::writeAttribute(std::string attribute, glm::vec3 data) {
 		writeAttribute(attribute, glm::to_string(data));
 	}
+	
 	void Serializer::writeAttribute(std::string attribute, glm::vec4 data) {
 		writeAttribute(attribute, glm::to_string(data));
 	}
+	
 	void Serializer::writeAttribute(std::string attribute, glm::mat4 data) {
 		writeAttribute(attribute, glm::to_string(data));
 	}
+	
 	void Serializer::writeAttribute(std::string attribute, UUID data) {
 		writeAttribute(attribute, std::to_string(data));
 	}
+
 
 	bool Serializer::existsElement(std::string element) {
 		return m_focusedElement->m_elements.count(element);
