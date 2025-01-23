@@ -210,7 +210,7 @@ namespace Zap {
 	}
 
 	void Base::terminate() {
-		//m_assetHandler.saveToFile(m_assetDir + "Editor.zal");
+		m_assetHandler.saveToFile(m_assetDir + "Editor.zal");
 
 		m_assetHandler.destroyVulkanResources();
 

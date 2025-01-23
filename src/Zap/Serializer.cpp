@@ -18,7 +18,7 @@ namespace Zap {
 
 		m_ofstream = std::ofstream(path, std::ios::out | std::ios::trunc);
 
-		return m_ofstream.fail();
+		return !m_ofstream.fail();
 	}
 
 	void Serializer::endSerialization(){

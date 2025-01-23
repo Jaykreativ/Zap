@@ -40,6 +40,10 @@ namespace Zap {
 		return m_handle;
 	}
 
+	Scene* Actor::getScene() {
+		return m_pScene;
+	}
+
 	bool Actor::isValid() {
 		if (!m_pScene) return false;
 		return true;
