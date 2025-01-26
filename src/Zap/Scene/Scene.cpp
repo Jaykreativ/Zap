@@ -41,10 +41,10 @@ namespace Zap {
 		m_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f);
 		m_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
 
-		m_perMeshInstanceBuffer = vk::Buffer(std::max<size_t>(m_meshInstanceCount, 1)*sizeof(PerMeshInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		m_perMeshInstanceBuffer = vk::Buffer(m_meshInstanceCount*sizeof(PerMeshInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_perMeshInstanceBuffer.init(); m_perMeshInstanceBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		m_lightBuffer = vk::Buffer(std::max<size_t>(m_lightComponents.size(), 1)*sizeof(LightData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		m_lightBuffer = vk::Buffer(m_lightComponents.size()*sizeof(LightData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		m_lightBuffer.init(); m_lightBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		m_meshInstanceIndices = {};
@@ -53,28 +53,30 @@ namespace Zap {
 	void Scene::update() {
 		auto* base = Base::getBase();
 
-		if (std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData) != m_lightBuffer.getSize()) {
-			m_lightBuffer.resize(std::max<size_t>(m_lightComponents.size(), 1) * sizeof(LightData));
+		if (m_lightComponents.size() * sizeof(LightData) != m_lightBuffer.getSize()) {
+			m_lightBuffer.resize(m_lightComponents.size() * sizeof(LightData));
 			m_lightBuffer.update();
 		}
 
 		void* rawData;
-		m_lightBuffer.map(&rawData);
-		{
-			LightData* lightData = (LightData*)(rawData);
-			uint32_t i = 0;
-			for (auto const& lightPair : m_lightComponents) {
-				lightData[i].pos = m_transformComponents.at(lightPair.first).transform[3];
-				lightData[i].color = lightPair.second.color;
-				lightData[i].strength = lightPair.second.strength;
-				lightData[i].radius = lightPair.second.radius;
-				i++;
+		if (m_lightBuffer.getSize() > 0) {
+			m_lightBuffer.map(&rawData);
+			{
+				LightData* lightData = (LightData*)(rawData);
+				uint32_t i = 0;
+				for (auto const& lightPair : m_lightComponents) {
+					lightData[i].pos = m_transformComponents.at(lightPair.first).transform[3];
+					lightData[i].color = lightPair.second.color;
+					lightData[i].strength = lightPair.second.strength;
+					lightData[i].radius = lightPair.second.radius;
+					i++;
+				}
 			}
+			m_lightBuffer.unmap();
 		}
-		m_lightBuffer.unmap();
 
 		// resize buffer and fill in one time data
-		if (std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData) != m_perMeshInstanceBuffer.getSize()) {
+		if (m_meshInstanceCount * sizeof(PerMeshInstanceData) != m_perMeshInstanceBuffer.getSize()) {
 			m_meshInstanceIndices.clear();
 
 			m_perMeshInstanceBuffer.resize(std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData));
@@ -95,42 +97,44 @@ namespace Zap {
 			m_perMeshInstanceBuffer.unmap();
 		}
 
-		m_perMeshInstanceBuffer.map(&rawData);
-		{
-			PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
-			uint32_t i = 0;
-			for (auto& modelPair : m_modelComponents) {
-				uint32_t j = 0;
-				for (Mesh mesh : modelPair.second.meshes) {
-					auto* base = Base::getBase();
-					perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * *mesh.getTransform();
-					perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
-					auto& material = *base->m_assetHandler.getMaterialDataPtr(modelPair.second.materials[j].getHandle());
-					MaterialGpuData gpuMaterial = {
-						material.albedoColor,
-						0xFFFFFFFF,
-						material.metallic,
-						0xFFFFFFFF,
-						material.roughness,
-						0xFFFFFFFF,
-						material.emissive,
-						0xFFFFFFFF,
-					};
-					if (base->m_textureIndices.count(material.albedoMap.getHandle()))
-						gpuMaterial.albedoMap = base->m_textureIndices.at(material.albedoMap.getHandle());
-					if (base->m_textureIndices.count(material.metallicMap.getHandle()))
-						gpuMaterial.metallicMap = base->m_textureIndices.at(material.metallicMap.getHandle());
-					if (base->m_textureIndices.count(material.roughnessMap.getHandle()))
-						gpuMaterial.roughnessMap = base->m_textureIndices.at(material.roughnessMap.getHandle());
-					if (base->m_textureIndices.count(material.emissiveMap.getHandle()))
-						gpuMaterial.emissiveMap = base->m_textureIndices.at(material.emissiveMap.getHandle());
-					perMeshInstance[i].material = gpuMaterial;
-					j++; i++;
+		if (m_perMeshInstanceBuffer.getSize() > 0) {
+			m_perMeshInstanceBuffer.map(&rawData);
+			{
+				PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
+				uint32_t i = 0;
+				for (auto& modelPair : m_modelComponents) {
+					uint32_t j = 0;
+					for (Mesh mesh : modelPair.second.meshes) {
+						auto* base = Base::getBase();
+						perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * *mesh.getTransform();
+						perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
+						auto& material = *base->m_assetHandler.getMaterialDataPtr(modelPair.second.materials[j].getHandle());
+						MaterialGpuData gpuMaterial = {
+							material.albedoColor,
+							0xFFFFFFFF,
+							material.metallic,
+							0xFFFFFFFF,
+							material.roughness,
+							0xFFFFFFFF,
+							material.emissive,
+							0xFFFFFFFF,
+						};
+						if (base->m_textureIndices.count(material.albedoMap.getHandle()))
+							gpuMaterial.albedoMap = base->m_textureIndices.at(material.albedoMap.getHandle());
+						if (base->m_textureIndices.count(material.metallicMap.getHandle()))
+							gpuMaterial.metallicMap = base->m_textureIndices.at(material.metallicMap.getHandle());
+						if (base->m_textureIndices.count(material.roughnessMap.getHandle()))
+							gpuMaterial.roughnessMap = base->m_textureIndices.at(material.roughnessMap.getHandle());
+						if (base->m_textureIndices.count(material.emissiveMap.getHandle()))
+							gpuMaterial.emissiveMap = base->m_textureIndices.at(material.emissiveMap.getHandle());
+						perMeshInstance[i].material = gpuMaterial;
+						j++; i++;
 
+					}
 				}
 			}
+			m_perMeshInstanceBuffer.unmap();
 		}
-		m_perMeshInstanceBuffer.unmap();
 
 		m_sceneUpdateEventHandler.pushEvent(SceneUpdateEvent(this));
 	}

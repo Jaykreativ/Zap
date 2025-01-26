@@ -442,7 +442,7 @@ namespace Zap {
 	}
 
 	void PBRenderer::updateTextureDescriptor() {
-		Base* base = Base::getBase();// TODO add default texture
+		Base* base = Base::getBase();
 		auto* textureMap = RenderTaskTemplate::getTextureDataMap();
 		std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {

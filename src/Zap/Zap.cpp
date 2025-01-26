@@ -90,9 +90,14 @@ namespace Zap {
 			initInfo.requestedDeviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
 		}
 
+		// add Features
+		VkPhysicalDeviceRobustness2FeaturesEXT robustness2Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT };
+		robustness2Features.nullDescriptor = true;
+
 		VkPhysicalDeviceVulkan12Features vulkan12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
 		vulkan12Features.runtimeDescriptorArray = true;
 		vulkan12Features.bufferDeviceAddress = true;
+		vulkan12Features.pNext = &robustness2Features;
 
 		VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
 		accelerationStructureFeatures.pNext = &vulkan12Features;
@@ -107,8 +112,9 @@ namespace Zap {
 			features2.pNext = &raytracingPipelineFeatures;
 			features2.features.shaderInt64 = true;
 		}
-		else
+		else {
 			features2.pNext = &vulkan12Features;
+		}
 
 		initInfo.features = features2;
 
