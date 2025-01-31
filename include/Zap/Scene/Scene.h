@@ -98,12 +98,11 @@ namespace Zap {
 		Scene(UUID handle);
 		~Scene();
 
-		struct RaycastOutput {
-			Actor actor;
-			float distance;
-			glm::vec3 normal;
-			glm::vec3 position;
-		};
+		bool operator ==(const Scene& act) { return m_handle == act.m_handle; }
+
+		UUID getHandle();
+
+		bool isValid();
 
 		void init();
 
@@ -111,6 +110,12 @@ namespace Zap {
 
 		void attachActor(Actor& actor);
 
+		struct RaycastOutput {
+			Actor actor;
+			float distance;
+			glm::vec3 normal;
+			glm::vec3 position;
+		};
 		bool raycast(glm::vec3 origin, glm::vec3 unitDir, uint32_t maxDistance, RaycastOutput* out, physx::PxQueryFilterCallback* filterCallback = nullptr); // cleanup query filter
 
 		void simulate(float elapsedTime);

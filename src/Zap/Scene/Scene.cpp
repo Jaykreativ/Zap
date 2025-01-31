@@ -15,6 +15,14 @@ namespace Zap {
 
 	Scene::~Scene() {}
 
+	UUID Scene::getHandle() {
+		return m_handle;
+	}
+
+	bool Scene::isValid() {
+		return (bool)m_handle;
+	}
+
 	void Scene::init() {
 		auto base = Base::getBase();
 
