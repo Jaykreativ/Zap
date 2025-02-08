@@ -77,12 +77,15 @@ namespace Zap {
 						attrName += c;
 					}
 					std::string data;
+					bool emptyStreak = true;
 					while (true) {
 						auto c = getIgnore(stream);
 						if (c == ';' || c == EOF)
 							break;
-						if (c != ' ')
+						if (!(c == ' ' && emptyStreak))
 							data += c;
+						else
+							emptyStreak = false;
 					}
 					if (attrName != "" || data != "") {
 						focusedElement->m_attributes[attrName] = data;
