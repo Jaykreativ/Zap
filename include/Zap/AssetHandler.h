@@ -94,10 +94,15 @@ namespace Zap {
 		TextureData* getTextureDataPtr(UUID handle);
 
 		// loads/reloads all assets from the given .zal file
-		// will invalidate all current assets
+		// will invalidate all actors using any assets
 		void loadFromFile(std::string filepath);
 
+		// stores all assets to a .zal file
 		void saveToFile(std::string filepath);
+
+		// destroys all assets
+		// will invalidate all actors using any assets
+		void destroyAssets();
 
 		// events
 		EventHandler<TextureLoadEvent>* getTextureLoadEventHandler();
@@ -132,8 +137,6 @@ namespace Zap {
 		void addTexture(Texture texture);
 
 		void addLoadedTexture(Texture texture);
-
-		void destroyVulkanResources();
 
 		friend class Base;
 		friend class Mesh;

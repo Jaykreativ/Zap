@@ -24,6 +24,7 @@ namespace Zap {
         void load(std::vector<Vertex> vertexArray, std::vector<uint32_t> indexArray);
 
         void destroy();
+        static void destroy(MeshData* data);
 
         void setBoundingBox(glm::vec3 boundMin, glm::vec3 boundMax);
         

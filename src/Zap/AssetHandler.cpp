@@ -104,20 +104,7 @@ namespace Zap {
 	/* Load / Save */
 
 	void AssetHandler::loadFromFile(std::string filepath) {
-		// clear AssetHandler
-		m_meshes = {};
-		m_loadedMeshes = {};
-		m_meshPaths = {};
-		m_pathMeshMap = {};
-
-		m_materials = {};
-		m_loadedMaterials = {};
-		m_materialPaths = {};
-		m_pathMaterialMap = {};
-
-		m_textures = {};
-		m_loadedTextures = {};
-		m_texturePaths = {};
+		destroyAssets();
 
 		Serializer serializer;
 		serializer.beginDeserialization(filepath.c_str());
@@ -253,6 +240,37 @@ namespace Zap {
 		serializer.endSerialization();
 	}
 
+	void AssetHandler::destroyAssets(){
+#ifdef _DEBUG
+		std::cout << "Destroying all assets, this will invalidate all actors using any assets\n";
+#endif
+		// destroy all resources
+		for (auto& meshPair : m_meshes) {
+			Mesh::destroy(&meshPair.second); // destroy mesh data
+		}
+		for (auto& materialPair : m_materials) {
+			Material::destroy(&materialPair.second); // destroy material data
+		}
+		for (auto& texturePair : m_textures) {
+			Texture::destroy(&texturePair.second); // destroy texture data
+		}
+
+		// clear AssetHandler
+		m_meshes = {};
+		m_loadedMeshes = {};
+		m_meshPaths = {};
+		m_pathMeshMap = {};
+
+		m_materials = {};
+		m_loadedMaterials = {};
+		m_materialPaths = {};
+		m_pathMaterialMap = {};
+
+		m_textures = {};
+		m_loadedTextures = {};
+		m_texturePaths = {};
+	}
+
 	EventHandler<TextureLoadEvent>* AssetHandler::getTextureLoadEventHandler() {
 		return &m_textureLoadEventHandler;
 	}
@@ -264,16 +282,5 @@ namespace Zap {
 	void AssetHandler::addLoadedTexture(Texture texture) {
 		m_loadedTextures.push_back(texture);
 		m_textureLoadEventHandler.pushEvent(TextureLoadEvent(texture));
-	}
-
-	void AssetHandler::destroyVulkanResources() {
-		std::cout << "Releasing vulkan resources for assets\n";
-		for (auto& meshPair : m_meshes) {
-			meshPair.second.m_vertexBuffer.destroy();
-			meshPair.second.m_indexBuffer.destroy();
-		}
-		for (auto& texturePair : m_textures) {
-			texturePair.second.image.destroy();
-		}
 	}
 }

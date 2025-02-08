@@ -34,6 +34,7 @@ namespace Zap {
 		~Material();
 
 		void destroy();
+		static void destroy(MaterialData* data);
 
 		bool exists() const;
 

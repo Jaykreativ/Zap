@@ -26,6 +26,7 @@ namespace Zap {
 		void load(void* data, uint32_t width, uint32_t height);
 
 		void destroy();
+		static void destroy(TextureData* data);
 
 		bool exists() const;
 

@@ -44,6 +44,8 @@ namespace Zap {
 	};
 
 	struct Settings {
+		std::string assetLibraryPath;
+
 		uint32_t requestedGPU = 0;
 		bool enableRaytracing = false;
 	};
@@ -62,7 +64,7 @@ namespace Zap {
 
 		std::string getApplicationName();
 
-		static Base* createBase(const char* applicationName);
+		static Base* createBase(std::string applicationName, std::string assetLibraryPath = "./AssetLibrary.zal");
 
 		static void releaseBase();
 
@@ -71,7 +73,7 @@ namespace Zap {
 #ifndef ZP_ALL_PUBLIC
 	private:
 #endif
-		Base(std::string applicationName);
+		Base(std::string applicationName, std::string assetLibraryPath = "./AssetLibrary.zal");
 		~Base();
 
 		bool m_isInit;
@@ -87,7 +89,6 @@ namespace Zap {
 		physx::PxPvd* m_pxPvd;
 		physx::PxPhysics* m_pxPhysics;
 		
-		std::string m_assetDir = "./";
 		AssetHandler m_assetHandler;
 		vk::Sampler m_textureSampler;
 		std::unordered_map<UUID, uint32_t> m_textureIndices = {};

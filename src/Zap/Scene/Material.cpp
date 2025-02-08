@@ -16,6 +16,7 @@ namespace Zap {
 	Material::~Material() {}
 
 	void Material::destroy() {}
+	void Material::destroy(MaterialData* data) {}
 
 	bool Material::exists() const {
 		return Base::getBase()->m_assetHandler.m_materials.count(m_handle);

@@ -36,6 +36,9 @@ namespace Zap {
 	void Mesh::destroy() {
 		auto* base = Base::getBase();
 		MeshData* data = base->m_assetHandler.getMeshDataPtr(m_handle);
+		destroy(data);
+	}
+	void Mesh::destroy(MeshData* data) {
 		data->m_vertexBuffer.destroy();
 		data->m_indexBuffer.destroy();
 	}

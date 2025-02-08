@@ -44,7 +44,10 @@ namespace Zap {
 	void Texture::destroy() {
 		auto& assetHandler = Base::getBase()->m_assetHandler;
 		auto* pData = assetHandler.getTextureDataPtr(m_handle);
-		pData->image.destroy();
+		destroy(pData);
+	}
+	void Texture::destroy(TextureData* data) {
+		data->image.destroy();
 	}
 
 	bool Texture::exists() const {
