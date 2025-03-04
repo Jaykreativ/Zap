@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <filesystem>
 
 namespace Zap {
 	class Serializer
@@ -13,10 +14,16 @@ namespace Zap {
 		Serializer();
 		~Serializer();
 
+		bool beginSerialization(std::filesystem::path filePath) {
+			return beginSerialization(filePath.string().c_str());
+		}
 		bool beginSerialization(const char* filePath);
 
 		void endSerialization();
 
+		bool beginDeserialization(std::filesystem::path filePath) {
+			return beginDeserialization(filePath.string().c_str());
+		}
 		bool beginDeserialization(const char* filePath);
 
 		void endDeserialization();

@@ -7,6 +7,7 @@
 #include "Zap/Scene/Texture.h"
 
 #include <set>
+#include <filesystem>
 /*
 * FileLoader parent
 * Actor loader
@@ -95,10 +96,14 @@ namespace Zap {
 
 		// loads/reloads all assets from the given .zal file
 		// will invalidate all actors using any assets
+		void loadFromFile(std::filesystem::path filepath) {
+			loadFromFile(filepath.string());
+		}
 		void loadFromFile(std::string filepath);
 
 		// stores all assets to a .zal file
 		void saveToFile(std::string filepath);
+		void saveToFile(std::filesystem::path filepath);
 
 		// destroys all assets
 		// will invalidate all actors using any assets

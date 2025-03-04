@@ -188,6 +188,9 @@ namespace Zap {
 		serializer.endDeserialization();
 	}
 
+	void AssetHandler::saveToFile(std::filesystem::path filepath) {
+		saveToFile(filepath.string());
+	}
 	void AssetHandler::saveToFile(std::string filepath) {
 		Serializer serializer;
 		serializer.beginSerialization(filepath.c_str());

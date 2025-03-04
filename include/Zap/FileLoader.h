@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <string>
+#include <filesystem>
 
 class aiNode;
 class aiScene;
@@ -56,15 +57,18 @@ namespace Zap {
 	class TextureLoader : public ImageLoader, public FileLoader
 	{
 	public:
+		Texture load(std::filesystem::path filepath);
 		Texture load(std::string filepath);
 
 	protected:
 		Texture load(void* data, uint32_t width, uint32_t height, UUID handle = UUID());
 
+		Texture load(std::filesystem::path filepath, UUID handle);
 		Texture load(std::string filepath, UUID handle);
 
 		Texture load(const aiTexture* texture, UUID handle = UUID());
 
+		Texture load(std::filesystem::path modelpath, std::string textureID, UUID handle = UUID());
 		Texture load(std::string modelpath, std::string textureID, UUID handle = UUID());
 
 		friend class AssetHandler;
@@ -83,6 +87,7 @@ namespace Zap {
 	protected:
 		Mesh load(aiMesh* aMesh, glm::mat4& transform, glm::vec3& modelBoundMin, glm::vec3& modelBoundMax, UUID handle = UUID());
 
+		Mesh loadFromFile(std::filesystem::path filepath, uint32_t index, glm::mat4& transform, UUID handle = UUID());
 		Mesh loadFromFile(std::string filepath, uint32_t index, glm::mat4& transform, UUID handle = UUID());
 
 		friend class AssetHandler;
@@ -91,18 +96,20 @@ namespace Zap {
 	class ModelLoader : protected MaterialLoader, protected MeshLoader
 	{
 	public:
-		Model load(std::string filepath);
+		Model load(std::filesystem::path filepath);
 
 	private:
-		void processNode(const aiNode* node, const aiScene* aScene, std::string path, glm::mat4& transform, Model& model);
+		void processNode(const aiNode* node, const aiScene* aScene, std::filesystem::path path, glm::mat4& transform, Model& model);
 
 		friend class AssetHandler;
 	};
 
 	class ActorLoader : public FileLoader {
 	public:
+		Actor load(std::filesystem::path filepath, Scene* pScene);
 		Actor load(std::string filepath, Scene* pScene);
 
+		void store(std::filesystem::path filepath, Actor actor);
 		void store(std::string filepath, Actor actor);
 	};
 
