@@ -205,23 +205,27 @@ namespace Zap {
 
 		m_descriptorSet.addDescriptor(perMeshInstanceBufferDescriptor);
 
-		std::vector<vk::DescriptorImageInfo> textureInfos;
-		for (uint32_t i = 0; i < base->m_textures.size(); i++) {
-			vk::DescriptorImageInfo textureInfo{};
-			textureInfo.pSampler = &base->m_textureSampler;
-			textureInfo.pImage = &base->m_textures[i];
-			textureInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			textureInfos.push_back(textureInfo);
+		auto* textureMap = RenderTaskTemplate::getTextureDataMap();
+		std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
+		for (auto& texturePair : *textureMap) {
+			uint32_t i = RenderTaskTemplate::getTextureIndex(texturePair.first);
+			vk::DescriptorImageInfo textureImageInfo{};
+			textureImageInfo.pSampler = &base->m_textureSampler;
+			textureImageInfo.pImage = &texturePair.second.image;
+			textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			textureImageInfos[i] = textureImageInfo;
 		}
 
 		vk::Descriptor texturesDescriptor{};
 		texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		texturesDescriptor.count = base->m_textures.size();
+		texturesDescriptor.count = textureImageInfos.size();
 		texturesDescriptor.stages = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 		texturesDescriptor.binding = 3;
-		texturesDescriptor.imageInfos = textureInfos;
+		texturesDescriptor.imageInfos = textureImageInfos;
 
 		m_descriptorSet.addDescriptor(texturesDescriptor);
+
+		m_loadedTextureCount = textureMap->size();
 
 		m_targetDescriptorSets.resize(imageCount);
 
@@ -256,6 +260,8 @@ namespace Zap {
 		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetRT);
 		base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetRT);
 		base->m_registery.connect(&m_tlas, &m_rtDescriptorSet, updateAccelerationStructureDescriptorSetRT);
+
+		Base::getBase()->getAssetHandler()->getTextureLoadEventHandler()->addCallback(textureLoadCallback, this);
 	}
 
 	void RaytracingRenderer::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
@@ -336,6 +342,9 @@ namespace Zap {
 			}
 		}
 
+		if (m_areTexturesOutdated)
+			updateTextureDescriptor();
+
 		m_tlas.setGeometry(instanceVector);
 		m_tlas.update();
 	}
@@ -363,5 +372,56 @@ namespace Zap {
 		data->camPos = camera.cmpTransform_getPos();
 		data->lightCount = m_pScene->m_lightComponents.size();
 		m_UBO.unmap();
+	}
+
+	void RaytracingRenderer::updateTextureDescriptor() {
+		Base* base = Base::getBase();// TODO add default texture
+		auto* textureMap = RenderTaskTemplate::getTextureDataMap();
+		std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
+		for (auto& texturePair : *textureMap) {
+			uint32_t i = RenderTaskTemplate::getTextureIndex(texturePair.first);
+			vk::DescriptorImageInfo textureImageInfo{};
+			textureImageInfo.pSampler = &base->m_textureSampler;
+			textureImageInfo.pImage = &texturePair.second.image;
+			textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			textureImageInfos[i] = textureImageInfo;
+		}
+
+		vk::Descriptor texturesDescriptor{};
+		texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		texturesDescriptor.count = textureImageInfos.size();
+		texturesDescriptor.stages = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+		texturesDescriptor.binding = 3;
+		texturesDescriptor.imageInfos = textureImageInfos;
+
+		uint32_t oldLoadedTextureCount = m_loadedTextureCount;
+		m_loadedTextureCount = textureMap->size();
+
+		m_descriptorPool.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_loadedTextureCount - oldLoadedTextureCount);
+		m_descriptorPool.update();
+
+		m_descriptorSet.setDescriptor(3, texturesDescriptor);
+		m_descriptorSet.setDescriptorPool(&m_descriptorPool);
+		m_descriptorSet.update();
+
+		m_rtDescriptorSet.setDescriptorPool(&m_descriptorPool);
+		m_rtDescriptorSet.update();
+
+		for (auto& targetSet : m_targetDescriptorSets) {
+			targetSet.setDescriptorPool(&m_descriptorPool);
+			targetSet.update();
+		}
+
+		m_rtPipeline.setDescriptorSetLayout(0, m_rtDescriptorSet.getVkDescriptorSetLayout());
+		m_rtPipeline.setDescriptorSetLayout(1, m_descriptorSet.getVkDescriptorSetLayout());
+		m_rtPipeline.setDescriptorSetLayout(2, m_targetDescriptorSets[0].getVkDescriptorSetLayout());
+		m_rtPipeline.update();
+
+		m_areTexturesOutdated = false;
+	}
+
+	void RaytracingRenderer::textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams) {
+		Zap::RaytracingRenderer* pObj = reinterpret_cast<Zap::RaytracingRenderer*>(customParams);
+		pObj->m_areTexturesOutdated = true;
 	}
 }

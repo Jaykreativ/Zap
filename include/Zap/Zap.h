@@ -2,8 +2,13 @@
 
 #define ZP_ASSERT(val, str)\
 			if (!val){\
-				std::cerr << str << "\n";\
+				std::cerr << "ERROR: " << str << "\n";\
 				throw std::runtime_error(str);\
+			}
+
+#define ZP_WARN(val, str)\
+			if (!val){\
+				std::cerr << "WARNING: " << str << "\n";\
 			}
 
 #define ZP_IS_FLAG_ENABLED(val, flag) ((val & flag) == flag)
@@ -15,10 +20,16 @@
 #include "Zap/AssetHandler.h"
 #include "VulkanFramework.h"
 #define PX_PHYSX_STATIC_LIB
+
 #include "PxPhysicsAPI.h"
+
+#include "assimp/vector3.h"
+#include "assimp/matrix4x4.h"
+
 #include <unordered_map>
 
 //TODO add standart renderer for windows with no renderer
+
 namespace Zap {
 	class Window;
 	class Renderer;
@@ -32,25 +43,9 @@ namespace Zap {
 		eRAYTRACING = 0x1
 	};
 
-	enum PhysicsType {
-		PHYSICS_TYPE_UNDEFINED = 0,
-		PHYSICS_TYPE_NONE = 1,
-		PHYSICS_TYPE_RIGID_DYNAMIC = 2,
-		PHYSICS_TYPE_RIGID_STATIC = 3,
-		PHYSICS_TYPE_RIGID_BODY = 4
-	};
-
-	enum ComponentType {
-		COMPONENT_TYPE_NONE = 0,
-		COMPONENT_TYPE_TRANSFORM = 1,
-		COMPONENT_TYPE_MESH = 2,
-		COMPONENT_TYPE_RIGID_DYNAMIC = 3,
-		COMPONENT_TYPE_RIGID_STATIC = 4,
-		COMPONENT_TYPE_LIGHT = 5,
-		COMPONENT_TYPE_CAMERA = 6
-	};
-
 	struct Settings {
+		std::string assetLibraryPath;
+
 		uint32_t requestedGPU = 0;
 		bool enableRaytracing = false;
 	};
@@ -65,11 +60,11 @@ namespace Zap {
 
 		Settings* getSettings();
 
-		const AssetHandler* getAssetHandler() const;
+		AssetHandler* getAssetHandler();
 
 		std::string getApplicationName();
 
-		static Base* createBase(const char* applicationName);
+		static Base* createBase(std::string applicationName, std::string assetLibraryPath = "./AssetLibrary.zal");
 
 		static void releaseBase();
 
@@ -78,7 +73,7 @@ namespace Zap {
 #ifndef ZP_ALL_PUBLIC
 	private:
 #endif
-		Base(std::string applicationName);
+		Base(std::string applicationName, std::string assetLibraryPath = "./AssetLibrary.zal");
 		~Base();
 
 		bool m_isInit;
@@ -96,8 +91,7 @@ namespace Zap {
 		
 		AssetHandler m_assetHandler;
 		vk::Sampler m_textureSampler;
-		std::vector<vk::Image> m_textures = {};
-		std::vector<std::string> m_texturePaths = {};
+		std::unordered_map<UUID, uint32_t> m_textureIndices = {};
 
 		static Base* m_engineBase;
 		static bool m_exists;
@@ -106,10 +100,14 @@ namespace Zap {
 		friend class Actor;
 		friend class Mesh;
 		friend class Material;
+		friend class Texture;
 		friend class RenderTaskTemplate;
 		friend class PBRenderer;
 		friend class RaytracingRenderer;
 		friend class PathTracer;
+		friend class TextureLoader;
+		friend class MaterialLoader;
+		friend class MeshLoader;
 		friend class ModelLoader;
 		friend class PhysicsComponent;
 		friend class RigidBodyComponent;
@@ -147,5 +145,10 @@ namespace Zap {
 		physx::PxQuat glmQuatToQuat(glm::quat quat);
 
 		glm::quat quatToGlmQuat(physx::PxQuat quat);
+	}
+
+	namespace AssimpUtils {
+		glm::mat4 mat4ToGlmMat4(const aiMatrix4x4& from);
+
 	}
 }

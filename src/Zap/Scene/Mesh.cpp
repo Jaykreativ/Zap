@@ -3,18 +3,17 @@
 #include "Zap/Zap.h"
 
 namespace Zap {
-	Mesh::Mesh(){}
+	Mesh::Mesh()
+		: m_handle()
+	{
+		Base::getBase()->m_assetHandler.m_meshes[m_handle] = MeshData{};
+	}
+
 	Mesh::Mesh(UUID handle)
 		: m_handle(handle)
 	{}
 
 	Mesh::~Mesh() {}
-
-	void Mesh::init() {
-		auto* base = Base::getBase();
-		auto* pAssetHandler = &base->m_assetHandler;
-		pAssetHandler->m_meshes[m_handle] = MeshData{};
-	}
 
 	void Mesh::load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
 		auto* base = Base::getBase();
@@ -37,6 +36,9 @@ namespace Zap {
 	void Mesh::destroy() {
 		auto* base = Base::getBase();
 		MeshData* data = base->m_assetHandler.getMeshDataPtr(m_handle);
+		destroy(data);
+	}
+	void Mesh::destroy(MeshData* data) {
 		data->m_vertexBuffer.destroy();
 		data->m_indexBuffer.destroy();
 	}
@@ -59,19 +61,19 @@ namespace Zap {
 
 	const glm::mat4* Mesh::getTransform() const {
 		auto* base = Base::getBase();
-		auto* data = base->getAssetHandler()->getMeshData(m_handle);
-		return &data->m_transform;
+		auto& data = base->getAssetHandler()->getMeshData(m_handle);
+		return &data.m_transform;
 	}
 
 	const vk::Buffer* Mesh::getVertexBuffer() const {
 		auto* base = Base::getBase();
-		auto* data = base->getAssetHandler()->getMeshData(m_handle);
-		return &data->m_vertexBuffer;
+		auto& data = base->getAssetHandler()->getMeshData(m_handle);
+		return &data.m_vertexBuffer;
 	}
 
 	const vk::Buffer* Mesh::getIndexBuffer() const {
 		auto* base = Base::getBase();
-		auto* data = base->getAssetHandler()->getMeshData(m_handle);
-		return &data->m_indexBuffer;
+		auto& data = base->getAssetHandler()->getMeshData(m_handle);
+		return &data.m_indexBuffer;
 	}
 }

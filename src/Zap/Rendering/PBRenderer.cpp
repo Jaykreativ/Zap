@@ -10,6 +10,8 @@
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Camera.h"
 
+#include <array>
+
 void updateLightBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
 	if (func != vk::eUPDATE)
 		return;
@@ -37,10 +39,6 @@ void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable
 }
 
 namespace Zap {
-//#ifdef _DEBUG
-//	bool PBRenderer::areShadersCompiled = false;
-//#endif
-
 	PBRenderer::PBRenderer(Scene* pScene)
 		: RenderTaskTemplate(pScene), m_pScene(pScene)
 	{}
@@ -95,32 +93,42 @@ namespace Zap {
 			perMeshBufferDescriptor.bufferInfos = { perMeshBufferInfo };
 			m_descriptorSet.addDescriptor(perMeshBufferDescriptor);
 
+			m_descriptorPool.addDescriptorSet(m_descriptorSet);
+
 			Base* base = Base::getBase();// TODO add default texture
-			std::vector<vk::DescriptorImageInfo> textureImageInfos;
-			for (uint32_t i = 0; i < base->m_textures.size(); i++) {
+			auto* textureMap = RenderTaskTemplate::getTextureDataMap();
+			std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
+			for (auto& texturePair : *textureMap) {
+				uint32_t i = RenderTaskTemplate::getTextureIndex(texturePair.first);
 				vk::DescriptorImageInfo textureImageInfo{};
 				textureImageInfo.pSampler = &base->m_textureSampler;
-				textureImageInfo.pImage = &base->m_textures[i];
+				textureImageInfo.pImage = &texturePair.second.image;
 				textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-				textureImageInfos.push_back(textureImageInfo);
+				textureImageInfos[i] = textureImageInfo;
 			}
 
 			vk::Descriptor texturesDescriptor{};
 			texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			texturesDescriptor.count = base->m_textures.size();
+			texturesDescriptor.count = textureImageInfos.size();
 			texturesDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
-			texturesDescriptor.binding = 3;
+			texturesDescriptor.binding = 0;
 			texturesDescriptor.imageInfos = textureImageInfos;
 
-			m_descriptorSet.addDescriptor(texturesDescriptor);
+			m_loadedTextureCount = textureMap->size();
 
-			m_descriptorPool.addDescriptorSet(m_descriptorSet);
+			m_textureSet.addDescriptor(texturesDescriptor);
+
+			m_descriptorPool.addDescriptorSet(m_textureSet);
 			m_descriptorPool.init();
 
 			m_descriptorSet.init();
 			m_descriptorSet.allocate();
 			m_descriptorSet.update();
 
+			m_textureSet.init();
+			m_textureSet.allocate();
+			m_textureSet.update();
+			
 			base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPBR);
 			base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetPBR);
 		}
@@ -242,6 +250,7 @@ namespace Zap {
 		m_pipeline.addShader(m_fragmentShader.getShaderStage());
 
 		m_pipeline.addDescriptorSetLayout(m_descriptorSet.getVkDescriptorSetLayout());
+		m_pipeline.addDescriptorSetLayout(m_textureSet.getVkDescriptorSetLayout());
 		for (auto attributeDescription : Vertex::getVertexInputAttributeDescriptions()) {
 			m_pipeline.addVertexInputAttrubuteDescription(attributeDescription);
 		}
@@ -261,6 +270,8 @@ namespace Zap {
 		m_pipeline.addPushConstantRange(pushConstantRange);
 
 		m_pipeline.init();
+
+		Base::getBase()->getAssetHandler()->getTextureLoadEventHandler()->addCallback(textureLoadCallback, this);
 
 		RenderTaskTemplate::initTargetDependencies();
 	}
@@ -304,12 +315,16 @@ namespace Zap {
 		m_renderPass.destroy();
 		m_depthImage.destroy();
 		m_descriptorSet.destroy();
+		m_textureSet.destroy();
 		m_descriptorPool.destroy();
 		m_uniformBuffer.destroy();
 	}
 
 	void PBRenderer::beforeRender(vk::Image* pTarget, uint32_t imageIndex) {
 		m_ubo.lightCount = m_pScene->m_lightComponents.size();
+
+		if (m_areTexturesOutdated)
+			updateTextureDescriptor();
 
 		void* rawData; m_uniformBuffer.map(&rawData);
 		memcpy(rawData, &m_ubo, sizeof(UniformBufferObject));
@@ -379,8 +394,8 @@ namespace Zap {
 				vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
 				vkCmdBindIndexBuffer(*cmd, *mesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-				VkDescriptorSet boundSets[] = { m_descriptorSet };
-				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, boundSets, 0, nullptr);
+				std::array<VkDescriptorSet, 2> boundSets = { m_descriptorSet, m_textureSet };
+				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, boundSets.size(), boundSets.data(), 0, nullptr);
 
 				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &i);
 
@@ -424,5 +439,50 @@ namespace Zap {
 		height = m_viewport.height;
 		x = m_viewport.x;
 		y = m_viewport.y;
+	}
+
+	void PBRenderer::updateTextureDescriptor() {
+		Base* base = Base::getBase();
+		auto* textureMap = RenderTaskTemplate::getTextureDataMap();
+		std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
+		for (auto& texturePair : *textureMap) {
+			uint32_t i = RenderTaskTemplate::getTextureIndex(texturePair.first);
+			vk::DescriptorImageInfo textureImageInfo{};
+			textureImageInfo.pSampler = &base->m_textureSampler;
+			textureImageInfo.pImage = &texturePair.second.image;
+			textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			textureImageInfos[i] = textureImageInfo;
+		}
+
+		vk::Descriptor texturesDescriptor{};
+		texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		texturesDescriptor.count = textureImageInfos.size();
+		texturesDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
+		texturesDescriptor.binding = 0;
+		texturesDescriptor.imageInfos = textureImageInfos;
+		
+		uint32_t oldLoadedTextureCount = m_loadedTextureCount;
+		m_loadedTextureCount = textureMap->size();
+
+		m_descriptorPool.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_loadedTextureCount - oldLoadedTextureCount);
+		m_descriptorPool.update();
+
+		m_textureSet.setDescriptor(0, texturesDescriptor);
+		m_descriptorSet.setDescriptorPool(&m_descriptorPool);
+		m_textureSet.update();
+
+		m_descriptorSet.setDescriptorPool(&m_descriptorPool);
+		m_descriptorSet.update();
+
+		m_pipeline.setDescriptorSetLayout(0, m_descriptorSet.getVkDescriptorSetLayout());
+		m_pipeline.setDescriptorSetLayout(1, m_textureSet.getVkDescriptorSetLayout());
+		m_pipeline.update();
+
+		m_areTexturesOutdated = false;
+	}
+
+	void PBRenderer::textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams) {
+		Zap::PBRenderer* pObj = reinterpret_cast<Zap::PBRenderer*>(customParams);
+		pObj->m_areTexturesOutdated = true;
 	}
 }

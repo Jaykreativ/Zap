@@ -28,6 +28,7 @@ namespace Zap {
 		glfwSetCursorPosCallback(m_window, cursorPosGLFWCallback);
 		glfwSetMouseButtonCallback(m_window, mouseButtonGLFWCallback);
 		glfwSetScrollCallback(m_window, scrollGLFWCallback);
+		glfwSetDropCallback(m_window, dragDropGLFWCallback);
 
 		m_surface.setGLFWwindow(m_window);
 		m_surface.init();
@@ -100,6 +101,10 @@ namespace Zap {
 		return &m_scrollEventHandler;
 	}
 
+	EventHandler<DragDropEvent>* Window::getDragDropEventHandler() {
+		return &m_dragDropEventHandler;
+	}
+
 	void Window::resizeGLFWCallback(GLFWwindow* window, int width, int height) {
 		Window* pWindow = Window::glfwWindowMap.at(window);
 		pWindow->resize(window, width, height);
@@ -124,6 +129,11 @@ namespace Zap {
 	void Window::scrollGLFWCallback(GLFWwindow* window, double xoffset, double yoffset) {
 		Window* pWindow = Window::glfwWindowMap.at(window);
 		pWindow->getScrollEventHandler()->pushEvent(ScrollEvent(pWindow, xoffset, yoffset));
+	}
+
+	void Window::dragDropGLFWCallback(GLFWwindow* window, int path_count, const char* paths[]) {
+		Window* pWindow = Window::glfwWindowMap.at(window);
+		pWindow->getDragDropEventHandler()->pushEvent(DragDropEvent(pWindow, path_count, paths));
 	}
 
 	void Window::resize(GLFWwindow* window, int width, int height) {

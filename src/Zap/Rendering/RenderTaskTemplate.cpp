@@ -50,4 +50,13 @@ namespace Zap {
 	uint32_t RenderTaskTemplate::getMeshInstanceIndex(Actor actor, Mesh mesh) {
 		return getMeshInstanceIndex((UUID)actor, mesh);
 	}
+
+	std::unordered_map<UUID, TextureData>* RenderTaskTemplate::getTextureDataMap() {
+		return &Base::getBase()->m_assetHandler.m_textures;
+	}
+
+	uint32_t RenderTaskTemplate::getTextureIndex(UUID texture) {
+		return Base::getBase()->m_textureIndices.at(texture);
+	}
+
 }

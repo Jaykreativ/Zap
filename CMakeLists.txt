@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(Zap)
+
 file(GLOB Zap_SRC
 	"src/Zap/*.cpp"
 	"include/Zap/*.h"
@@ -33,7 +34,9 @@ source_group("Shader" FILES ${Zap_Shader_SRC})
 source_group("Imgui" FILES ${Imgui_SRC})
 
 set(${BUILD_SHARED_LIBS} false)
+set(${CMAKE_BUILD_PARALLEL_LEVEL} 16)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Zap)
+set_property(TARGET Zap PROPERTY CXX_STANDARD 17)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/glfw)
