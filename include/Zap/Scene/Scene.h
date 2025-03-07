@@ -10,6 +10,8 @@
 #include "Zap/Scene/Model.h"
 #include "Zap/Scene/PhysicsComponent.h"
 #include "Zap/Scene/Transform.h"
+#include "Zap/Scene/AudioListener.h"
+#include "Zap/Scene/AudioSource.h"
 
 #include "glm.hpp"
 
@@ -112,6 +114,8 @@ namespace Zap {
 
 		bool raycast(glm::vec3 origin, glm::vec3 unitDir, uint32_t maxDistance, RaycastOutput* out, physx::PxQueryFilterCallback* filterCallback); // cleanup query filter
 
+		void simulateAudio(float dTime);
+
 		void simulate(float elapsedTime);
 
 		void update();
@@ -142,12 +146,14 @@ namespace Zap {
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 	public:
 #endif
-		std::unordered_map<UUID, Camera>          m_cameraComponents;// TODO rework access system
-		std::unordered_map<UUID, Light>           m_lightComponents;
-		std::unordered_map<UUID, Model>           m_modelComponents;
-		std::unordered_map<UUID, RigidDynamic>    m_rigidDynamicComponents;
-		std::unordered_map<UUID, RigidStatic>     m_rigidStaticComponents;
-		std::unordered_map<UUID, Transform>       m_transformComponents;
+		std::unordered_map<UUID, Camera>                 m_cameraComponents;// TODO rework access system
+		std::unordered_map<UUID, Light>                  m_lightComponents;
+		std::unordered_map<UUID, Model>                  m_modelComponents;
+		std::unordered_map<UUID, RigidDynamic>           m_rigidDynamicComponents;
+		std::unordered_map<UUID, RigidStatic>            m_rigidStaticComponents;
+		std::unordered_map<UUID, Transform>              m_transformComponents;
+		std::pair<bool, std::pair<UUID, AudioListener>>  m_audioListenerComponent = { false, { 0x0, AudioListener() } };
+
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 #ifndef ZP_ALL_PUBLIC
 	private:

@@ -39,6 +39,8 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/glfw)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/glm)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/assimp)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/openal-soft)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/libaudiodecoder)
 
 set(PHYSX_ROOT_DIR "${PROJECT_SOURCE_DIR}/Dependencies/PhysX/physx")
 set(PX_OUTPUT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/PhysX/physx/")
@@ -80,6 +82,8 @@ target_link_libraries(
 	PhysXPvdSDK
 	PhysXTask
 	PhysXFoundation
+	OpenAL
+	libaudiodecoder
 	$ENV{VULKAN_SDK}/Lib/vulkan-1.lib
 )
 
@@ -93,5 +97,8 @@ target_include_directories(
 	"${PROJECT_SOURCE_DIR}/Dependencies/glm/glm"
 	"${PROJECT_SOURCE_DIR}/Dependencies/PhysX/physx/include"
 	"${PROJECT_SOURCE_DIR}/Dependencies/assimp/include"
+	"${PROJECT_SOURCE_DIR}/Dependencies/openal-soft/include"
+	"${PROJECT_SOURCE_DIR}/Dependencies/libaudiodecoder/include"
+
 	"$ENV{VULKAN_SDK}/Include"
 )

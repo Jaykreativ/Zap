@@ -17,3 +17,9 @@
 [submodule "Dependencies/assimp"]
 	path = Dependencies/assimp
 	url = https://github.com/assimp/assimp
+[submodule "Dependencies/libaudiodecoder"]
+	path = Dependencies/libaudiodecoder
+	url = https://github.com/asantoni/libaudiodecoder
+[submodule "Dependencies/openal-soft"]
+	path = Dependencies/openal-soft
+	url = https://github.com/kcat/openal-soft

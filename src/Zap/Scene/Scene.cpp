@@ -4,6 +4,11 @@
 #include "Zap/Scene/Material.h"
 #include "Zap/Scene/PhysicsComponent.h"
 
+#define AL_LIBTYPE_STATIC
+#include "AL/al.h"
+#include "AL/alc.h"
+#include "AL/alext.h"
+
 namespace Zap {
 	Scene::Scene() {
 		m_handle = UUID();
@@ -149,6 +154,28 @@ namespace Zap {
 		out->position = *((glm::vec3*)&hit.block.position);
 
 		return true;
+	}
+
+	void Scene::simulateAudio(float dTime) {
+		if (m_audioListenerComponent.first) {// check if listener exists
+			Actor actor(m_audioListenerComponent.second.first, this); // get the listeners actor
+			if (actor.hasTransform()) { // check if actor has a position
+				glm::vec3 pos = actor.cmpTransform_getPos();
+				glm::vec3 velocity = (pos - m_audioListenerComponent.second.second.lastPos)*dTime;
+				glm::vec3 direction = glm::normalize(actor.cmpTransform_getTransform()[2]);
+				glm::vec3 up = { 0, 1, 0 };
+				float orientation[6] = { direction.x, direction.y, direction.z, up.x, up.y, up.z };
+
+				m_audioListenerComponent.second.second.lastPos = pos;
+
+				alListenerfv(AL_POSITION, reinterpret_cast<float*>(&pos));
+				ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed to set the position of the alListener at Scene::simulate");
+				alListenerfv(AL_VELOCITY, reinterpret_cast<float*>(&velocity));
+				ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed to set the velocity of the alListener at Scene::simulate");
+				alListenerfv(AL_ORIENTATION, reinterpret_cast<float*>(orientation));
+				ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed to set the direction of the alListener at Scene::simulate");
+			}
+		}
 	}
 
 	void Scene::simulate(float elapsedTime) {

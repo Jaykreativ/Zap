@@ -31,7 +31,24 @@ namespace Zap {
 
 	Actor::~Actor(){}
 	
+	void Actor::destroy() {
+		m_pScene->getRemoveActorEventHandler()->pushEvent(RemoveActorEvent(m_pScene, *this));
+		if (hasCamera())
+			destroyCamera();
+		if (hasLight())
+			destroyLight();
+		if (hasModel())
+			destroyModel();
+		if (hasRigidDynamic())
+			destroyRigidDynamic();
+		if (hasRigidStatic())
+			destroyRigidStatic();
+		if (hasTransform())
+			destroyTransform();
+	}
+
 	/* Transform */
+
 	void Actor::addTransform(Transform transform) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_transformComponents.count(m_handle), "Actor can't have multiple transforms");
@@ -121,6 +138,8 @@ namespace Zap {
 		return cmp->transform;
 	}
 	
+	/* Model */
+
 	bool Actor::addModel(Model model) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_modelComponents.count(m_handle), "Actor can't have multiple Models");
@@ -172,6 +191,8 @@ namespace Zap {
 		cmp->materials.erase(cmp->materials.begin()+meshIndex);
 		m_pScene->m_meshInstanceCount--;
 	}
+
+	/* RigidDynamic */
 
 	void Actor::addRigidDynamic(RigidDynamic shape) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
@@ -248,6 +269,8 @@ namespace Zap {
 		return (flag & (uint8_t)cmp->pxActor->getActorFlags()) == flag;
 	}
 
+	/* RigidStatic */
+
 	void Actor::addRigidStatic(RigidStatic rigidStatic) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_rigidStaticComponents.count(m_handle), "Actor can't have multiple RigidStatics");
@@ -274,6 +297,8 @@ namespace Zap {
 	bool Actor::hasRigidStatic() {
 		return m_pScene->m_rigidStaticComponents.count(m_handle);
 	}
+
+	/* Light */
 
 	void Actor::addLight(Light light) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
@@ -331,6 +356,8 @@ namespace Zap {
 		Light* cmp = &m_pScene->m_lightComponents.at(m_handle);
 		return cmp->radius;
 	}
+
+	/* Camera */
 
 	void Actor::addCamera(Camera camera) {
 		ZP_ASSERT(!m_pScene->m_cameraComponents.count(m_handle), "Actor can't have multiple cameras");
@@ -392,6 +419,24 @@ namespace Zap {
 		return glm::perspective<float>(glm::radians<float>(60), aspect, 0.01, 1000);
 	}
 
+	/* AudioListener */
+
+	void Actor::addAudioListener() {
+		m_pScene->m_audioListenerComponent.first = true;
+		m_pScene->m_audioListenerComponent.second.first = m_handle;
+	}
+
+	void Actor::destroyAudioListener() {
+		m_pScene->m_audioListenerComponent.first = false;
+		m_pScene->m_audioListenerComponent.second.first = 0x0;
+	}
+
+	bool Actor::hasAudioListener() {
+		return m_pScene->m_audioListenerComponent.first;
+	}
+
+	/* getters */
+
 	Transform* Actor::getTransform() {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		return &m_pScene->m_transformComponents.at(m_handle);
@@ -420,21 +465,5 @@ namespace Zap {
 	Camera* Actor::getCamera() {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		return &m_pScene->m_cameraComponents.at(m_handle);
-	}
-
-	void Actor::destroy() {
-		m_pScene->getRemoveActorEventHandler()->pushEvent(RemoveActorEvent(m_pScene, *this));
-		if (hasCamera())
-			destroyCamera();
-		if (hasLight())
-			destroyLight();
-		if (hasModel())
-			destroyModel();
-		if (hasRigidDynamic())
-			destroyRigidDynamic();
-		if (hasRigidStatic())
-			destroyRigidStatic();
-		if (hasTransform())
-			destroyTransform();
 	}
 }

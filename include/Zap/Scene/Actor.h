@@ -146,6 +146,14 @@ namespace Zap {
 
 		glm::mat4 cmpCamera_getPerspective(float aspect) const;
 
+		/* AudioListener */
+		void addAudioListener();
+
+		void destroyAudioListener();
+
+		bool hasAudioListener();
+
+
 		void destroy();
 
 	private:
