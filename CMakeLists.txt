@@ -35,8 +35,25 @@ source_group("Imgui" FILES ${Imgui_SRC})
 
 set(${BUILD_SHARED_LIBS} false)
 set(${CMAKE_BUILD_PARALLEL_LEVEL} 16)
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Zap)
+
 set_property(TARGET Zap PROPERTY CXX_STANDARD 17)
+
+#Search Vulkan
+find_package(Vulkan REQUIRED)
+IF (NOT Vulkan_FOUND)
+	find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan PATHS ${PROJECT_SOURCE_DIR}/lib/vulkan)
+	set(Vulkan_INLUDE_DIRS "${PROJECT_SOURCE_DIR}/Dependencies/vulkan/include")
+	IF (Vulkan_LIBRARY)
+		set(Vulkan_FOUND ON)
+		MESSAGE("Using bundled Vulkan library version")
+	ENDIF()
+ENDIF()
+
+IF (NOT Vulkan_FOUND)
+	message(FATAL_ERROR "Could not find Vulkan library!")
+ELSE()
+	message(STATUS ${Vulkan_LIBRARY})
+ENDIF()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/glfw)
@@ -83,12 +100,11 @@ target_link_libraries(
 	PhysXPvdSDK
 	PhysXTask
 	PhysXFoundation
-	$ENV{VULKAN_SDK}/Lib/vulkan-1.lib
+	${Vulkan_LIBRARY}
 )
 
 target_include_directories(
 	Zap PUBLIC
-	"${PROJECT_BINARY_DIR}"
 	"${PROJECT_SOURCE_DIR}/include"
 	"${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework/include"
 	"${PROJECT_SOURCE_DIR}/Dependencies/glfw/include"
@@ -96,5 +112,5 @@ target_include_directories(
 	"${PROJECT_SOURCE_DIR}/Dependencies/glm/glm"
 	"${PROJECT_SOURCE_DIR}/Dependencies/PhysX/physx/include"
 	"${PROJECT_SOURCE_DIR}/Dependencies/assimp/include"
-	"$ENV{VULKAN_SDK}/Include"
+	${Vulkan_INLUDE_DIRS}
 )
