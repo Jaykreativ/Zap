@@ -43,6 +43,8 @@ find_package(Vulkan REQUIRED)
 IF (NOT Vulkan_FOUND)
 	find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan PATHS ${PROJECT_SOURCE_DIR}/lib/vulkan)
 	set(Vulkan_INLUDE_DIRS "${PROJECT_SOURCE_DIR}/Dependencies/vulkan/include")
+	set(Vulkan_GLSLC_EXECUTABLE "${PROJECT_SOURCE_DIR}/bin/vulkan/glslc.exe")
+	set(Vulkan_GLSLANG_VALIDATOR_EXECUTABL "${PROJECT_SOURCE_DIR}/bin/vulkan/glslangValidator.exe")
 	IF (Vulkan_LIBRARY)
 		set(Vulkan_FOUND ON)
 		MESSAGE("Using bundled Vulkan library version")
@@ -54,6 +56,19 @@ IF (NOT Vulkan_FOUND)
 ELSE()
 	message(STATUS ${Vulkan_LIBRARY})
 ENDIF()
+
+foreach(SHADER IN LISTS Zap_Shader_SRC)
+	message("prepare glslc.exe for ${FILENAME}")
+    get_filename_component(FILENAME ${SHADER} NAME)
+    add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/${FILENAME}.spv
+        COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER} -o ${CMAKE_SOURCE_DIR}/${FILENAME}.spv
+        DEPENDS ${SHADER}
+        COMMENT "Compiling ${FILENAME}")
+list(APPEND SPV_SHADERS ${CMAKE_SOURCE_DIR}/${FILENAME}.spv)
+endForeach()
+
+add_custom_target(shaders ALL DEPENDS ${SPV_SHADERS})
+add_dependencies(Zap shaders)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/glfw)
