@@ -227,15 +227,7 @@ namespace Zap {
 		/*Framebuffer*/
 		m_framebuffers.resize(imageCount);
 
-		/*Shader*/
-#ifdef _DEBUG
-		static bool areShadersCompiled = false;
-		if (!areShadersCompiled) {
-			vk::Shader::compile("../Zap/Shader/src/", { "PBRShader.vert", "PBRShader.frag" }, { "./" });
-			areShadersCompiled = true;
-		}
-#endif
-
+		/*Shader*/ // TODO add Shader system to add custom shader and to compile them in an easy way
 		m_vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
 		m_vertexShader.setPath("PBRShader.vert.spv");
 

@@ -14,7 +14,7 @@ file(GLOB Zap_Rendering_SRC
 	"include/Zap/Rendering/*.h"
 )
 file(GLOB_RECURSE Zap_Shader_SRC
-	"Shader/*"
+	"Shader/src/*"
 )
 file(GLOB Imgui_SRC
 	"Dependencies/imgui/imgui*.cpp"
@@ -25,8 +25,6 @@ file(GLOB Imgui_SRC
 	"Dependencies/imgui/backends/imgui_impl_glfw.h"
 )
 
-add_library(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Zap_Rendering_SRC} ${Imgui_SRC})
-
 source_group("Source" FILES ${Zap_SRC})
 source_group("Source/Scene" FILES ${Zap_Scene_SRC})
 source_group("Source/Rendering" FILES ${Zap_Rendering_SRC})
@@ -36,6 +34,8 @@ source_group("Imgui" FILES ${Imgui_SRC})
 set(${BUILD_SHARED_LIBS} false)
 set(${CMAKE_BUILD_PARALLEL_LEVEL} 16)
 
+add_library(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Zap_Rendering_SRC} ${Imgui_SRC})
+
 set_property(TARGET Zap PROPERTY CXX_STANDARD 17)
 
 #Search Vulkan
@@ -43,6 +43,8 @@ find_package(Vulkan REQUIRED)
 IF (NOT Vulkan_FOUND)
 	find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan PATHS ${PROJECT_SOURCE_DIR}/lib/vulkan)
 	set(Vulkan_INLUDE_DIRS "${PROJECT_SOURCE_DIR}/Dependencies/vulkan/include")
+	set(Vulkan_GLSLC_EXECUTABLE "${PROJECT_SOURCE_DIR}/bin/vulkan/glslc.exe")
+	set(Vulkan_GLSLANG_VALIDATOR_EXECUTABLE "${PROJECT_SOURCE_DIR}/bin/vulkan/glslangValidator.exe")
 	IF (Vulkan_LIBRARY)
 		set(Vulkan_FOUND ON)
 		MESSAGE("Using bundled Vulkan library version")
@@ -54,6 +56,29 @@ IF (NOT Vulkan_FOUND)
 ELSE()
 	message(STATUS ${Vulkan_LIBRARY})
 ENDIF()
+
+add_compile_definitions(GLSLANG_VALIDATOR="${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}")
+add_compile_definitions(GLSLC="${Vulkan_GLSLC_EXECUTABLE}")
+
+#foreach(SHADER IN LISTS Zap_Shader_SRC) TODO try to add custom shader compile command using cmake
+#	get_filename_component(FILENAME ${SHADER} NAME)
+#	set(SPIRV_OUTPUT "${CMAKE_SOURCE_DIR}/${FILENAME}.spv")
+#
+#	message(STATUS "add glslc.exe compile command for ${FILENAME}")
+#
+#	add_custom_command(
+#		OUTPUT ${SPIRV_OUTPUT}
+#		COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER} -o ${CMAKE_SOURCE_DIR}/${FILENAME}.spv
+#		DEPENDS ${SHADER}
+#		COMMENT "Compiling ${FILENAME} to ${SPIRV_OUTPUT}"
+#		VERBATIM
+#	)
+#
+#	list(APPEND SPIRV_SHADERS ${SPIRV_SHADERS})
+#endForeach()
+#
+#add_custom_target(Shaders ALL DEPENDS ${SPIRV_SHADERS})
+#add_dependencies(Zap Shaders)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/VulkanFramework)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Dependencies/glfw)

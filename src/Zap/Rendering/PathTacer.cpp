@@ -170,10 +170,6 @@ namespace Zap {
 			m_UBO.unmap();
 		}
 
-#ifdef _DEBUG
-		vk::Shader::compile("../Zap/Shader/src/", { "pathTrace.rgen", "pathTrace.rchit", "pathTrace.rmiss", "pathTrace.rint" }, { "./" });
-#endif
-
 		m_rgenShader.setPath("pathTrace.rgen.spv");
 		m_rchitShader.setPath("pathTrace.rchit.spv");
 		m_rmissShader.setPath("pathTrace.rmiss.spv");
