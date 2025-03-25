@@ -104,10 +104,6 @@ namespace Zap {
 			m_UBO.unmap();
 		}
 
-#ifdef _DEBUG
-		vk::Shader::compile("../Zap/Shader/src/", { "raytrace.rgen", "raytrace.rchit", "raytrace.rmiss", "raytraceShadow.rmiss" }, { "./" });
-#endif
-
 		m_rgenShader.setPath("raytrace.rgen.spv");
 		m_rchitShader.setPath("raytrace.rchit.spv");
 		m_rmissShader.setPath("raytrace.rmiss.spv");
