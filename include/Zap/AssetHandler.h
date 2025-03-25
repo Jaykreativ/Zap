@@ -96,10 +96,7 @@ namespace Zap {
 
 		// loads/reloads all assets from the given .zal file
 		// will invalidate all actors using any assets
-		void loadFromFile(std::filesystem::path filepath) {
-			loadFromFile(filepath.string());
-		}
-		void loadFromFile(std::string filepath);
+		void loadFromFile(std::filesystem::path filepath);
 
 		// stores all assets to a .zal file
 		void saveToFile(std::string filepath);
