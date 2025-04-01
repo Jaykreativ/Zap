@@ -335,7 +335,11 @@ namespace Zap {
 		Serializer serializer;
 		Actor actor = Actor((UUID)0, pScene);
 		if (serializer.beginDeserialization(filepath.c_str()) && serializer.beginElement("Actor")) {
-			UUID handle = std::stoull(serializer.readAttribute("handle"));
+			UUID handle;
+			if (ZP_IS_FLAG_ENABLED(flags, eReuseActor))
+				handle = UUID();
+			else
+				handle = std::stoull(serializer.readAttribute("handle"));
 			actor = Actor(handle, pScene);
 			pScene->attachActor(actor);
 
