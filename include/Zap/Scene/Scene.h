@@ -8,7 +8,7 @@
 #include "Zap/Scene/Camera.h"
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Model.h"
-#include "Zap/Scene/PhysicsComponent.h"
+#include "Zap/Physics/PhysicsComponent.h"
 #include "Zap/Scene/Transform.h"
 
 #include "glm.hpp"

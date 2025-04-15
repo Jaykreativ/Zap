@@ -2,7 +2,7 @@
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Material.h"
-#include "Zap/Scene/PhysicsComponent.h"
+#include "Zap/Physics/PhysicsComponent.h"
 #include "Zap/Rendering/DebugRenderTask.h"
 
 namespace Zap {

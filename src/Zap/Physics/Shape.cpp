@@ -1,4 +1,4 @@
-#include "Zap/Scene/Shape.h"
+#include "Zap/Physics/Shape.h"
 
 #include "glm/gtc/quaternion.hpp"
 
@@ -12,60 +12,6 @@ namespace Zap {
 
 	void PhysicsMaterial::release() {
 		m_pxMaterial->release();
-	}
-
-	BoxGeometry::BoxGeometry(glm::vec3 size) {
-		m_geometry = physx::PxBoxGeometry(size.x, size.y, size.z);
-	}
-
-	BoxGeometry::BoxGeometry(const physx::PxBoxGeometry& geometry) {
-		m_geometry = geometry;
-	}
-
-	BoxGeometry::BoxGeometry(BoxGeometry& boxGeometry) {
-		m_geometry = boxGeometry.m_geometry;
-	}
-
-	physx::PxGeometryType::Enum BoxGeometry::getType() const {
-		return m_geometry.getType();
-	}
-
-	physx::PxGeometry* BoxGeometry::getPxGeometry() {
-		return &m_geometry;
-	}
-	const physx::PxGeometry* BoxGeometry::getPxGeometry() const {
-		return &m_geometry;
-	}
-
-	void BoxGeometry::setHalfExtents(glm::vec3 halfExtents) {
-		m_geometry.halfExtents = { halfExtents.x, halfExtents.y, halfExtents.z };
-	}
-
-	glm::vec3 BoxGeometry::getHalfExtents() {
-		return { m_geometry.halfExtents.x, m_geometry.halfExtents.y, m_geometry.halfExtents.z };
-	}
-
-	PlaneGeometry::PlaneGeometry()
-		: m_geometry()
-	{}
-
-	PlaneGeometry::PlaneGeometry(const physx::PxPlaneGeometry& geometry)
-		: m_geometry(geometry)
-	{}
-
-	PlaneGeometry::PlaneGeometry(PlaneGeometry& planeGeometry)
-		: m_geometry(planeGeometry.m_geometry)
-	{}
-
-	physx::PxGeometryType::Enum PlaneGeometry::getType() const {
-		return m_geometry.getType();
-	}
-
-	physx::PxGeometry* PlaneGeometry::getPxGeometry() {
-		return &m_geometry;
-	}
-	const physx::PxGeometry* PlaneGeometry::getPxGeometry() const {
-		return &m_geometry;
 	}
 
 	Shape::Shape(const PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform, physx::PxShapeFlags shapeFlags) {

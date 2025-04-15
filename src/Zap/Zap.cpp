@@ -1,6 +1,6 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
-#include "Zap/Scene/PhysicsComponent.h"
+#include "Zap/Physics/PhysicsComponent.h"
 
 #include "glm/gtc/quaternion.hpp"
 

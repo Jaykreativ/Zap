@@ -5,7 +5,7 @@
 #include "Zap/Scene/Material.h"
 #include "Zap/Scene/Camera.h"
 #include "Zap/Scene/Light.h"
-#include "Zap/Scene/PhysicsComponent.h"
+#include "Zap/Physics/PhysicsComponent.h"
 #include "Zap/Scene/Transform.h"
 #include "Zap/Scene/Texture.h"
 #include "Zap/Scene/Actor.h"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Zap/UUID.h"
-#include "Zap/Scene/Shape.h"
+#include "Zap/Physics/Shape.h"
 #include "Zap/Scene/Material.h"
 #include "glm.hpp"
 
