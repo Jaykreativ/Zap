@@ -4,6 +4,7 @@
 #include "Zap/FileLoader.h"
 
 #include <fstream>
+#include <filesystem>
 #include <string>
 
 namespace Zap {
@@ -103,11 +104,11 @@ namespace Zap {
 
 	/* Load / Save */
 
-	void AssetHandler::loadFromFile(std::string filepath) {
+	void AssetHandler::loadFromFile(std::filesystem::path alpath) {
 		destroyAssets();
 
 		Serializer serializer;
-		serializer.beginDeserialization(filepath.c_str());
+		serializer.beginDeserialization(alpath.c_str());
 
 		bool existsData = true;
 		int meshCount = serializer.readAttributei("meshCount", &existsData);
@@ -119,9 +120,12 @@ namespace Zap {
 			if (serializer.beginElement("Mesh" + std::to_string(i))) {
 				std::cout << "Mesh -> " << i << " (AssetHandler)\n";
 				UUID handle = serializer.readAttributeUUID("handle");
-				std::string filepath = serializer.readAttribute("filepath");
+				std::filesystem::path filepath = serializer.readAttribute("filepath");
 				int index = std::stoi(serializer.readAttribute("index"));
 				glm::mat4 transform = serializer.readAttributeMat4("transform");
+
+				if (filepath.is_relative())
+					filepath = alpath.remove_filename() / filepath;
 
 				MeshLoader meshloader;
 				meshloader.loadFromFile(filepath, index, transform, handle);
@@ -175,7 +179,11 @@ namespace Zap {
 					textureLoader.load(modelpath, textureID, handle);
 				}
 				else {// file
-					std::string filepath = serializer.readAttribute("filepath");
+					std::filesystem::path filepath = serializer.readAttribute("filepath");
+
+					if (filepath.is_relative())
+						filepath = alpath.remove_filename() / filepath;
+
 					textureLoader.load(filepath, handle);
 				}
 				serializer.endElement();

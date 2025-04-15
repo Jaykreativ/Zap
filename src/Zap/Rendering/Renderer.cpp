@@ -201,8 +201,10 @@ namespace Zap {
 			{
 			case eRENDER_TEMPLATE:
 				RenderTaskTemplate* pRenderTemplate;
-				memcpy(&pRenderTemplate, currentParam, sizeof(RenderTaskTemplate*));
+				memcpy(&pRenderTemplate, currentParam, sizeof(RenderTaskTemplate*)); // get render template from recorded parameters
 				currentParam += sizeof(RenderTaskTemplate*);
+				if (!pRenderTemplate->m_isEnabled) // dont record commands for disabled tasks
+					break;
 				if (m_pTarget)
 					pRenderTemplate->recordCommands(cmd, m_pTarget, imageIndex);
 				else
