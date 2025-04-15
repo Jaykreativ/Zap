@@ -34,9 +34,10 @@ namespace Zap {
 	public:
 		enum Flags {
 			eNone = 0x0,
-			eTintTextures = 0x1
+			eTintTextures = 0x1,
+			eReuseActor = 0x2
 		};
-		Flags flags = eNone;
+		int flags = eNone;
 
 		friend class AssetHandler;
 	};
