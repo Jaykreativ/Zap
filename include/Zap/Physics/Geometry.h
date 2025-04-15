@@ -33,7 +33,7 @@ namespace Zap {
 
 	class SphereGeometry : public PhysicsGeometry {
 	public:
-		SphereGeometry();
+		SphereGeometry(float radius);
 		SphereGeometry(const physx::PxSphereGeometry& geometry);
 		SphereGeometry(SphereGeometry& geometry);
 
@@ -52,7 +52,7 @@ namespace Zap {
 
 	class CapsuleGeometry : public PhysicsGeometry {
 	public:
-		CapsuleGeometry();
+		CapsuleGeometry(float radius, float halfHeight);
 		CapsuleGeometry(const physx::PxCapsuleGeometry& geometry);
 		CapsuleGeometry(CapsuleGeometry& geometry);
 

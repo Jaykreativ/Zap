@@ -3,8 +3,8 @@
 namespace Zap {
 	/* Sphere */
 
-	SphereGeometry::SphereGeometry()
-		: m_geometry()
+	SphereGeometry::SphereGeometry(float radius)
+		: m_geometry(radius)
 	{}
 
 	SphereGeometry::SphereGeometry(const physx::PxSphereGeometry& geometry)
@@ -36,8 +36,8 @@ namespace Zap {
 
 	/* Capsule */
 
-	CapsuleGeometry::CapsuleGeometry()
-		: m_geometry()
+	CapsuleGeometry::CapsuleGeometry(float radius, float halfHeight)
+		: m_geometry(radius, halfHeight)
 	{}
 
 	CapsuleGeometry::CapsuleGeometry(const physx::PxCapsuleGeometry& geometry)
