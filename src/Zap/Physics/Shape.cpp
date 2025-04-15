@@ -47,10 +47,18 @@ namespace Zap {
 		const auto& geometry = m_pxShape->getGeometry();
 		switch (geometry.getType())
 		{
+		case physx::PxGeometryType::eSPHERE:
+			return std::make_unique<SphereGeometry>(static_cast<const physx::PxSphereGeometry&>(m_pxShape->getGeometry()));
+		case physx::PxGeometryType::eCAPSULE:
+			return std::make_unique<CapsuleGeometry>(static_cast<const physx::PxCapsuleGeometry&>(m_pxShape->getGeometry()));
 		case physx::PxGeometryType::eBOX:
-			return std::unique_ptr<PhysicsGeometry>(new BoxGeometry(static_cast<const physx::PxBoxGeometry&>(m_pxShape->getGeometry())));
+			return std::make_unique<BoxGeometry>(static_cast<const physx::PxBoxGeometry&>(m_pxShape->getGeometry()));
 		case physx::PxGeometryType::ePLANE:
-			return std::unique_ptr<PhysicsGeometry>(new PlaneGeometry(static_cast<const physx::PxPlaneGeometry&>(m_pxShape->getGeometry())));
+			return std::make_unique<PlaneGeometry>(static_cast<const physx::PxPlaneGeometry&>(m_pxShape->getGeometry()));
+		default: {
+			ZP_WARN(false, "Shape::getGeometry unknown geometry type");
+			return nullptr;
+		}
 		}
 	}
 
