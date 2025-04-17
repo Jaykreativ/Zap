@@ -2,6 +2,7 @@
 
 #include "Zap/Scene/Model.h"
 #include "Zap/Scene/Mesh.h"
+#include "Zap/Physics/HitMesh.h"
 #include "Zap/Scene/Material.h"
 #include "Zap/Scene/Camera.h"
 #include "Zap/Scene/Light.h"
@@ -242,6 +243,52 @@ namespace Zap {
 		Base::getBase()->m_assetHandler.m_meshPaths[mesh.getHandle()] = {filepath, index};
 		Base::getBase()->m_assetHandler.m_pathMeshMap[{ filepath, index }] = mesh.getHandle();
 		return mesh;
+	}
+
+	HitMesh HitMeshLoader::load(std::filesystem::path filepath, uint32_t index) {
+		return load(filepath, index, UUID());
+	}
+	HitMesh HitMeshLoader::load(std::filesystem::path filepath, uint32_t index, UUID handle) {
+		auto* base = Base::getBase();
+		if (base->m_assetHandler.m_pathHitMeshMap.count({ filepath.string(), index})) {
+			return base->m_assetHandler.m_pathMeshMap.at({ filepath.string(), index});
+		}
+		Assimp::Importer importer;
+		const aiScene* aScene = importer.ReadFile(filepath.string().c_str(), aiProcess_Triangulate);
+
+		ZP_WARN(aScene, ("Scene can't be loaded, check the filepath: " + filepath.string()).c_str());
+		if (!aScene)
+			return HitMesh(0);
+
+		auto hitMesh = load(aScene->mMeshes[index], handle);
+		base->m_assetHandler.m_loadedHitMeshes.push_back(hitMesh);
+		base->m_assetHandler.m_hitMeshPaths[hitMesh.getHandle()] = {filepath.string(), index};
+		base->m_assetHandler.m_pathHitMeshMap[{filepath.string(), index}] = hitMesh.getHandle();
+		return hitMesh;
+	}
+
+	HitMesh HitMeshLoader::load(aiMesh* aMesh, UUID handle) {
+		auto& assetHandler = Base::getBase()->m_assetHandler;
+
+		HitMesh hitMesh = HitMesh(handle);
+		assetHandler.m_hitMeshes[hitMesh.getHandle()] = HitMeshData{};
+		auto* data = Base::getBase()->m_assetHandler.getHitMeshDataPtr(hitMesh.getHandle());
+
+		data->m_vertexCount = aMesh->mNumVertices;
+		data->m_vertices = new glm::vec3[data->m_vertexCount];
+		for (size_t i = 0; i < aMesh->mNumVertices; i++) {
+			data->m_vertices[i] = *reinterpret_cast<glm::vec3*>(&aMesh->mVertices[i]);
+		}
+
+		data->m_indexCount = aMesh->mNumFaces * 3;
+		data->m_indices = new uint32_t[data->m_indexCount];
+		for (size_t i = 0; i < aMesh->mNumFaces; i++) {
+			data->m_indices[i*3+0] = aMesh->mFaces[i].mIndices[0];
+			data->m_indices[i*3+1] = aMesh->mFaces[i].mIndices[1];
+			data->m_indices[i*3+2] = aMesh->mFaces[i].mIndices[2];
+		}
+
+		return hitMesh;
 	}
 
 	Model ModelLoader::load(std::filesystem::path filepath) {

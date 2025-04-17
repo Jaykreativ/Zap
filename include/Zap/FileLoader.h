@@ -25,6 +25,7 @@ namespace Zap {
 	class Texture;
 	class Material;
 	class Mesh;
+	class HitMesh;
 	class Model;
 	class Actor;
 	class Scene;
@@ -92,6 +93,16 @@ namespace Zap {
 		Mesh loadFromFile(std::string filepath, uint32_t index, glm::mat4& transform, UUID handle = UUID());
 
 		friend class AssetHandler;
+	};
+
+	class HitMeshLoader : public virtual Loader
+	{
+	public:
+		HitMesh load(std::filesystem::path filepath, uint32_t index = 0);
+
+	protected:
+		HitMesh load(std::filesystem::path filepath, uint32_t index, UUID handle);
+		HitMesh load(aiMesh* aMesh, UUID handle = UUID());
 	};
 
 	class ModelLoader : protected MaterialLoader, protected MeshLoader

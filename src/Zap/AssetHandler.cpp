@@ -102,6 +102,36 @@ namespace Zap {
 		return &m_textures.at(handle);
 	}
 
+	/* HitMesh */
+
+	std::unordered_map<UUID, HitMeshData>::const_iterator AssetHandler::beginHitMeshes() const {
+		return m_hitMeshes.begin();
+	}
+
+	std::unordered_map<UUID, HitMeshData>::iterator AssetHandler::beginHitMeshes() {
+		return m_hitMeshes.begin();
+	}
+
+	std::unordered_map<UUID, HitMeshData>::const_iterator AssetHandler::endHitMeshes() const {
+		return m_hitMeshes.end();
+	}
+
+	std::unordered_map<UUID, HitMeshData>::iterator AssetHandler::endHitMeshes() {
+		return m_hitMeshes.end();
+	}
+
+	bool AssetHandler::existsHitMeshData(UUID handle) const {
+		return m_hitMeshes.count(handle);
+	}
+
+	const HitMeshData& AssetHandler::getHitMeshData(UUID handle) const {
+		return m_hitMeshes.at(handle);
+	}
+
+	HitMeshData* AssetHandler::getHitMeshDataPtr(UUID handle) {
+		return &m_hitMeshes.at(handle);
+	}
+
 	/* Load / Save */
 
 	void AssetHandler::loadFromFile(std::filesystem::path alpath) {

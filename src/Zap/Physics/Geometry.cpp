@@ -133,4 +133,29 @@ namespace Zap {
 		return &m_geometry;
 	}
 
+	/* Convex Mesh */
+
+	ConvexMeshGeometry::ConvexMeshGeometry() {
+
+	}
+
+	ConvexMeshGeometry::ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry) {
+
+	}
+
+	ConvexMeshGeometry::ConvexMeshGeometry(ConvexMeshGeometry& geometry) {
+
+	}
+
+	physx::PxGeometryType::Enum ConvexMeshGeometry::getType() const {
+		return m_geometry.getType();
+	}
+
+	physx::PxGeometry* ConvexMeshGeometry::getPxGeometry() {
+		return &m_geometry;
+	}
+
+	const physx::PxGeometry* ConvexMeshGeometry::getPxGeometry() const {
+		return &m_geometry;
+	}
 }

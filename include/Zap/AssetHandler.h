@@ -5,6 +5,7 @@
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Material.h"
 #include "Zap/Scene/Texture.h"
+#include "Zap/Physics/HitMesh.h"
 
 #include <set>
 #include <filesystem>
@@ -94,6 +95,20 @@ namespace Zap {
 		
 		TextureData* getTextureDataPtr(UUID handle);
 
+		/* HitMesh */
+
+		std::unordered_map<UUID, HitMeshData>::const_iterator beginHitMeshes() const;
+		std::unordered_map<UUID, HitMeshData>::iterator beginHitMeshes();
+
+		std::unordered_map<UUID, HitMeshData>::const_iterator endHitMeshes() const;
+		std::unordered_map<UUID, HitMeshData>::iterator endHitMeshes();
+
+		bool existsHitMeshData(UUID handle) const;
+
+		const HitMeshData& getHitMeshData(UUID handle) const;
+		
+		HitMeshData* getHitMeshDataPtr(UUID handle);
+
 		// loads/reloads all assets from the given .zal file
 		// will invalidate all actors using any assets
 		void loadFromFile(std::filesystem::path filepath);
@@ -133,6 +148,11 @@ namespace Zap {
 		std::vector<Texture> m_loadedTextures = {};
 		std::unordered_map<UUID, std::pair<std::string, std::string>> m_texturePaths = {}; // path and modelpath if texture is embedded
 
+		std::unordered_map<UUID, HitMeshData> m_hitMeshes = {};
+		std::vector<HitMesh> m_loadedHitMeshes = {};
+		std::unordered_map<UUID, std::pair<std::string, uint32_t>> m_hitMeshPaths = {};
+		std::unordered_map<std::pair<std::string, uint32_t>, UUID, pairhash> m_pathHitMeshMap = {};
+
 		// Events
 		EventHandler<TextureLoadEvent> m_textureLoadEventHandler;
 
@@ -144,9 +164,11 @@ namespace Zap {
 		friend class Mesh;
 		friend class Material;
 		friend class Texture;
+		friend class HitMesh;
 		friend class TextureLoader;
 		friend class MaterialLoader;
 		friend class MeshLoader;
+		friend class HitMeshLoader;
 		friend class ModelLoader;
 		friend class RenderTaskTemplate;
 	};

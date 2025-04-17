@@ -106,4 +106,29 @@ namespace Zap {
 	private:
 		physx::PxPlaneGeometry m_geometry;
 	};
+
+	// wrapper class for PxConvexMesh*
+	class ConvexMesh {
+	public:
+		ConvexMesh();
+		~ConvexMesh();
+
+	private:
+		physx::PxConvexMesh* m_convexMesh;
+	};
+
+	class ConvexMeshGeometry : public PhysicsGeometry {
+	public:
+		ConvexMeshGeometry();
+		ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry);
+		ConvexMeshGeometry(ConvexMeshGeometry& geometry);
+
+		physx::PxGeometryType::Enum getType() const override;
+
+		physx::PxGeometry* getPxGeometry() override;
+		const physx::PxGeometry* getPxGeometry() const override;
+
+	private:
+		physx::PxConvexMeshGeometry m_geometry;
+	};
 }
