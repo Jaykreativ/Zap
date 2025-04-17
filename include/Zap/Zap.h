@@ -19,8 +19,8 @@
 #include "Zap/UUID.h"
 #include "Zap/AssetHandler.h"
 #include "VulkanFramework.h"
-#define PX_PHYSX_STATIC_LIB
 
+#define PX_PHYSX_STATIC_LIB
 #include "PxPhysicsAPI.h"
 
 #include "assimp/vector3.h"

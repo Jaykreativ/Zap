@@ -1,7 +1,9 @@
 #pragma once
 
-#include "Zap/Zap.h"
 #include "Zap/UUID.h"
+
+#define PX_PHYSX_STATIC_LIB
+#include "PxPhysicsAPI.h"
 
 #include "glm.hpp"
 
