@@ -116,6 +116,7 @@ namespace Zap {
 		friend class RigidDynamic;
 		friend class RigidStatic;
 		friend class Shape;
+		friend class ConvexMesh;
 		friend class PhysicsMaterial;
 	};
 

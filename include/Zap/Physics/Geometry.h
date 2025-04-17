@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Physics/HitMesh.h"
+
 #include "glm.hpp"
 
 namespace Zap {
@@ -110,8 +112,13 @@ namespace Zap {
 	// wrapper class for PxConvexMesh*
 	class ConvexMesh {
 	public:
-		ConvexMesh();
+		ConvexMesh(HitMesh hitMesh);
+		ConvexMesh(physx::PxConvexMeshDesc convexDesc);
 		~ConvexMesh();
+
+		void release();
+
+		physx::PxConvexMesh* getPxConvexMesh();
 
 	private:
 		physx::PxConvexMesh* m_convexMesh;
@@ -119,7 +126,7 @@ namespace Zap {
 
 	class ConvexMeshGeometry : public PhysicsGeometry {
 	public:
-		ConvexMeshGeometry();
+		ConvexMeshGeometry(ConvexMesh& convexMesh);
 		ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry);
 		ConvexMeshGeometry(ConvexMeshGeometry& geometry);
 

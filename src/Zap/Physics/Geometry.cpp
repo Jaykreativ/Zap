@@ -135,17 +135,49 @@ namespace Zap {
 
 	/* Convex Mesh */
 
-	ConvexMeshGeometry::ConvexMeshGeometry() {
-
+	ConvexMesh::ConvexMesh(HitMesh hitMesh) {
+		physx::PxTolerancesScale scale;
+		physx::PxCookingParams params(scale);
+		
+		physx::PxDefaultMemoryOutputStream buf;
+		physx::PxConvexMeshCookingResult::Enum result;
+		ZP_ASSERT(PxCookConvexMesh(params, hitMesh.getConvexDesc(), buf, &result), "Failed cooking the Convex Mesh");
+		physx::PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
+		m_convexMesh = Base::getBase()->m_pxPhysics->createConvexMesh(input);
 	}
 
-	ConvexMeshGeometry::ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry) {
-
+	ConvexMesh::ConvexMesh(physx::PxConvexMeshDesc convexDesc) {
+		physx::PxTolerancesScale scale;
+		physx::PxCookingParams params(scale);
+		
+		physx::PxDefaultMemoryOutputStream buf;
+		physx::PxConvexMeshCookingResult::Enum result;
+		ZP_ASSERT(PxCookConvexMesh(params, convexDesc, buf, &result), "Failed cooking the Convex Mesh");
+		physx::PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
+		m_convexMesh = Base::getBase()->m_pxPhysics->createConvexMesh(input);
 	}
 
-	ConvexMeshGeometry::ConvexMeshGeometry(ConvexMeshGeometry& geometry) {
+	ConvexMesh::~ConvexMesh() {}
 
+	void ConvexMesh::release() {
+		m_convexMesh->release();
 	}
+
+	physx::PxConvexMesh* ConvexMesh::getPxConvexMesh() {
+		return m_convexMesh;
+	}
+
+	ConvexMeshGeometry::ConvexMeshGeometry(ConvexMesh& convexMesh)
+		: m_geometry(convexMesh.getPxConvexMesh())
+	{}
+
+	ConvexMeshGeometry::ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry)
+		: m_geometry(geometry)
+	{}
+
+	ConvexMeshGeometry::ConvexMeshGeometry(ConvexMeshGeometry& geometry)
+		: m_geometry(geometry.m_geometry)
+	{}
 
 	physx::PxGeometryType::Enum ConvexMeshGeometry::getType() const {
 		return m_geometry.getType();

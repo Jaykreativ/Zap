@@ -55,6 +55,8 @@ namespace Zap {
 			return std::make_unique<BoxGeometry>(static_cast<const physx::PxBoxGeometry&>(m_pxShape->getGeometry()));
 		case physx::PxGeometryType::ePLANE:
 			return std::make_unique<PlaneGeometry>(static_cast<const physx::PxPlaneGeometry&>(m_pxShape->getGeometry()));
+		case physx::PxGeometryType::eCONVEXMESH:
+			return std::make_unique<ConvexMeshGeometry>(static_cast<const physx::PxConvexMeshGeometry&>(m_pxShape->getGeometry()));
 		default: {
 			ZP_WARN(false, "Shape::getGeometry unknown geometry type");
 			return nullptr;
