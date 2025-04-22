@@ -235,7 +235,6 @@ namespace Zap {
 				UUID handle = serializer.readAttributeUUID("handle");
 				std::filesystem::path filepath = serializer.readAttribute("filepath");
 				int index = std::stoi(serializer.readAttribute("index"));
-				glm::mat4 transform = serializer.readAttributeMat4("transform");
 
 				if (filepath.is_relative())
 					filepath = alpath.remove_filename() / filepath;
