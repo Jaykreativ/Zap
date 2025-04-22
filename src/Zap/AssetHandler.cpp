@@ -142,9 +142,16 @@ namespace Zap {
 
 		bool existsData = true;
 		int meshCount = serializer.readAttributei("meshCount", &existsData);
+		if (!existsData) meshCount = 0;
+		existsData = true;
 		int materialCount = serializer.readAttributei("materialCount", &existsData);
+		if (!existsData) materialCount = 0;
+		existsData = true;
 		int textureCount = serializer.readAttributei("textureCount", &existsData);
-		if (!existsData) return;
+		if (!existsData) textureCount = 0;
+		existsData = true;
+		int hitMeshCount = serializer.readAttributei("hitMeshCount", &existsData);
+		if (!existsData) hitMeshCount = 0;
 
 		for (int i = 0; i < meshCount; i++) {
 			if (serializer.beginElement("Mesh" + std::to_string(i))) {
@@ -222,6 +229,26 @@ namespace Zap {
 				std::cerr << "Failed to load Texture" << i << " from zap asset library\n";
 			}
 		}
+		for (int i = 0; i < hitMeshCount; i++) {
+			if (serializer.beginElement("HitMesh" + std::to_string(i))) {
+				std::cout << "HitMesh -> " << i << " (AssetHandler)\n";
+				UUID handle = serializer.readAttributeUUID("handle");
+				std::filesystem::path filepath = serializer.readAttribute("filepath");
+				int index = std::stoi(serializer.readAttribute("index"));
+				glm::mat4 transform = serializer.readAttributeMat4("transform");
+
+				if (filepath.is_relative())
+					filepath = alpath.remove_filename() / filepath;
+
+				HitMeshLoader hitMeshloader;
+				hitMeshloader.load(filepath, index, handle);
+				serializer.endElement();
+			}
+			else {
+				std::cerr << "Failed to load HitMesh" << i << " from zap asset library\n";
+			}
+		}
+
 
 		serializer.endDeserialization();
 	}
@@ -274,6 +301,16 @@ namespace Zap {
 			serializer.writeAttribute("filepath", m_texturePaths[texture.getHandle()].first);
 			if (m_texturePaths[texture.getHandle()].second != "")
 				serializer.writeAttribute("embedded", m_texturePaths[texture.getHandle()].second);
+			serializer.endElement();
+			i++;
+		}
+		i = 0;
+		serializer.writeAttribute("hitMeshCount", std::to_string(m_loadedHitMeshes.size()));
+		for (HitMesh hitMesh : m_loadedHitMeshes) {
+			serializer.beginElement("HitMesh" + std::to_string(i));
+			serializer.writeAttribute("handle", std::to_string(hitMesh.getHandle()));
+			serializer.writeAttribute("filepath", m_hitMeshPaths[hitMesh.getHandle()].first);
+			serializer.writeAttribute("index", m_hitMeshPaths[hitMesh.getHandle()].second);
 			serializer.endElement();
 			i++;
 		}

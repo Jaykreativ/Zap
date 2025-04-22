@@ -36,9 +36,9 @@ namespace Zap {
 		HitMeshData* data = base->m_assetHandler.getHitMeshDataPtr(m_handle);
 
 		physx::PxConvexMeshDesc convexDesc;
-		convexDesc.points.count = data->m_indexCount;
+		convexDesc.points.count = data->m_vertexCount;
 		convexDesc.points.stride = sizeof(glm::vec3);
-		convexDesc.points.data = data->m_indices;
+		convexDesc.points.data = data->m_vertices;
 		convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX;
 
 		return convexDesc;

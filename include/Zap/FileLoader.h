@@ -103,6 +103,8 @@ namespace Zap {
 	protected:
 		HitMesh load(std::filesystem::path filepath, uint32_t index, UUID handle);
 		HitMesh load(aiMesh* aMesh, UUID handle = UUID());
+
+		friend class AssetHandler;
 	};
 
 	class ModelLoader : protected MaterialLoader, protected MeshLoader
