@@ -264,7 +264,7 @@ namespace Zap {
 		for (Mesh mesh : m_loadedMeshes) {
 			serializer.beginElement("Mesh" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(mesh.getHandle()));
-			serializer.writeAttribute("filepath", m_meshPaths[mesh.getHandle()].first);
+			serializer.writeAttribute("filepath", m_meshPaths[mesh.getHandle()].first.string());
 			serializer.writeAttribute("index", std::to_string(m_meshPaths[mesh.getHandle()].second));
 			serializer.writeAttribute("transform", *mesh.getTransform());
 			serializer.endElement();
@@ -287,7 +287,7 @@ namespace Zap {
 			serializer.writeAttribute("emissive", { material.getEmissive(), material.getEmissiveValue() });
 			if (material.hasEmissiveMap())
 				serializer.writeAttribute("emissiveMap", material.getEmissiveMap().getHandle());
-			serializer.writeAttribute("filepath", m_materialPaths[material.getHandle()].first);
+			serializer.writeAttribute("filepath", m_materialPaths[material.getHandle()].first.string());
 			serializer.writeAttribute("index", std::to_string(m_materialPaths[material.getHandle()].second));
 			serializer.endElement();
 			i++;
@@ -297,9 +297,9 @@ namespace Zap {
 		for (Texture texture : m_loadedTextures) {
 			serializer.beginElement("Texture" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(texture.getHandle()));
-			serializer.writeAttribute("filepath", m_texturePaths[texture.getHandle()].first);
+			serializer.writeAttribute("filepath", m_texturePaths[texture.getHandle()].first.string());
 			if (m_texturePaths[texture.getHandle()].second != "")
-				serializer.writeAttribute("embedded", m_texturePaths[texture.getHandle()].second);
+				serializer.writeAttribute("embedded", m_texturePaths[texture.getHandle()].second.string());
 			serializer.endElement();
 			i++;
 		}
@@ -308,7 +308,7 @@ namespace Zap {
 		for (HitMesh hitMesh : m_loadedHitMeshes) {
 			serializer.beginElement("HitMesh" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(hitMesh.getHandle()));
-			serializer.writeAttribute("filepath", m_hitMeshPaths[hitMesh.getHandle()].first);
+			serializer.writeAttribute("filepath", m_hitMeshPaths[hitMesh.getHandle()].first.string());
 			serializer.writeAttribute("index", m_hitMeshPaths[hitMesh.getHandle()].second);
 			serializer.endElement();
 			i++;

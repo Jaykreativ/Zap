@@ -136,22 +136,22 @@ namespace Zap {
 
 		std::unordered_map<UUID, MeshData> m_meshes = {};
 		std::vector<Mesh> m_loadedMeshes = {};
-		std::unordered_map<UUID, std::pair<std::string, uint32_t>> m_meshPaths = {};
-		std::unordered_map<std::pair<std::string, uint32_t>, UUID, pairhash> m_pathMeshMap = {};
+		std::unordered_map<UUID, std::pair<std::filesystem::path, uint32_t>> m_meshPaths = {};
+		std::unordered_map<std::pair<std::filesystem::path, uint32_t>, UUID, pairhash> m_pathMeshMap = {};
 
 		std::unordered_map<UUID, MaterialData> m_materials = {};
 		std::vector<Material> m_loadedMaterials = {};
-		std::unordered_map<UUID, std::pair<std::string, uint32_t>> m_materialPaths = {};
-		std::unordered_map<std::pair<std::string, uint32_t>, UUID, pairhash> m_pathMaterialMap = {};
+		std::unordered_map<UUID, std::pair<std::filesystem::path, uint32_t>> m_materialPaths = {};
+		std::unordered_map<std::pair<std::filesystem::path, uint32_t>, UUID, pairhash> m_pathMaterialMap = {};
 
 		std::unordered_map<UUID, TextureData> m_textures = {};
 		std::vector<Texture> m_loadedTextures = {};
-		std::unordered_map<UUID, std::pair<std::string, std::string>> m_texturePaths = {}; // path and modelpath if texture is embedded
+		std::unordered_map<UUID, std::pair<std::filesystem::path, std::filesystem::path>> m_texturePaths = {}; // path and modelpath if texture is embedded
 
 		std::unordered_map<UUID, HitMeshData> m_hitMeshes = {};
 		std::vector<HitMesh> m_loadedHitMeshes = {};
-		std::unordered_map<UUID, std::pair<std::string, uint32_t>> m_hitMeshPaths = {};
-		std::unordered_map<std::pair<std::string, uint32_t>, UUID, pairhash> m_pathHitMeshMap = {};
+		std::unordered_map<UUID, std::pair<std::filesystem::path, uint32_t>> m_hitMeshPaths = {};
+		std::unordered_map<std::pair<std::filesystem::path, uint32_t>, UUID, pairhash> m_pathHitMeshMap = {};
 
 		// Events
 		EventHandler<TextureLoadEvent> m_textureLoadEventHandler;
