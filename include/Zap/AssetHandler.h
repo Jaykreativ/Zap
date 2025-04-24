@@ -51,6 +51,8 @@ namespace Zap {
 	{
 	public:
 		AssetHandler();
+		// associates the asset handler with a zal asset library file
+		AssetHandler(std::filesystem::path path);
 		~AssetHandler();
 
 		/* Mesh */
@@ -109,13 +111,16 @@ namespace Zap {
 		
 		HitMeshData* getHitMeshDataPtr(UUID handle);
 
+		void setAssetLibrary(std::filesystem::path filepath);
+
+		std::filesystem::path getAssetLibrary();
+
 		// loads/reloads all assets from the given .zal file
 		// will invalidate all actors using any assets
-		void loadFromFile(std::filesystem::path filepath);
+		void loadFromFile();
 
 		// stores all assets to a .zal file
-		void saveToFile(std::string filepath);
-		void saveToFile(std::filesystem::path filepath);
+		void saveToFile();
 
 		// destroys all assets
 		// will invalidate all actors using any assets
@@ -133,6 +138,8 @@ namespace Zap {
 				return std::hash<T>()(x.first) ^ std::hash<U>()(x.second);
 			}
 		};
+
+		std::filesystem::path m_alpath;
 
 		std::unordered_map<UUID, MeshData> m_meshes = {};
 		std::vector<Mesh> m_loadedMeshes = {};
@@ -155,6 +162,8 @@ namespace Zap {
 
 		// Events
 		EventHandler<TextureLoadEvent> m_textureLoadEventHandler;
+
+		std::filesystem::path processPath(std::filesystem::path path);
 
 		void addTexture(Texture texture);
 

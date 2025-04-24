@@ -48,10 +48,11 @@ namespace Zap {
 		}
 	}
 
-	Base::Base(std::string applicationName, std::string assetLibraryPath)
+	Base::Base(std::string applicationName, std::filesystem::path assetLibraryPath)
 		: m_applicationName(applicationName)
 	{
-		m_settings.assetLibraryPath = assetLibraryPath;
+		if (assetLibraryPath != "")
+			m_assetHandler = AssetHandler(assetLibraryPath);
 	}
 
 	Base::~Base() {}
@@ -209,7 +210,9 @@ namespace Zap {
 			throw std::runtime_error("ERROR: PxCreatePhysics failed");
 		}
 
-		m_assetHandler.loadFromFile(m_settings.assetLibraryPath);
+		if (!m_assetHandler.getAssetLibrary().empty()) {
+			m_assetHandler.loadFromFile();
+		}
 	}
 
 	void Base::update() { // TODO implement base update
@@ -217,8 +220,9 @@ namespace Zap {
 	}
 
 	void Base::terminate() {
-		m_assetHandler.saveToFile(m_settings.assetLibraryPath);
-
+		if (!m_assetHandler.getAssetLibrary().empty()) {
+			m_assetHandler.saveToFile();
+		}
 		m_assetHandler.destroyAssets();
 
 		m_pxPhysics->release();
@@ -242,7 +246,7 @@ namespace Zap {
 		return m_applicationName;
 	}
 
-	Base* Base::createBase(std::string applicationName, std::string assetLibraryPath) {
+	Base* Base::createBase(std::string applicationName, std::filesystem::path assetLibraryPath) {
 		m_engineBase = new Base(applicationName, assetLibraryPath);
 		m_exists = true;
 		return m_engineBase;

@@ -44,8 +44,6 @@ namespace Zap {
 	};
 
 	struct Settings {
-		std::string assetLibraryPath;
-
 		uint32_t requestedGPU = 0;
 		bool enableRaytracing = false;
 	};
@@ -64,7 +62,8 @@ namespace Zap {
 
 		std::string getApplicationName();
 
-		static Base* createBase(std::string applicationName, std::string assetLibraryPath = "./AssetLibrary.zal");
+		// Asset Library is required for use of scene and actor files and for the editor
+		static Base* createBase(std::string applicationName, std::filesystem::path assetLibraryPath = std::filesystem::path());
 
 		static void releaseBase();
 
@@ -73,7 +72,7 @@ namespace Zap {
 #ifndef ZP_ALL_PUBLIC
 	private:
 #endif
-		Base(std::string applicationName, std::string assetLibraryPath = "./AssetLibrary.zal");
+		Base(std::string applicationName, std::filesystem::path assetLibraryPath = std::filesystem::path());
 		~Base();
 
 		bool m_isInit;

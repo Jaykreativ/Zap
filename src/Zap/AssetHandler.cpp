@@ -10,6 +10,10 @@
 namespace Zap {
 	AssetHandler::AssetHandler() {}
 
+	AssetHandler::AssetHandler(std::filesystem::path path)
+		: m_alpath(path)
+	{}
+
 	AssetHandler::~AssetHandler() {}
 
 	/* Mesh */
@@ -134,11 +138,19 @@ namespace Zap {
 
 	/* Load / Save */
 
-	void AssetHandler::loadFromFile(std::filesystem::path alpath) {
+	void AssetHandler::setAssetLibrary(std::filesystem::path filepath) {
+		m_alpath = filepath;
+	}
+
+	std::filesystem::path AssetHandler::getAssetLibrary() {
+		return m_alpath;
+	}
+
+	void AssetHandler::loadFromFile() {
 		destroyAssets();
 
 		Serializer serializer;
-		serializer.beginDeserialization(alpath.c_str());
+		serializer.beginDeserialization(m_alpath.c_str());
 
 		bool existsData = true;
 		int meshCount = serializer.readAttributei("meshCount", &existsData);
@@ -162,7 +174,7 @@ namespace Zap {
 				glm::mat4 transform = serializer.readAttributeMat4("transform");
 
 				if (filepath.is_relative())
-					filepath = alpath.remove_filename() / filepath;
+					filepath = m_alpath.remove_filename() / filepath;
 
 				MeshLoader meshloader;
 				meshloader.loadFromFile(filepath, index, transform, handle);
@@ -219,7 +231,7 @@ namespace Zap {
 					std::filesystem::path filepath = serializer.readAttribute("filepath");
 
 					if (filepath.is_relative())
-						filepath = alpath.remove_filename() / filepath;
+						filepath = m_alpath.remove_filename() / filepath;
 
 					textureLoader.load(filepath, handle);
 				}
@@ -237,7 +249,7 @@ namespace Zap {
 				int index = std::stoi(serializer.readAttribute("index"));
 
 				if (filepath.is_relative())
-					filepath = alpath.remove_filename() / filepath;
+					filepath = m_alpath.remove_filename() / filepath;
 
 				HitMeshLoader hitMeshloader;
 				hitMeshloader.load(filepath, index, handle);
@@ -252,19 +264,16 @@ namespace Zap {
 		serializer.endDeserialization();
 	}
 
-	void AssetHandler::saveToFile(std::filesystem::path filepath) {
-		saveToFile(filepath.string());
-	}
-	void AssetHandler::saveToFile(std::string filepath) {
+	void AssetHandler::saveToFile() {
 		Serializer serializer;
-		serializer.beginSerialization(filepath.c_str());
+		serializer.beginSerialization(m_alpath.c_str());
 
 		uint32_t i = 0;
 		serializer.writeAttribute("meshCount", std::to_string(m_loadedMeshes.size()));
 		for (Mesh mesh : m_loadedMeshes) {
 			serializer.beginElement("Mesh" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(mesh.getHandle()));
-			serializer.writeAttribute("filepath", m_meshPaths[mesh.getHandle()].first.string());
+			serializer.writeAttribute("filepath", processPath(m_meshPaths[mesh.getHandle()].first).string()); // make the mesh path relative to asset library
 			serializer.writeAttribute("index", std::to_string(m_meshPaths[mesh.getHandle()].second));
 			serializer.writeAttribute("transform", *mesh.getTransform());
 			serializer.endElement();
@@ -287,7 +296,7 @@ namespace Zap {
 			serializer.writeAttribute("emissive", { material.getEmissive(), material.getEmissiveValue() });
 			if (material.hasEmissiveMap())
 				serializer.writeAttribute("emissiveMap", material.getEmissiveMap().getHandle());
-			serializer.writeAttribute("filepath", m_materialPaths[material.getHandle()].first.string());
+			serializer.writeAttribute("filepath", processPath(m_materialPaths[material.getHandle()].first).string());
 			serializer.writeAttribute("index", std::to_string(m_materialPaths[material.getHandle()].second));
 			serializer.endElement();
 			i++;
@@ -297,9 +306,12 @@ namespace Zap {
 		for (Texture texture : m_loadedTextures) {
 			serializer.beginElement("Texture" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(texture.getHandle()));
-			serializer.writeAttribute("filepath", m_texturePaths[texture.getHandle()].first.string());
-			if (m_texturePaths[texture.getHandle()].second != "")
-				serializer.writeAttribute("embedded", m_texturePaths[texture.getHandle()].second.string());
+			if (m_texturePaths[texture.getHandle()].second != "") {
+				serializer.writeAttribute("embedded", processPath(m_texturePaths[texture.getHandle()].second).string());
+				serializer.writeAttribute("filepath", m_texturePaths[texture.getHandle()].first.string());
+			}
+			else
+				serializer.writeAttribute("filepath", processPath(m_texturePaths[texture.getHandle()].first).string());
 			serializer.endElement();
 			i++;
 		}
@@ -308,7 +320,7 @@ namespace Zap {
 		for (HitMesh hitMesh : m_loadedHitMeshes) {
 			serializer.beginElement("HitMesh" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(hitMesh.getHandle()));
-			serializer.writeAttribute("filepath", m_hitMeshPaths[hitMesh.getHandle()].first.string());
+			serializer.writeAttribute("filepath", processPath(m_hitMeshPaths[hitMesh.getHandle()].first).string());
 			serializer.writeAttribute("index", m_hitMeshPaths[hitMesh.getHandle()].second);
 			serializer.endElement();
 			i++;
@@ -350,6 +362,14 @@ namespace Zap {
 
 	EventHandler<TextureLoadEvent>* AssetHandler::getTextureLoadEventHandler() {
 		return &m_textureLoadEventHandler;
+	}
+
+	std::filesystem::path AssetHandler::processPath(std::filesystem::path path) {
+		if (m_alpath.empty()) { // paths can't be processed without a valid AssetHandler
+			ZP_WARN(false, "Path being processed by invalid AssetHandler, assign Asset Library path for processing");
+			return path;
+		}
+		return std::filesystem::proximate(path, m_alpath.remove_filename());
 	}
 
 	void AssetHandler::addTexture(Texture texture) {
