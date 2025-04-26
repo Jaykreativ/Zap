@@ -364,6 +364,31 @@ namespace Zap {
 		return &m_textureLoadEventHandler;
 	}
 
+	void AssetHandler::registerTexture(Texture texture, std::filesystem::path filepath) {
+		m_texturePaths[texture.getHandle()].second = std::filesystem::path(); // empty path
+		m_texturePaths[texture.getHandle()].first = processPath(filepath);
+	}
+
+	void AssetHandler::registerTexture(Texture texture, std::filesystem::path modelpath, std::filesystem::path textureID) {
+		m_texturePaths[texture.getHandle()].second = processPath(modelpath);
+		m_texturePaths[texture.getHandle()].first = textureID; // model internal path
+	}
+
+	void AssetHandler::registerMaterial(Material material, std::filesystem::path modelpath, uint32_t index) {
+		m_materialPaths[material.getHandle()] = { modelpath, index };
+		m_pathMaterialMap[{ modelpath, index }] = material.getHandle();
+	}
+
+	void AssetHandler::registerMesh(Mesh mesh, std::filesystem::path modelpath, uint32_t index) {
+		m_meshPaths[mesh.getHandle()] = { modelpath, index };
+		m_pathMeshMap[{ modelpath, index }] = mesh.getHandle();
+	}
+
+	void AssetHandler::registerHitMesh(HitMesh hitMesh, std::filesystem::path modelpath, uint32_t index) {
+		m_hitMeshPaths[hitMesh.getHandle()] = { modelpath, index };
+		m_pathHitMeshMap[{modelpath, index}] = hitMesh.getHandle();
+	}
+
 	std::filesystem::path AssetHandler::processPath(std::filesystem::path path) {
 		if (m_alpath.empty()) { // paths can't be processed without a valid AssetHandler
 			ZP_WARN(false, "Path being processed by invalid AssetHandler, assign Asset Library path for processing");

@@ -163,6 +163,14 @@ namespace Zap {
 		// Events
 		EventHandler<TextureLoadEvent> m_textureLoadEventHandler;
 
+		// register assets for Asset Library
+
+		void registerTexture(Texture texture, std::filesystem::path filepath);
+		void registerTexture(Texture texture, std::filesystem::path modelpath, std::filesystem::path textureID);
+		void registerMaterial(Material material, std::filesystem::path modelpath, uint32_t index);
+		void registerMesh(Mesh mesh, std::filesystem::path modelpath, uint32_t index);
+		void registerHitMesh(HitMesh hitMesh, std::filesystem::path modelpath, uint32_t index);
+
 		std::filesystem::path processPath(std::filesystem::path path);
 
 		void addTexture(Texture texture);
