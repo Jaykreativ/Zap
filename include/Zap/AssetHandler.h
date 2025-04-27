@@ -140,6 +140,7 @@ namespace Zap {
 		};
 
 		std::filesystem::path m_alpath;
+		std::filesystem::path m_aldir;
 
 		std::unordered_map<UUID, MeshData> m_meshes = {};
 		std::vector<Mesh> m_loadedMeshes = {};

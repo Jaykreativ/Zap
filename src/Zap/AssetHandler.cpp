@@ -12,7 +12,13 @@ namespace Zap {
 
 	AssetHandler::AssetHandler(std::filesystem::path path)
 		: m_alpath(path)
-	{}
+	{
+		ZP_ASSERT(!path.empty(), "AssetHandler needs a non-empty path to an Asset Library file");
+		m_aldir = path;
+		m_aldir.remove_filename();
+		if (m_aldir.empty())
+			m_aldir = "./";
+	}
 
 	AssetHandler::~AssetHandler() {}
 
@@ -140,6 +146,8 @@ namespace Zap {
 
 	void AssetHandler::setAssetLibrary(std::filesystem::path filepath) {
 		m_alpath = filepath;
+		m_aldir = filepath;
+		m_aldir.remove_filename();
 	}
 
 	std::filesystem::path AssetHandler::getAssetLibrary() {
@@ -169,12 +177,9 @@ namespace Zap {
 			if (serializer.beginElement("Mesh" + std::to_string(i))) {
 				std::cout << "Mesh -> " << i << " (AssetHandler)\n";
 				UUID handle = serializer.readAttributeUUID("handle");
-				std::filesystem::path filepath = serializer.readAttribute("filepath");
+				std::filesystem::path filepath = m_aldir / processPath(serializer.readAttribute("filepath"));
 				int index = std::stoi(serializer.readAttribute("index"));
 				glm::mat4 transform = serializer.readAttributeMat4("transform");
-
-				if (filepath.is_relative())
-					filepath = m_alpath.remove_filename() / filepath;
 
 				MeshLoader meshloader;
 				meshloader.loadFromFile(filepath, index, transform, handle);
@@ -203,12 +208,11 @@ namespace Zap {
 				if (serializer.existsAttribute("emissiveMap"))
 					m_materials[material.getHandle()].emissiveMap = serializer.readAttributeUUID("emissiveMap");
 
-				std::string path = serializer.readAttribute("filepath");
+				std::filesystem::path path = m_aldir / processPath(serializer.readAttribute("filepath"));
 				int index = serializer.readAttributei("index");
 
 				m_loadedMaterials.push_back(material);
-				m_materialPaths[material.getHandle()] = {path, index};
-				m_pathMaterialMap[{ path, index }] = material.getHandle();
+				registerMaterial(material, path, index);
 
 				serializer.endElement();
 			}
@@ -224,15 +228,11 @@ namespace Zap {
 				// check for embedded textures
 				if (serializer.existsAttribute("embedded")) {// embedded
 					std::string textureID = serializer.readAttribute("filepath");
-					std::string modelpath = serializer.readAttribute("embedded");
+					std::filesystem::path modelpath = m_aldir / processPath(serializer.readAttribute("embedded"));
 					textureLoader.load(modelpath, textureID, handle);
 				}
 				else {// file
-					std::filesystem::path filepath = serializer.readAttribute("filepath");
-
-					if (filepath.is_relative())
-						filepath = m_alpath.remove_filename() / filepath;
-
+					std::filesystem::path filepath = m_aldir / processPath(serializer.readAttribute("filepath"));
 					textureLoader.load(filepath, handle);
 				}
 				serializer.endElement();
@@ -245,11 +245,8 @@ namespace Zap {
 			if (serializer.beginElement("HitMesh" + std::to_string(i))) {
 				std::cout << "HitMesh -> " << i << " (AssetHandler)\n";
 				UUID handle = serializer.readAttributeUUID("handle");
-				std::filesystem::path filepath = serializer.readAttribute("filepath");
+				std::filesystem::path filepath = m_aldir / processPath(serializer.readAttribute("filepath"));
 				int index = std::stoi(serializer.readAttribute("index"));
-
-				if (filepath.is_relative())
-					filepath = m_alpath.remove_filename() / filepath;
 
 				HitMeshLoader hitMeshloader;
 				hitMeshloader.load(filepath, index, handle);
@@ -375,26 +372,29 @@ namespace Zap {
 	}
 
 	void AssetHandler::registerMaterial(Material material, std::filesystem::path modelpath, uint32_t index) {
-		m_materialPaths[material.getHandle()] = { modelpath, index };
-		m_pathMaterialMap[{ modelpath, index }] = material.getHandle();
+		std::filesystem::path path = processPath(modelpath);
+		m_materialPaths[material.getHandle()] = { path, index };
+		m_pathMaterialMap[{ path, index }] = material.getHandle();
 	}
 
 	void AssetHandler::registerMesh(Mesh mesh, std::filesystem::path modelpath, uint32_t index) {
-		m_meshPaths[mesh.getHandle()] = { modelpath, index };
-		m_pathMeshMap[{ modelpath, index }] = mesh.getHandle();
+		std::filesystem::path path = processPath(modelpath);
+		m_meshPaths[mesh.getHandle()] = { path, index };
+		m_pathMeshMap[{ path, index }] = mesh.getHandle();
 	}
 
 	void AssetHandler::registerHitMesh(HitMesh hitMesh, std::filesystem::path modelpath, uint32_t index) {
-		m_hitMeshPaths[hitMesh.getHandle()] = { modelpath, index };
-		m_pathHitMeshMap[{modelpath, index}] = hitMesh.getHandle();
+		std::filesystem::path path = processPath(modelpath);
+		m_hitMeshPaths[hitMesh.getHandle()] = { path, index };
+		m_pathHitMeshMap[{path, index}] = hitMesh.getHandle();
 	}
 
 	std::filesystem::path AssetHandler::processPath(std::filesystem::path path) {
-		if (m_alpath.empty()) { // paths can't be processed without a valid AssetHandler
+		if (m_aldir.empty()) { // paths can't be processed without a valid AssetHandler
 			ZP_WARN(false, "Path being processed by invalid AssetHandler, assign Asset Library path for processing");
 			return path;
 		}
-		return std::filesystem::proximate(path, m_alpath.remove_filename());
+		return std::filesystem::proximate(path, m_aldir);
 	}
 
 	void AssetHandler::addTexture(Texture texture) {

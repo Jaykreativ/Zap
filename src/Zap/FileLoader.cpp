@@ -229,8 +229,8 @@ namespace Zap {
 	}
 	HitMesh HitMeshLoader::load(std::filesystem::path filepath, uint32_t index, UUID handle) {
 		auto* base = Base::getBase();
-		if (base->m_assetHandler.m_pathHitMeshMap.count({ filepath.string(), index})) {
-			return base->m_assetHandler.m_pathMeshMap.at({ filepath.string(), index});
+		if (base->m_assetHandler.m_pathHitMeshMap.count({filepath, index})) {
+			return base->m_assetHandler.m_pathHitMeshMap.at({filepath, index});
 		}
 		Assimp::Importer importer;
 		const aiScene* aScene = importer.ReadFile(filepath.string().c_str(), aiProcess_Triangulate);
@@ -296,6 +296,7 @@ namespace Zap {
 
 	void ModelLoader::processNode(const aiNode* node, const aiScene* aScene, std::filesystem::path path, glm::mat4& transform, Model& model) {
 		auto& assetHandler = Base::getBase()->m_assetHandler;
+		path = assetHandler.processPath(path);
 
 #ifdef _DEBUG
 		std::cout << "Loading node " << node->mName.C_Str() << " with " << node->mNumChildren << " children\n";
@@ -307,7 +308,7 @@ namespace Zap {
 			auto timeStartMeshLoad = std::chrono::high_resolution_clock::now();
 #endif
 			// Check if mesh is already loaded
-			if (Base::getBase()->m_assetHandler.m_pathMeshMap.count({ path.string(), node->mMeshes[i] })) {
+			if (Base::getBase()->m_assetHandler.m_pathMeshMap.count({ path, node->mMeshes[i] })) {
 				model.meshes.push_back(Base::getBase()->m_assetHandler.m_pathMeshMap.at({ path.string(), node->mMeshes[i]}));
 			}
 			else {
@@ -321,8 +322,6 @@ namespace Zap {
 			auto timeMeshLoad = std::chrono::high_resolution_clock::now() - timeStartMeshLoad;
 			auto timeStartMaterialLoad = std::chrono::high_resolution_clock::now();
 #endif
-
-			auto filename = path.filename().string();
 
 			// Check if material already exists
 			if (Base::getBase()->m_assetHandler.m_pathMaterialMap.count({ path.string(), aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex})) {
