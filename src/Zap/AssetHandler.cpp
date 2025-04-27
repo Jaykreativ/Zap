@@ -262,6 +262,7 @@ namespace Zap {
 	}
 
 	void AssetHandler::saveToFile() {
+		return;
 		Serializer serializer;
 		serializer.beginSerialization(m_alpath.c_str());
 
@@ -390,11 +391,14 @@ namespace Zap {
 	}
 
 	std::filesystem::path AssetHandler::processPath(std::filesystem::path path) {
+		if (path.is_relative())
+			return path;
 		if (m_aldir.empty()) { // paths can't be processed without a valid AssetHandler
 			ZP_WARN(false, "Path being processed by invalid AssetHandler, assign Asset Library path for processing");
 			return path;
 		}
-		return std::filesystem::proximate(path, m_aldir);
+		auto prox = std::filesystem::proximate(path, m_aldir);
+		return prox;
 	}
 
 	void AssetHandler::addTexture(Texture texture) {
