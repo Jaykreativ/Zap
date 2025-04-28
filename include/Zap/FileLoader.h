@@ -60,18 +60,15 @@ namespace Zap {
 	{
 	public:
 		Texture load(std::filesystem::path filepath);
-		Texture load(std::string filepath);
 
 	protected:
 		Texture load(void* data, uint32_t width, uint32_t height, UUID handle = UUID());
 
 		Texture load(std::filesystem::path filepath, UUID handle);
-		Texture load(std::string filepath, UUID handle);
 
 		Texture load(const aiTexture* texture, UUID handle = UUID());
 
-		Texture load(std::filesystem::path modelpath, std::string textureID, UUID handle = UUID());
-		Texture load(std::string modelpath, std::string textureID, UUID handle = UUID());
+		Texture load(std::filesystem::path modelpath, std::filesystem::path textureID, UUID handle = UUID());
 
 		friend class AssetHandler;
 	};
@@ -79,7 +76,7 @@ namespace Zap {
 	class MaterialLoader : protected TextureLoader
 	{
 	protected:
-		Material load(const aiScene* aScene, const aiMaterial* aMaterial, std::string path, std::string filename, UUID handle = UUID());
+		Material load(const aiScene* aScene, const aiMaterial* aMaterial, std::filesystem::path modelpath, UUID handle = UUID());
 
 		friend class AssetHandler;
 	};
@@ -90,7 +87,6 @@ namespace Zap {
 		Mesh load(aiMesh* aMesh, glm::mat4& transform, glm::vec3& modelBoundMin, glm::vec3& modelBoundMax, UUID handle = UUID());
 
 		Mesh loadFromFile(std::filesystem::path filepath, uint32_t index, glm::mat4& transform, UUID handle = UUID());
-		Mesh loadFromFile(std::string filepath, uint32_t index, glm::mat4& transform, UUID handle = UUID());
 
 		friend class AssetHandler;
 	};
@@ -121,10 +117,8 @@ namespace Zap {
 	class ActorLoader : public FileLoader {
 	public:
 		Actor load(std::filesystem::path filepath, Scene* pScene);
-		Actor load(std::string filepath, Scene* pScene);
 
 		void store(std::filesystem::path filepath, Actor actor);
-		void store(std::string filepath, Actor actor);
 	};
 
 	class SceneLoader {
