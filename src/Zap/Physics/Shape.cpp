@@ -17,6 +17,18 @@ namespace Zap {
 	void PhysicsMaterial::release() {
 		m_pxMaterial->release();
 	}
+	
+	float PhysicsMaterial::getDynamicFriction() const {
+		return m_pxMaterial->getDynamicFriction();
+	}
+
+	float PhysicsMaterial::getStaticFriction() const {
+		return m_pxMaterial->getStaticFriction();
+	}
+
+	float PhysicsMaterial::getRestitution() const {
+		return m_pxMaterial->getRestitution();
+	}
 
 	Shape::Shape(const PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform, physx::PxShapeFlags shapeFlags) {
 		auto base = Base::getBase();

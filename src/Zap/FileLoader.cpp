@@ -350,6 +350,122 @@ namespace Zap {
 		}
 	}
 
+	void loadCamera(Serializer& serializer, Actor actor) {
+		glm::mat4 offset = serializer.readAttributeMat4("offset");
+		actor.addCamera(offset);
+	}
+
+	void loadLight(Serializer& serializer, Actor actor) {
+		glm::vec3 color = serializer.readAttributeVec3("color");;
+		float strength = serializer.readAttributef("strength");
+		float radius = serializer.readAttributef("radius");
+
+		actor.addLight(color, strength, radius);
+	}
+
+	void loadModel(Serializer& serializer, Actor actor) {
+		Model model;
+		int meshCount = serializer.readAttributei("meshCount");
+		for (size_t i = 0; i < meshCount; i++) {
+			UUID handle = std::stoull(serializer.readAttribute("mesh" + std::to_string(i)));
+			model.meshes.push_back(Mesh(handle));
+		}
+
+		int materialCount = serializer.readAttributei("materialCount");
+		for (size_t i = 0; i < materialCount; i++) {
+			UUID handle = std::stoull(serializer.readAttribute("material" + std::to_string(i)));
+			model.materials.push_back(Material(handle));
+		}
+
+		actor.addModel(model);
+	}
+
+	/* Geometries */
+
+	void loadSphereGeometry(Serializer& serializer, std::unique_ptr<PhysicsGeometry>& upGeometry) {
+		float radius = serializer.readAttributef("radius");
+		upGeometry = std::make_unique<SphereGeometry>(radius);
+	}
+
+	void loadCapsuleGeometry(Serializer& serializer, std::unique_ptr<PhysicsGeometry>& upGeometry) {
+		float radius = serializer.readAttributef("radius");
+		float halfHeight = serializer.readAttributef("halfHeight");
+		upGeometry = std::make_unique<CapsuleGeometry>(radius, halfHeight);
+	}
+
+	void loadBoxGeometry(Serializer& serializer, std::unique_ptr<PhysicsGeometry>& upGeometry) {
+		glm::vec3 halfExtents = serializer.readAttributeVec3("halfExtents");
+		upGeometry = std::make_unique<BoxGeometry>(halfExtents);
+	}
+
+	void loadPlaneGeometry(Serializer& serializer, std::unique_ptr<PhysicsGeometry>& upGeometry) {
+		upGeometry = std::make_unique<PlaneGeometry>();
+	}
+
+	void loadConvexMeshGeometry(Serializer& serializer, std::unique_ptr<PhysicsGeometry>& upGeometry) {
+		//upGeometry = std::make_unique<ConvexMesh>();
+		ZP_ASSERT(false, "can't load convex mesh geometry, not supported");
+	}
+
+	void loadShape(Serializer& serializer, std::vector<Shape>& shapes, size_t index) {
+		serializer.beginElement("Material");
+		float dynamicFriction = serializer.readAttributef("dynamicFriction");
+		float staticFriction = serializer.readAttributef("staticFriction");
+		float restitution = serializer.readAttributef("restitution");
+		serializer.endElement();
+		PhysicsMaterial material(staticFriction, dynamicFriction, restitution);
+		int type = serializer.readAttributei("type");
+		std::unique_ptr<PhysicsGeometry> upGeometry;
+		switch (type) {
+		case eGEOMETRY_TYPE_SPHERE:
+			loadSphereGeometry(serializer, upGeometry);
+			break;
+		case eGEOMETRY_TYPE_CAPSULE:
+			loadCapsuleGeometry(serializer, upGeometry);
+			break;
+		case eGEOMETRY_TYPE_BOX:
+			loadBoxGeometry(serializer, upGeometry);
+			break;
+		case eGEOMETRY_TYPE_PLANE:
+			loadPlaneGeometry(serializer, upGeometry);
+			break;
+		case eGEOMETRY_TYPE_CONVEX_MESH:
+			loadConvexMeshGeometry(serializer, upGeometry);
+			break;
+		default:
+			ZP_WARN(false, "Failed to load shape, invalid geometry type");
+			return;
+		}
+		shapes[index] = Shape(*upGeometry.get(), material, true);
+	}
+
+	void loadRigidDynamic(Serializer& serializer, Actor actor) {
+		size_t shapeCount = serializer.readAttributeull("shapeCount");
+		std::vector<Shape> shapes(shapeCount);
+		for (size_t i = 0; i < shapeCount; i++) {
+			serializer.beginElement("Shape" + std::to_string(i));
+			loadShape(serializer, shapes, i);
+			serializer.endElement();
+		}
+		actor.addRigidDynamic(shapes);
+	}
+
+	void loadRigidStatic(Serializer& serializer, Actor actor) {
+		size_t shapeCount = serializer.readAttributeull("shapeCount");
+		std::vector<Shape> shapes(shapeCount);
+		for (size_t i = 0; i < shapeCount; i++) {
+			serializer.beginElement("Shape" + std::to_string(i));
+			loadShape(serializer, shapes, i);
+			serializer.endElement();
+		}
+		actor.addRigidStatic(shapes);
+	}
+
+	void loadTransform(Serializer& serializer, Actor actor) {
+		glm::mat4 transform = serializer.readAttributeMat4("transform");
+		actor.addTransform(transform);
+	}
+
 	Actor ActorLoader::load(std::filesystem::path filepath, Scene* pScene) {
 		Serializer serializer;
 		Actor actor = Actor((UUID)0, pScene);
@@ -362,49 +478,28 @@ namespace Zap {
 			actor = Actor(handle, pScene);
 			pScene->attachActor(actor);
 
+			if (serializer.beginElement("Transform")) {
+				loadTransform(serializer, actor);
+				serializer.endElement();
+			}
 			if (serializer.beginElement("Camera")) {
-				glm::mat4 offset = serializer.readAttributeMat4("offset");
-				actor.addCamera(offset);
-
+				loadCamera(serializer, actor);
 				serializer.endElement();
 			}
 			if (serializer.beginElement("Light")) {
-				glm::vec3 color = serializer.readAttributeVec3("color");;
-				float strength = serializer.readAttributef("strength");
-				float radius = serializer.readAttributef("radius");
-
-				actor.addLight(color, strength, radius);
-
+				loadLight(serializer, actor);
 				serializer.endElement();
 			}
 			if (serializer.beginElement("Model")) {
-				Model model;
-				int meshCount = serializer.readAttributei("meshCount");
-				for (size_t i = 0; i < meshCount; i++) {
-					UUID handle = std::stoull(serializer.readAttribute("mesh" + std::to_string(i)));
-					model.meshes.push_back(Mesh(handle));
-				}
-
-				int materialCount = serializer.readAttributei("materialCount");
-				for (size_t i = 0; i < materialCount; i++) {
-					UUID handle = std::stoull(serializer.readAttribute("material" + std::to_string(i)));
-					model.materials.push_back(Material(handle));
-				}
-
-				actor.addModel(model);
-
+				loadModel(serializer, actor);
 				serializer.endElement();
 			}
 			if (serializer.beginElement("RigidDynamic")) {
+				loadRigidDynamic(serializer, actor);
 				serializer.endElement();
 			}
 			if (serializer.beginElement("RigidStatic")) {
-				serializer.endElement();
-			}
-			if (serializer.beginElement("Transform")) {
-				glm::mat4 transform = serializer.readAttributeMat4("transform");
-				actor.addTransform(transform);
-
+				loadRigidStatic(serializer, actor);
 				serializer.endElement();
 			}
 
@@ -414,6 +509,111 @@ namespace Zap {
 		else
 			ZP_WARN(false, ("Failed loading actor, filepath: " + filepath.string()).c_str());
 		return actor;
+	}
+
+	void writeCamera(Serializer& serializer, Camera& camera) {
+		serializer.writeAttribute("offset", camera.offset);
+	}
+
+	void writeLight(Serializer& serializer, Light& light) {
+		serializer.writeAttribute("color", light.color);
+		serializer.writeAttribute("radius", light.radius);
+		serializer.writeAttribute("strength", light.strength);
+	}
+
+	void writeModel(Serializer& serializer, Model& model) {
+		uint32_t i = 0;
+		serializer.writeAttribute("meshCount", std::to_string(model.meshes.size()));
+		for (auto mesh : model.meshes) {
+			serializer.writeAttribute("mesh" + std::to_string(i), std::to_string(mesh.getHandle()));
+			i++;
+		}
+		i = 0;
+		serializer.writeAttribute("materialCount", std::to_string(model.materials.size()));
+		for (auto material : model.materials) {
+			serializer.writeAttribute("material" + std::to_string(i), std::to_string(material.getHandle()));
+			i++;
+		}
+	}
+
+	/* Geometries */
+
+	void writeSphereGeometry(Serializer& serializer, SphereGeometry& geometry) {
+		serializer.writeAttribute("radius", geometry.getRadius());
+	}
+
+	void writeCapsuleGeometry(Serializer& serializer, CapsuleGeometry& geometry) {
+		serializer.writeAttribute("radius", geometry.getRadius());
+		serializer.writeAttribute("halfHeight", geometry.getHalfHeight());
+	}
+
+	void writeBoxGeometry(Serializer& serializer, BoxGeometry& geometry) {
+		serializer.writeAttribute("halfExtents", geometry.getHalfExtents());
+	}
+
+	void writePlaneGeometry(Serializer& serializer, PlaneGeometry& geometry) {}
+
+	void writeConvexMeshGeometry(Serializer& serializer, ConvexMeshGeometry& geometry) {
+		// TODO store hitmesh
+	}
+
+	void writeShape(Serializer& serializer, Shape shape) {
+		auto material = shape.getMaterial();
+		serializer.beginElement("Material");
+		serializer.writeAttribute("dynamicFriction", material.getDynamicFriction());
+		serializer.writeAttribute("staticFriction", material.getStaticFriction());
+		serializer.writeAttribute("restitution", material.getRestitution());
+		serializer.endElement();
+		auto upGeometry = shape.getGeometry();
+		int type = upGeometry->getType();
+		serializer.writeAttribute("type", type);
+		switch (type) {
+		case eGEOMETRY_TYPE_SPHERE:
+			writeSphereGeometry(serializer, *dynamic_cast<SphereGeometry*>(upGeometry.get()));
+			break;
+		case eGEOMETRY_TYPE_CAPSULE:
+			writeCapsuleGeometry(serializer, *dynamic_cast<CapsuleGeometry*>(upGeometry.get()));
+			break;
+		case eGEOMETRY_TYPE_BOX:
+			writeBoxGeometry(serializer, *dynamic_cast<BoxGeometry*>(upGeometry.get()));
+			break;
+		case eGEOMETRY_TYPE_PLANE:
+			writePlaneGeometry(serializer, *dynamic_cast<PlaneGeometry*>(upGeometry.get()));
+			break;
+		case eGEOMETRY_TYPE_CONVEX_MESH:
+			writeConvexMeshGeometry(serializer, *dynamic_cast<ConvexMeshGeometry*>(upGeometry.get()));
+			break;
+		default:
+			break;
+		}
+	}
+
+	void writeRigidDynamic(Serializer& serializer, Actor actor, RigidDynamic& rigidDynamic) {
+		auto shapes = actor.cmpRigidDynamic_getShapes();
+		serializer.writeAttribute("shapeCount", shapes.size());
+		size_t i = 0;
+		for (auto shape : shapes) {
+			serializer.beginElement("Shape" + std::to_string(i));
+			writeShape(serializer, shape);
+			serializer.endElement();
+			i++;
+		}
+	}
+	
+	void writeRigidStatic(Serializer& serializer, Actor actor, RigidStatic& rigidStatic) {
+		auto shapes = actor.cmpRigidStatic_getShapes();
+		serializer.writeAttribute("shapeCount", shapes.size());
+		size_t i = 0;
+		for (auto shape : shapes) {
+			serializer.beginElement("Shape" + std::to_string(i));
+			writeShape(serializer, shape);
+			serializer.endElement();
+			i++;
+		}
+	}
+
+	void writeTransform(Serializer& serializer, Transform& transform) {
+		serializer.writeAttribute("transform", transform.transform);
 	}
 
 	void ActorLoader::store(std::filesystem::path filepath, Actor actor) {
@@ -427,7 +627,7 @@ namespace Zap {
 			serializer.beginElement("Camera");
 
 			Camera& camera = actor.getCameraCmp();
-			serializer.writeAttribute("offset", camera.offset);
+			writeCamera(serializer, camera);
 
 			serializer.endElement();
 		}
@@ -435,9 +635,7 @@ namespace Zap {
 			serializer.beginElement("Light");
 
 			Light& light = actor.getLightCmp();
-			serializer.writeAttribute("color", light.color);
-			serializer.writeAttribute("radius", light.radius);
-			serializer.writeAttribute("strength", light.strength);
+			writeLight(serializer, light);
 
 			serializer.endElement();
 		}
@@ -445,18 +643,7 @@ namespace Zap {
 			serializer.beginElement("Model");
 
 			Model& model = actor.getModelCmp();
-			uint32_t i = 0;
-			serializer.writeAttribute("meshCount", std::to_string(model.meshes.size()));
-			for (auto mesh : model.meshes) {
-				serializer.writeAttribute("mesh"+std::to_string(i), std::to_string(mesh.getHandle()));
-				i++;
-			}
-			i = 0;
-			serializer.writeAttribute("materialCount", std::to_string(model.materials.size()));
-			for (auto material : model.materials) {
-				serializer.writeAttribute("material"+std::to_string(i), std::to_string(material.getHandle()));
-				i++;
-			}
+			writeModel(serializer, model);
 
 			serializer.endElement();
 		}
@@ -464,6 +651,7 @@ namespace Zap {
 			serializer.beginElement("RigidDynamic");
 
 			RigidDynamic& rigidDynamic = actor.getRigidDynamicCmp();
+			writeRigidDynamic(serializer, actor, rigidDynamic);
 
 			serializer.endElement();
 		}
@@ -471,6 +659,7 @@ namespace Zap {
 			serializer.beginElement("RigidStatic");
 
 			RigidStatic& rigidStatic = actor.getRigidStaticCmp();
+			writeRigidStatic(serializer, actor, rigidStatic);
 
 			serializer.endElement();
 		}
@@ -478,7 +667,7 @@ namespace Zap {
 			serializer.beginElement("Transform");
 
 			Transform& transform = actor.getTransformCmp();
-			serializer.writeAttribute("transform", transform.transform);
+			writeTransform(serializer, transform);
 
 			serializer.endElement();
 		}

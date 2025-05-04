@@ -14,6 +14,11 @@ namespace Zap {
 
 		void release();
 
+		float getDynamicFriction() const;
+
+		float getStaticFriction() const;
+
+		float getRestitution() const;
 	private:
 		physx::PxMaterial* m_pxMaterial;
 
@@ -38,6 +43,7 @@ namespace Zap {
 
 		void setGeometry(const PhysicsGeometry& geometry);
 
+		// returns a copy of the geometry
 		std::unique_ptr<PhysicsGeometry> getGeometry();
 
 		bool isExclusive();
