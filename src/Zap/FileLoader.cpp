@@ -403,11 +403,17 @@ namespace Zap {
 	}
 
 	void loadConvexMeshGeometry(Serializer& serializer, std::unique_ptr<PhysicsGeometry>& upGeometry) {
-		//upGeometry = std::make_unique<ConvexMesh>();
-		ZP_ASSERT(false, "can't load convex mesh geometry, not supported");
+		HitMesh hitMesh = serializer.readAttributeUUID("hitMesh");
+		ConvexMesh convexMesh(hitMesh);
+		upGeometry = std::make_unique<ConvexMeshGeometry>(convexMesh);
+		//convexMesh.release();
 	}
 
 	void loadShape(Serializer& serializer, std::vector<Shape>& shapes, size_t index) {
+		bool success = true;
+		glm::mat4 localPose = serializer.readAttributeMat4("localPose", &success);
+		if (!success)
+			localPose = glm::mat4(1);
 		serializer.beginElement("Material");
 		float dynamicFriction = serializer.readAttributef("dynamicFriction");
 		float staticFriction = serializer.readAttributef("staticFriction");
@@ -436,7 +442,7 @@ namespace Zap {
 			ZP_WARN(false, "Failed to load shape, invalid geometry type");
 			return;
 		}
-		shapes[index] = Shape(*upGeometry.get(), material, true);
+		shapes[index] = Shape(*upGeometry.get(), material, true, localPose);
 	}
 
 	void loadRigidDynamic(Serializer& serializer, Actor actor) {
@@ -554,10 +560,12 @@ namespace Zap {
 	void writePlaneGeometry(Serializer& serializer, PlaneGeometry& geometry) {}
 
 	void writeConvexMeshGeometry(Serializer& serializer, ConvexMeshGeometry& geometry) {
-		// TODO store hitmesh
+		serializer.writeAttribute("hitMesh", geometry.getHitMesh().getHandle());
+		ZP_WARN(false, "HitMesh cannot be retrieved from the shape alone, TODO store hit mesh identifier");
 	}
 
 	void writeShape(Serializer& serializer, Shape shape) {
+		serializer.writeAttribute("localPose", shape.getLocalPose());
 		auto material = shape.getMaterial();
 		serializer.beginElement("Material");
 		serializer.writeAttribute("dynamicFriction", material.getDynamicFriction());

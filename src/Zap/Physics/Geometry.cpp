@@ -15,7 +15,11 @@ namespace Zap {
 		: m_geometry(planeGeometry.m_geometry)
 	{}
 
-	physx::PxGeometryType::Enum SphereGeometry::getType() const {
+	PhysicsGeometryType SphereGeometry::getType() const {
+		return eGEOMETRY_TYPE_SPHERE;
+	}
+
+	physx::PxGeometryType::Enum SphereGeometry::getTypePx() const {
 		return m_geometry.getType();
 	}
 
@@ -48,7 +52,11 @@ namespace Zap {
 		: m_geometry(planeGeometry.m_geometry)
 	{}
 
-	physx::PxGeometryType::Enum CapsuleGeometry::getType() const {
+	PhysicsGeometryType CapsuleGeometry::getType() const {
+		return eGEOMETRY_TYPE_CAPSULE;
+	}
+
+	physx::PxGeometryType::Enum CapsuleGeometry::getTypePx() const {
 		return m_geometry.getType();
 	}
 
@@ -89,7 +97,11 @@ namespace Zap {
 		m_geometry = boxGeometry.m_geometry;
 	}
 
-	physx::PxGeometryType::Enum BoxGeometry::getType() const {
+	PhysicsGeometryType BoxGeometry::getType() const {
+		return eGEOMETRY_TYPE_BOX;
+	}
+
+	physx::PxGeometryType::Enum BoxGeometry::getTypePx() const {
 		return m_geometry.getType();
 	}
 
@@ -122,7 +134,11 @@ namespace Zap {
 		: m_geometry(planeGeometry.m_geometry)
 	{}
 
-	physx::PxGeometryType::Enum PlaneGeometry::getType() const {
+	PhysicsGeometryType PlaneGeometry::getType() const {
+		return eGEOMETRY_TYPE_PLANE;
+	}
+
+	physx::PxGeometryType::Enum PlaneGeometry::getTypePx() const {
 		return m_geometry.getType();
 	}
 
@@ -135,7 +151,9 @@ namespace Zap {
 
 	/* Convex Mesh */
 
-	ConvexMesh::ConvexMesh(HitMesh hitMesh) {
+	ConvexMesh::ConvexMesh(HitMesh hitMesh)
+		: m_hitMesh(hitMesh)
+	{
 		physx::PxTolerancesScale scale;
 		physx::PxCookingParams params(scale);
 		
@@ -168,7 +186,7 @@ namespace Zap {
 	}
 
 	ConvexMeshGeometry::ConvexMeshGeometry(ConvexMesh& convexMesh)
-		: m_geometry(convexMesh.getPxConvexMesh())
+		: m_geometry(convexMesh.getPxConvexMesh()), m_hitMesh(convexMesh.m_hitMesh)
 	{}
 
 	ConvexMeshGeometry::ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry)
@@ -179,8 +197,16 @@ namespace Zap {
 		: m_geometry(geometry.m_geometry)
 	{}
 
-	physx::PxGeometryType::Enum ConvexMeshGeometry::getType() const {
+	PhysicsGeometryType ConvexMeshGeometry::getType() const {
+		return eGEOMETRY_TYPE_CONVEX_MESH;
+	}
+
+	physx::PxGeometryType::Enum ConvexMeshGeometry::getTypePx() const {
 		return m_geometry.getType();
+	}
+
+	HitMesh ConvexMeshGeometry::getHitMesh() {
+		return m_hitMesh;
 	}
 
 	physx::PxGeometry* ConvexMeshGeometry::getPxGeometry() {
