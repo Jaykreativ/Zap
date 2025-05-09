@@ -6,22 +6,6 @@
 #include "glm.hpp"
 
 namespace Zap {
-	class PhysicsGeometry {
-	public:
-		PhysicsGeometry() = default;
-		~PhysicsGeometry() = default;
-
-		operator physx::PxGeometry& () { return *getPxGeometry(); };
-		operator physx::PxGeometry* () { return getPxGeometry(); };
-		operator const physx::PxGeometry& () const { return *getPxGeometry(); };
-		operator const physx::PxGeometry* () const { return getPxGeometry(); };
-
-		virtual physx::PxGeometryType::Enum getType() const = 0;
-
-		virtual physx::PxGeometry* getPxGeometry() = 0;
-		virtual const physx::PxGeometry* getPxGeometry() const = 0;
-	};
-
 	enum PhysicsGeometryType {
 		eGEOMETRY_TYPE_NONE = 0,
 		eGEOMETRY_TYPE_SPHERE = 1,
@@ -33,13 +17,31 @@ namespace Zap {
 		eGEOMETRY_TYPE_HEIGHT_FIELD = 7
 	};
 
+	class PhysicsGeometry {
+	public:
+		PhysicsGeometry() = default;
+		~PhysicsGeometry() = default;
+
+		operator physx::PxGeometry& () { return *getPxGeometry(); };
+		operator physx::PxGeometry* () { return getPxGeometry(); };
+		operator const physx::PxGeometry& () const { return *getPxGeometry(); };
+		operator const physx::PxGeometry* () const { return getPxGeometry(); };
+
+		virtual PhysicsGeometryType getType() const = 0;
+		virtual physx::PxGeometryType::Enum getTypePx() const = 0;
+
+		virtual physx::PxGeometry* getPxGeometry() = 0;
+		virtual const physx::PxGeometry* getPxGeometry() const = 0;
+	};
+
 	class SphereGeometry : public PhysicsGeometry {
 	public:
 		SphereGeometry(float radius);
 		SphereGeometry(const physx::PxSphereGeometry& geometry);
 		SphereGeometry(SphereGeometry& geometry);
 
-		physx::PxGeometryType::Enum getType() const override;
+		PhysicsGeometryType getType() const override;
+		physx::PxGeometryType::Enum getTypePx() const override;
 
 		physx::PxGeometry* getPxGeometry() override;
 		const physx::PxGeometry* getPxGeometry() const override;
@@ -58,7 +60,8 @@ namespace Zap {
 		CapsuleGeometry(const physx::PxCapsuleGeometry& geometry);
 		CapsuleGeometry(CapsuleGeometry& geometry);
 
-		physx::PxGeometryType::Enum getType() const override;
+		PhysicsGeometryType getType() const override;
+		physx::PxGeometryType::Enum getTypePx() const override;
 
 		physx::PxGeometry* getPxGeometry() override;
 		const physx::PxGeometry* getPxGeometry() const override;
@@ -81,7 +84,8 @@ namespace Zap {
 		BoxGeometry(const physx::PxBoxGeometry& geometry);
 		BoxGeometry(BoxGeometry& geometry);
 
-		physx::PxGeometryType::Enum getType() const override;
+		PhysicsGeometryType getType() const override;
+		physx::PxGeometryType::Enum getTypePx() const override;
 
 		physx::PxGeometry* getPxGeometry() override;
 		const physx::PxGeometry* getPxGeometry() const override;
@@ -100,7 +104,8 @@ namespace Zap {
 		PlaneGeometry(const physx::PxPlaneGeometry& geometry);
 		PlaneGeometry(PlaneGeometry& geometry);
 
-		physx::PxGeometryType::Enum getType() const override;
+		PhysicsGeometryType getType() const override;
+		physx::PxGeometryType::Enum getTypePx() const override;
 
 		physx::PxGeometry* getPxGeometry() override;
 		const physx::PxGeometry* getPxGeometry() const override;
@@ -121,7 +126,10 @@ namespace Zap {
 		physx::PxConvexMesh* getPxConvexMesh();
 
 	private:
+		HitMesh m_hitMesh;
 		physx::PxConvexMesh* m_convexMesh;
+
+		friend class ConvexMeshGeometry;
 	};
 
 	class ConvexMeshGeometry : public PhysicsGeometry {
@@ -130,12 +138,16 @@ namespace Zap {
 		ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry);
 		ConvexMeshGeometry(ConvexMeshGeometry& geometry);
 
-		physx::PxGeometryType::Enum getType() const override;
+		PhysicsGeometryType getType() const override;
+		physx::PxGeometryType::Enum getTypePx() const override;
+
+		HitMesh getHitMesh();
 
 		physx::PxGeometry* getPxGeometry() override;
 		const physx::PxGeometry* getPxGeometry() const override;
 
 	private:
+		HitMesh m_hitMesh;
 		physx::PxConvexMeshGeometry m_geometry;
 	};
 }

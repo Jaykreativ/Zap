@@ -8,10 +8,26 @@ namespace Zap {
 		m_pxMaterial = base->m_pxPhysics->createMaterial(staticFriction, dynamicFriction, restitution);
 	}
 
+	PhysicsMaterial::PhysicsMaterial(physx::PxMaterial* pxMaterial)
+		: m_pxMaterial(pxMaterial)
+	{}
+
 	PhysicsMaterial::~PhysicsMaterial() {}
 
 	void PhysicsMaterial::release() {
 		m_pxMaterial->release();
+	}
+	
+	float PhysicsMaterial::getDynamicFriction() const {
+		return m_pxMaterial->getDynamicFriction();
+	}
+
+	float PhysicsMaterial::getStaticFriction() const {
+		return m_pxMaterial->getStaticFriction();
+	}
+
+	float PhysicsMaterial::getRestitution() const {
+		return m_pxMaterial->getRestitution();
 	}
 
 	Shape::Shape(const PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform, physx::PxShapeFlags shapeFlags) {
@@ -64,6 +80,10 @@ namespace Zap {
 		}
 	}
 
+	bool Shape::isExclusive() {
+		return m_pxShape->isExclusive();
+	}
+
 	void Shape::setLocalPose(glm::mat4 transform) {
 		m_pxShape->setLocalPose(PxUtils::glmMat4ToTransform(transform));
 	}
@@ -93,6 +113,14 @@ namespace Zap {
 	glm::quat Shape::getLocalRotation() {
 		auto pxTransform = m_pxShape->getLocalPose();
 		return PxUtils::quatToGlmQuat(pxTransform.q);
+	}
+
+	PhysicsMaterial Shape::getMaterial() {
+		size_t nbMaterials = m_pxShape->getNbMaterials();
+		ZP_ASSERT(nbMaterials > 0, "Shape has no Materials");
+		physx::PxMaterial* pxMaterial;
+		m_pxShape->getMaterials(&pxMaterial, 1); // get the one Material
+		return pxMaterial;
 	}
 
 	physx::PxShape* Shape::getPxShape() {

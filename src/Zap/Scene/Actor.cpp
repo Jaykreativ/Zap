@@ -391,6 +391,11 @@ namespace Zap {
 		cmp.pxActor->detachShape(shape);
 	}
 
+	void Actor::cmpRigidStatic_updatePose() {
+		auto& cmp = getRigidStaticCmp();
+		cmp.pxActor->setGlobalPose(PxUtils::glmMat4ToTransform(m_pScene->m_transformComponents.at(m_handle).transform));
+	}
+
 	std::vector<Shape> Actor::cmpRigidStatic_getShapes() {
 		auto& cmp = getRigidStaticCmp();
 		auto* pxActor = cmp.pxActor;

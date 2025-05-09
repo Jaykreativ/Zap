@@ -125,6 +125,8 @@ namespace Zap {
 
 		void cmpRigidDynamic_detachAllShapes();
 
+		void cmpRigidDynamic_setShapes(std::vector<Shape> shapes);
+
 		std::vector<Shape> cmpRigidDynamic_getShapes();
 
 		void cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value);
@@ -153,7 +155,7 @@ namespace Zap {
 
 		void cmpRigidStatic_detachShape(Shape shape);
 
-		void cmpRigidDynamic_setShapes(std::vector<Shape> shapes);
+		void cmpRigidStatic_updatePose();
 
 		std::vector<Shape> cmpRigidStatic_getShapes();
 

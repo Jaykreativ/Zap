@@ -262,7 +262,6 @@ namespace Zap {
 	}
 
 	void AssetHandler::saveToFile() {
-		return;
 		Serializer serializer;
 		serializer.beginSerialization(m_alpath.c_str());
 

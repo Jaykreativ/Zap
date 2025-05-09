@@ -9,10 +9,16 @@ namespace Zap {
 	class PhysicsMaterial {
 	public:
 		PhysicsMaterial(float staticFriction, float dynamicFriction, float restitution);
+		PhysicsMaterial(physx::PxMaterial* pxMaterial);
 		~PhysicsMaterial();
 
 		void release();
 
+		float getDynamicFriction() const;
+
+		float getStaticFriction() const;
+
+		float getRestitution() const;
 	private:
 		physx::PxMaterial* m_pxMaterial;
 
@@ -37,7 +43,10 @@ namespace Zap {
 
 		void setGeometry(const PhysicsGeometry& geometry);
 
+		// returns a copy of the geometry
 		std::unique_ptr<PhysicsGeometry> getGeometry();
+
+		bool isExclusive();
 
 		/*
 		* Sets the local pose relative to the actors transform
@@ -54,6 +63,8 @@ namespace Zap {
 		glm::vec3 getLocalPosition();
 
 		glm::quat getLocalRotation();
+
+		PhysicsMaterial getMaterial();
 
 		physx::PxShape* getPxShape();
 
