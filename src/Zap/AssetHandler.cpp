@@ -391,13 +391,13 @@ namespace Zap {
 
 	std::filesystem::path AssetHandler::processPath(std::filesystem::path path) {
 		if (path.is_relative())
-			return path;
+			return path.lexically_normal();
 		if (m_aldir.empty()) { // paths can't be processed without a valid AssetHandler
 			ZP_WARN(false, "Path being processed by invalid AssetHandler, assign Asset Library path for processing");
 			return path;
 		}
 		auto prox = std::filesystem::proximate(path, m_aldir);
-		return prox;
+		return prox.lexically_normal();
 	}
 
 	void AssetHandler::addTexture(Texture texture) {
