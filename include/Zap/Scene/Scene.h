@@ -91,6 +91,10 @@ namespace Zap {
 		uint32_t modelCount = 0;
 	};
 
+	struct SceneDesc {
+		glm::vec3 gravity = {0, -9.81, 0};
+	};
+
 	class Scene
 	{
 	public:
@@ -104,7 +108,7 @@ namespace Zap {
 
 		bool isValid();
 
-		void init();
+		void init(SceneDesc desc = {});
 
 		void destroy();
 

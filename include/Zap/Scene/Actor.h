@@ -125,6 +125,18 @@ namespace Zap {
 
 		void cmpRigidDynamic_detachAllShapes();
 
+		void cmpRigidDynamic_setAngularDamping(float damping);
+
+		void cmpRigidDynamic_setLinearDamping(float damping);
+
+		void cmpRigidDynamic_setAngularVelocity(glm::vec3 velocity);
+
+		void cmpRigidDynamic_setLinearVelocity(glm::vec3 velocity);
+
+		glm::vec3 cmpRigidDynamic_getAngularVelocity();
+
+		glm::vec3 cmpRigidDynamic_getLinearVelocity();
+
 		void cmpRigidDynamic_setShapes(std::vector<Shape> shapes);
 
 		std::vector<Shape> cmpRigidDynamic_getShapes();
