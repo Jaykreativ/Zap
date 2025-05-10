@@ -5,6 +5,7 @@
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Material.h"
 #include "Zap/Scene/Texture.h"
+#include "Zap/Physics/HitMesh.h"
 
 #include <set>
 #include <filesystem>
@@ -50,6 +51,8 @@ namespace Zap {
 	{
 	public:
 		AssetHandler();
+		// associates the asset handler with a zal asset library file
+		AssetHandler(std::filesystem::path path);
 		~AssetHandler();
 
 		/* Mesh */
@@ -94,13 +97,30 @@ namespace Zap {
 		
 		TextureData* getTextureDataPtr(UUID handle);
 
+		/* HitMesh */
+
+		std::unordered_map<UUID, HitMeshData>::const_iterator beginHitMeshes() const;
+		std::unordered_map<UUID, HitMeshData>::iterator beginHitMeshes();
+
+		std::unordered_map<UUID, HitMeshData>::const_iterator endHitMeshes() const;
+		std::unordered_map<UUID, HitMeshData>::iterator endHitMeshes();
+
+		bool existsHitMeshData(UUID handle) const;
+
+		const HitMeshData& getHitMeshData(UUID handle) const;
+		
+		HitMeshData* getHitMeshDataPtr(UUID handle);
+
+		void setAssetLibrary(std::filesystem::path filepath);
+
+		std::filesystem::path getAssetLibrary();
+
 		// loads/reloads all assets from the given .zal file
 		// will invalidate all actors using any assets
-		void loadFromFile(std::filesystem::path filepath);
+		void loadFromFile();
 
 		// stores all assets to a .zal file
-		void saveToFile(std::string filepath);
-		void saveToFile(std::filesystem::path filepath);
+		void saveToFile();
 
 		// destroys all assets
 		// will invalidate all actors using any assets
@@ -119,22 +139,40 @@ namespace Zap {
 			}
 		};
 
+		std::filesystem::path m_alpath;
+		std::filesystem::path m_aldir;
+
 		std::unordered_map<UUID, MeshData> m_meshes = {};
 		std::vector<Mesh> m_loadedMeshes = {};
-		std::unordered_map<UUID, std::pair<std::string, uint32_t>> m_meshPaths = {};
-		std::unordered_map<std::pair<std::string, uint32_t>, UUID, pairhash> m_pathMeshMap = {};
+		std::unordered_map<UUID, std::pair<std::filesystem::path, uint32_t>> m_meshPaths = {};
+		std::unordered_map<std::pair<std::filesystem::path, uint32_t>, UUID, pairhash> m_pathMeshMap = {};
 
 		std::unordered_map<UUID, MaterialData> m_materials = {};
 		std::vector<Material> m_loadedMaterials = {};
-		std::unordered_map<UUID, std::pair<std::string, uint32_t>> m_materialPaths = {};
-		std::unordered_map<std::pair<std::string, uint32_t>, UUID, pairhash> m_pathMaterialMap = {};
+		std::unordered_map<UUID, std::pair<std::filesystem::path, uint32_t>> m_materialPaths = {};
+		std::unordered_map<std::pair<std::filesystem::path, uint32_t>, UUID, pairhash> m_pathMaterialMap = {};
 
 		std::unordered_map<UUID, TextureData> m_textures = {};
 		std::vector<Texture> m_loadedTextures = {};
-		std::unordered_map<UUID, std::pair<std::string, std::string>> m_texturePaths = {}; // path and modelpath if texture is embedded
+		std::unordered_map<UUID, std::pair<std::filesystem::path, std::filesystem::path>> m_texturePaths = {}; // path and modelpath if texture is embedded
+
+		std::unordered_map<UUID, HitMeshData> m_hitMeshes = {};
+		std::vector<HitMesh> m_loadedHitMeshes = {};
+		std::unordered_map<UUID, std::pair<std::filesystem::path, uint32_t>> m_hitMeshPaths = {};
+		std::unordered_map<std::pair<std::filesystem::path, uint32_t>, UUID, pairhash> m_pathHitMeshMap = {};
 
 		// Events
 		EventHandler<TextureLoadEvent> m_textureLoadEventHandler;
+
+		// register assets for Asset Library
+
+		void registerTexture(Texture texture, std::filesystem::path filepath);
+		void registerTexture(Texture texture, std::filesystem::path modelpath, std::filesystem::path textureID);
+		void registerMaterial(Material material, std::filesystem::path modelpath, uint32_t index);
+		void registerMesh(Mesh mesh, std::filesystem::path modelpath, uint32_t index);
+		void registerHitMesh(HitMesh hitMesh, std::filesystem::path modelpath, uint32_t index);
+
+		std::filesystem::path processPath(std::filesystem::path path);
 
 		void addTexture(Texture texture);
 
@@ -144,9 +182,11 @@ namespace Zap {
 		friend class Mesh;
 		friend class Material;
 		friend class Texture;
+		friend class HitMesh;
 		friend class TextureLoader;
 		friend class MaterialLoader;
 		friend class MeshLoader;
+		friend class HitMeshLoader;
 		friend class ModelLoader;
 		friend class RenderTaskTemplate;
 	};

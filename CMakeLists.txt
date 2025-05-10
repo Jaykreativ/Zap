@@ -13,6 +13,10 @@ file(GLOB Zap_Rendering_SRC
 	"src/Zap/Rendering/*.cpp"
 	"include/Zap/Rendering/*.h"
 )
+file(GLOB Zap_Physics_SRC
+	"src/Zap/Physics/*.cpp"
+	"include/Zap/Physics/*.h"
+)
 file(GLOB_RECURSE Zap_Shader_SRC
 	"Shader/src/*"
 )
@@ -28,13 +32,14 @@ file(GLOB Imgui_SRC
 source_group("Source" FILES ${Zap_SRC})
 source_group("Source/Scene" FILES ${Zap_Scene_SRC})
 source_group("Source/Rendering" FILES ${Zap_Rendering_SRC})
+source_group("Source/Physics" FILES ${Zap_Physics_SRC})
 source_group("Shader" FILES ${Zap_Shader_SRC})
 source_group("Imgui" FILES ${Imgui_SRC})
 
 set(${BUILD_SHARED_LIBS} false)
 set(${CMAKE_BUILD_PARALLEL_LEVEL} 16)
 
-add_library(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Zap_Rendering_SRC} ${Imgui_SRC})
+add_library(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Zap_Rendering_SRC} ${Zap_Physics_SRC} ${Imgui_SRC})
 
 set_property(TARGET Zap PROPERTY CXX_STANDARD 17)
 

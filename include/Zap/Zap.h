@@ -19,8 +19,8 @@
 #include "Zap/UUID.h"
 #include "Zap/AssetHandler.h"
 #include "VulkanFramework.h"
-#define PX_PHYSX_STATIC_LIB
 
+#define PX_PHYSX_STATIC_LIB
 #include "PxPhysicsAPI.h"
 
 #include "assimp/vector3.h"
@@ -44,8 +44,6 @@ namespace Zap {
 	};
 
 	struct Settings {
-		std::string assetLibraryPath;
-
 		uint32_t requestedGPU = 0;
 		bool enableRaytracing = false;
 	};
@@ -64,7 +62,8 @@ namespace Zap {
 
 		std::string getApplicationName();
 
-		static Base* createBase(std::string applicationName, std::string assetLibraryPath = "./AssetLibrary.zal");
+		// Asset Library is required for use of scene and actor files and for the editor
+		static Base* createBase(std::string applicationName, std::filesystem::path assetLibraryPath = std::filesystem::path());
 
 		static void releaseBase();
 
@@ -73,7 +72,7 @@ namespace Zap {
 #ifndef ZP_ALL_PUBLIC
 	private:
 #endif
-		Base(std::string applicationName, std::string assetLibraryPath = "./AssetLibrary.zal");
+		Base(std::string applicationName, std::filesystem::path assetLibraryPath = std::filesystem::path());
 		~Base();
 
 		bool m_isInit;
@@ -101,6 +100,7 @@ namespace Zap {
 		friend class Mesh;
 		friend class Material;
 		friend class Texture;
+		friend class HitMesh;
 		friend class RenderTaskTemplate;
 		friend class PBRenderer;
 		friend class RaytracingRenderer;
@@ -108,12 +108,14 @@ namespace Zap {
 		friend class TextureLoader;
 		friend class MaterialLoader;
 		friend class MeshLoader;
+		friend class HitMeshLoader;
 		friend class ModelLoader;
 		friend class PhysicsComponent;
 		friend class RigidBodyComponent;
 		friend class RigidDynamic;
 		friend class RigidStatic;
 		friend class Shape;
+		friend class ConvexMesh;
 		friend class PhysicsMaterial;
 	};
 

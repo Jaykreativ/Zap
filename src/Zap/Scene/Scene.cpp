@@ -2,7 +2,7 @@
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Material.h"
-#include "Zap/Scene/PhysicsComponent.h"
+#include "Zap/Physics/PhysicsComponent.h"
 #include "Zap/Rendering/DebugRenderTask.h"
 
 namespace Zap {
@@ -23,11 +23,11 @@ namespace Zap {
 		return (bool)m_handle;
 	}
 
-	void Scene::init() {
+	void Scene::init(SceneDesc desc) {
 		auto base = Base::getBase();
 
 		physx::PxSceneDesc sceneDesc(base->m_pxPhysics->getTolerancesScale());
-		sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
+		sceneDesc.gravity = Zap::PxUtils::glmVec3toVec3(desc.gravity);
 		sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
 		sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
 		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;

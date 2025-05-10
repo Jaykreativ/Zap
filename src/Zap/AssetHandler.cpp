@@ -10,6 +10,16 @@
 namespace Zap {
 	AssetHandler::AssetHandler() {}
 
+	AssetHandler::AssetHandler(std::filesystem::path path)
+		: m_alpath(path)
+	{
+		ZP_ASSERT(!path.empty(), "AssetHandler needs a non-empty path to an Asset Library file");
+		m_aldir = path;
+		m_aldir.remove_filename();
+		if (m_aldir.empty())
+			m_aldir = "./";
+	}
+
 	AssetHandler::~AssetHandler() {}
 
 	/* Mesh */
@@ -102,25 +112,72 @@ namespace Zap {
 		return &m_textures.at(handle);
 	}
 
+	/* HitMesh */
+
+	std::unordered_map<UUID, HitMeshData>::const_iterator AssetHandler::beginHitMeshes() const {
+		return m_hitMeshes.begin();
+	}
+
+	std::unordered_map<UUID, HitMeshData>::iterator AssetHandler::beginHitMeshes() {
+		return m_hitMeshes.begin();
+	}
+
+	std::unordered_map<UUID, HitMeshData>::const_iterator AssetHandler::endHitMeshes() const {
+		return m_hitMeshes.end();
+	}
+
+	std::unordered_map<UUID, HitMeshData>::iterator AssetHandler::endHitMeshes() {
+		return m_hitMeshes.end();
+	}
+
+	bool AssetHandler::existsHitMeshData(UUID handle) const {
+		return m_hitMeshes.count(handle);
+	}
+
+	const HitMeshData& AssetHandler::getHitMeshData(UUID handle) const {
+		return m_hitMeshes.at(handle);
+	}
+
+	HitMeshData* AssetHandler::getHitMeshDataPtr(UUID handle) {
+		return &m_hitMeshes.at(handle);
+	}
+
 	/* Load / Save */
 
-	void AssetHandler::loadFromFile(std::filesystem::path alpath) {
+	void AssetHandler::setAssetLibrary(std::filesystem::path filepath) {
+		m_alpath = filepath;
+		m_aldir = filepath;
+		m_aldir.remove_filename();
+	}
+
+	std::filesystem::path AssetHandler::getAssetLibrary() {
+		return m_alpath;
+	}
+
+	void AssetHandler::loadFromFile() {
 		destroyAssets();
 
 		Serializer serializer;
-		serializer.beginDeserialization(alpath.c_str());
+		serializer.beginDeserialization(m_alpath.c_str());
 
 		bool existsData = true;
 		int meshCount = serializer.readAttributei("meshCount", &existsData);
+		if (!existsData) meshCount = 0;
+		existsData = true;
 		int materialCount = serializer.readAttributei("materialCount", &existsData);
+		if (!existsData) materialCount = 0;
+		existsData = true;
 		int textureCount = serializer.readAttributei("textureCount", &existsData);
-		if (!existsData) return;
+		if (!existsData) textureCount = 0;
+		existsData = true;
+		int hitMeshCount = serializer.readAttributei("hitMeshCount", &existsData);
+		if (!existsData) hitMeshCount = 0;
 
 		for (int i = 0; i < meshCount; i++) {
 			if (serializer.beginElement("Mesh" + std::to_string(i))) {
 				std::cout << "Mesh -> " << i << " (AssetHandler)\n";
 				UUID handle = serializer.readAttributeUUID("handle");
-				std::filesystem::path filepath = serializer.readAttribute("filepath");
+				std::filesystem::path filepath = m_aldir / processPath(serializer.readAttribute("filepath"));
 				int index = std::stoi(serializer.readAttribute("index"));
 				glm::mat4 transform = serializer.readAttributeMat4("transform");
 
@@ -154,12 +211,11 @@ namespace Zap {
 				if (serializer.existsAttribute("emissiveMap"))
 					m_materials[material.getHandle()].emissiveMap = serializer.readAttributeUUID("emissiveMap");
 
-				std::string path = serializer.readAttribute("filepath");
+				std::filesystem::path path = m_aldir / processPath(serializer.readAttribute("filepath"));
 				int index = serializer.readAttributei("index");
 
 				m_loadedMaterials.push_back(material);
-				m_materialPaths[material.getHandle()] = {path, index};
-				m_pathMaterialMap[{ path, index }] = material.getHandle();
+				registerMaterial(material, path, index);
 
 				serializer.endElement();
 			}
@@ -175,15 +231,11 @@ namespace Zap {
 				// check for embedded textures
 				if (serializer.existsAttribute("embedded")) {// embedded
 					std::string textureID = serializer.readAttribute("filepath");
-					std::string modelpath = serializer.readAttribute("embedded");
+					std::filesystem::path modelpath = m_aldir / processPath(serializer.readAttribute("embedded"));
 					textureLoader.load(modelpath, textureID, handle);
 				}
 				else {// file
-					std::filesystem::path filepath = serializer.readAttribute("filepath");
-
-					if (filepath.is_relative())
-						filepath = alpath.remove_filename() / filepath;
-
+					std::filesystem::path filepath = m_aldir / processPath(serializer.readAttribute("filepath"));
 					textureLoader.load(filepath, handle);
 				}
 				serializer.endElement();
@@ -192,23 +244,36 @@ namespace Zap {
 				std::cerr << "Failed to load Texture" << i << " from zap asset library\n";
 			}
 		}
+		for (int i = 0; i < hitMeshCount; i++) {
+			if (serializer.beginElement("HitMesh" + std::to_string(i))) {
+				std::cout << "HitMesh -> " << i << " (AssetHandler)\n";
+				UUID handle = serializer.readAttributeUUID("handle");
+				std::filesystem::path filepath = m_aldir / processPath(serializer.readAttribute("filepath"));
+				int index = std::stoi(serializer.readAttribute("index"));
+
+				HitMeshLoader hitMeshloader;
+				hitMeshloader.load(filepath, index, handle);
+				serializer.endElement();
+			}
+			else {
+				std::cerr << "Failed to load HitMesh" << i << " from zap asset library\n";
+			}
+		}
+
 
 		serializer.endDeserialization();
 	}
 
-	void AssetHandler::saveToFile(std::filesystem::path filepath) {
-		saveToFile(filepath.string());
-	}
-	void AssetHandler::saveToFile(std::string filepath) {
+	void AssetHandler::saveToFile() {
 		Serializer serializer;
-		serializer.beginSerialization(filepath.c_str());
+		serializer.beginSerialization(m_alpath.c_str());
 
 		uint32_t i = 0;
 		serializer.writeAttribute("meshCount", std::to_string(m_loadedMeshes.size()));
 		for (Mesh mesh : m_loadedMeshes) {
 			serializer.beginElement("Mesh" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(mesh.getHandle()));
-			serializer.writeAttribute("filepath", m_meshPaths[mesh.getHandle()].first);
+			serializer.writeAttribute("filepath", processPath(m_meshPaths[mesh.getHandle()].first).string()); // make the mesh path relative to asset library
 			serializer.writeAttribute("index", std::to_string(m_meshPaths[mesh.getHandle()].second));
 			serializer.writeAttribute("transform", *mesh.getTransform());
 			serializer.endElement();
@@ -231,7 +296,7 @@ namespace Zap {
 			serializer.writeAttribute("emissive", { material.getEmissive(), material.getEmissiveValue() });
 			if (material.hasEmissiveMap())
 				serializer.writeAttribute("emissiveMap", material.getEmissiveMap().getHandle());
-			serializer.writeAttribute("filepath", m_materialPaths[material.getHandle()].first);
+			serializer.writeAttribute("filepath", processPath(m_materialPaths[material.getHandle()].first).string());
 			serializer.writeAttribute("index", std::to_string(m_materialPaths[material.getHandle()].second));
 			serializer.endElement();
 			i++;
@@ -241,9 +306,22 @@ namespace Zap {
 		for (Texture texture : m_loadedTextures) {
 			serializer.beginElement("Texture" + std::to_string(i));
 			serializer.writeAttribute("handle", std::to_string(texture.getHandle()));
-			serializer.writeAttribute("filepath", m_texturePaths[texture.getHandle()].first);
-			if (m_texturePaths[texture.getHandle()].second != "")
-				serializer.writeAttribute("embedded", m_texturePaths[texture.getHandle()].second);
+			if (m_texturePaths[texture.getHandle()].second != "") {
+				serializer.writeAttribute("embedded", processPath(m_texturePaths[texture.getHandle()].second).string());
+				serializer.writeAttribute("filepath", m_texturePaths[texture.getHandle()].first.string());
+			}
+			else
+				serializer.writeAttribute("filepath", processPath(m_texturePaths[texture.getHandle()].first).string());
+			serializer.endElement();
+			i++;
+		}
+		i = 0;
+		serializer.writeAttribute("hitMeshCount", std::to_string(m_loadedHitMeshes.size()));
+		for (HitMesh hitMesh : m_loadedHitMeshes) {
+			serializer.beginElement("HitMesh" + std::to_string(i));
+			serializer.writeAttribute("handle", std::to_string(hitMesh.getHandle()));
+			serializer.writeAttribute("filepath", processPath(m_hitMeshPaths[hitMesh.getHandle()].first).string());
+			serializer.writeAttribute("index", m_hitMeshPaths[hitMesh.getHandle()].second);
 			serializer.endElement();
 			i++;
 		}
@@ -284,6 +362,45 @@ namespace Zap {
 
 	EventHandler<TextureLoadEvent>* AssetHandler::getTextureLoadEventHandler() {
 		return &m_textureLoadEventHandler;
+	}
+
+	void AssetHandler::registerTexture(Texture texture, std::filesystem::path filepath) {
+		m_texturePaths[texture.getHandle()].second = std::filesystem::path(); // empty path
+		m_texturePaths[texture.getHandle()].first = processPath(filepath);
+	}
+
+	void AssetHandler::registerTexture(Texture texture, std::filesystem::path modelpath, std::filesystem::path textureID) {
+		m_texturePaths[texture.getHandle()].second = processPath(modelpath);
+		m_texturePaths[texture.getHandle()].first = textureID; // model internal path
+	}
+
+	void AssetHandler::registerMaterial(Material material, std::filesystem::path modelpath, uint32_t index) {
+		std::filesystem::path path = processPath(modelpath);
+		m_materialPaths[material.getHandle()] = { path, index };
+		m_pathMaterialMap[{ path, index }] = material.getHandle();
+	}
+
+	void AssetHandler::registerMesh(Mesh mesh, std::filesystem::path modelpath, uint32_t index) {
+		std::filesystem::path path = processPath(modelpath);
+		m_meshPaths[mesh.getHandle()] = { path, index };
+		m_pathMeshMap[{ path, index }] = mesh.getHandle();
+	}
+
+	void AssetHandler::registerHitMesh(HitMesh hitMesh, std::filesystem::path modelpath, uint32_t index) {
+		std::filesystem::path path = processPath(modelpath);
+		m_hitMeshPaths[hitMesh.getHandle()] = { path, index };
+		m_pathHitMeshMap[{path, index}] = hitMesh.getHandle();
+	}
+
+	std::filesystem::path AssetHandler::processPath(std::filesystem::path path) {
+		if (path.is_relative())
+			return path.lexically_normal();
+		if (m_aldir.empty()) { // paths can't be processed without a valid AssetHandler
+			ZP_WARN(false, "Path being processed by invalid AssetHandler, assign Asset Library path for processing");
+			return path;
+		}
+		auto prox = std::filesystem::proximate(path, m_aldir);
+		return prox.lexically_normal();
 	}
 
 	void AssetHandler::addTexture(Texture texture) {

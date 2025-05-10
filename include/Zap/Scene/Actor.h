@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Zap/UUID.h"
-#include "Zap/Scene/Shape.h"
+#include "Zap/Physics/Shape.h"
 #include "Zap/Scene/Material.h"
 #include "glm.hpp"
 
@@ -125,6 +125,20 @@ namespace Zap {
 
 		void cmpRigidDynamic_detachAllShapes();
 
+		void cmpRigidDynamic_setAngularDamping(float damping);
+
+		void cmpRigidDynamic_setLinearDamping(float damping);
+
+		void cmpRigidDynamic_setAngularVelocity(glm::vec3 velocity);
+
+		void cmpRigidDynamic_setLinearVelocity(glm::vec3 velocity);
+
+		glm::vec3 cmpRigidDynamic_getAngularVelocity();
+
+		glm::vec3 cmpRigidDynamic_getLinearVelocity();
+
+		void cmpRigidDynamic_setShapes(std::vector<Shape> shapes);
+
 		std::vector<Shape> cmpRigidDynamic_getShapes();
 
 		void cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value);
@@ -153,7 +167,7 @@ namespace Zap {
 
 		void cmpRigidStatic_detachShape(Shape shape);
 
-		void cmpRigidDynamic_setShapes(std::vector<Shape> shapes);
+		void cmpRigidStatic_updatePose();
 
 		std::vector<Shape> cmpRigidStatic_getShapes();
 

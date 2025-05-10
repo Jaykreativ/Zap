@@ -2,7 +2,7 @@
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Model.h"
-#include "Zap/Scene/PhysicsComponent.h"
+#include "Zap/Physics/PhysicsComponent.h"
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Camera.h"
 #include "Zap/Scene/Transform.h"
@@ -302,6 +302,42 @@ namespace Zap {
 			cmpRigidDynamic_detachShape(shape);
 	}
 
+	void Actor::cmpRigidDynamic_setAngularDamping(float damping) {
+		auto& cmp = getRigidDynamicCmp();
+		auto* pxActor = cmp.pxActor;
+		pxActor->setAngularDamping(damping);
+	}
+
+	void Actor::cmpRigidDynamic_setLinearDamping(float damping) {
+		auto& cmp = getRigidDynamicCmp();
+		auto* pxActor = cmp.pxActor;
+		pxActor->setLinearDamping(damping);
+	}
+
+	void Actor::cmpRigidDynamic_setAngularVelocity(glm::vec3 velocity) {
+		auto& cmp = getRigidDynamicCmp();
+		auto* pxActor = cmp.pxActor;
+		pxActor->setAngularVelocity(PxUtils::glmVec3toVec3(velocity));
+	}
+
+	void Actor::cmpRigidDynamic_setLinearVelocity(glm::vec3 velocity) {
+		auto& cmp = getRigidDynamicCmp();
+		auto* pxActor = cmp.pxActor;
+		pxActor->setLinearVelocity(PxUtils::glmVec3toVec3(velocity));
+	}
+
+	glm::vec3 Actor::cmpRigidDynamic_getAngularVelocity() {
+		auto& cmp = getRigidDynamicCmp();
+		auto* pxActor = cmp.pxActor;
+		return PxUtils::vec3ToGlmVec3(pxActor->getAngularVelocity());
+	}
+
+	glm::vec3 Actor::cmpRigidDynamic_getLinearVelocity() {
+		auto& cmp = getRigidDynamicCmp();
+		auto* pxActor = cmp.pxActor;
+		return PxUtils::vec3ToGlmVec3(pxActor->getLinearVelocity());
+	}
+
 	void Actor::cmpRigidDynamic_setShapes(std::vector<Shape> shapes) {
 		auto& cmp = getRigidDynamicCmp();
 		auto* pxActor = cmp.pxActor;
@@ -389,6 +425,11 @@ namespace Zap {
 	void Actor::cmpRigidStatic_detachShape(Shape shape) {
 		auto& cmp = getRigidStaticCmp();
 		cmp.pxActor->detachShape(shape);
+	}
+
+	void Actor::cmpRigidStatic_updatePose() {
+		auto& cmp = getRigidStaticCmp();
+		cmp.pxActor->setGlobalPose(PxUtils::glmMat4ToTransform(m_pScene->m_transformComponents.at(m_handle).transform));
 	}
 
 	std::vector<Shape> Actor::cmpRigidStatic_getShapes() {

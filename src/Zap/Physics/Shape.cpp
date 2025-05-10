@@ -1,4 +1,4 @@
-#include "Zap/Scene/Shape.h"
+#include "Zap/Physics/Shape.h"
 
 #include "glm/gtc/quaternion.hpp"
 
@@ -8,64 +8,26 @@ namespace Zap {
 		m_pxMaterial = base->m_pxPhysics->createMaterial(staticFriction, dynamicFriction, restitution);
 	}
 
+	PhysicsMaterial::PhysicsMaterial(physx::PxMaterial* pxMaterial)
+		: m_pxMaterial(pxMaterial)
+	{}
+
 	PhysicsMaterial::~PhysicsMaterial() {}
 
 	void PhysicsMaterial::release() {
 		m_pxMaterial->release();
 	}
-
-	BoxGeometry::BoxGeometry(glm::vec3 size) {
-		m_geometry = physx::PxBoxGeometry(size.x, size.y, size.z);
+	
+	float PhysicsMaterial::getDynamicFriction() const {
+		return m_pxMaterial->getDynamicFriction();
 	}
 
-	BoxGeometry::BoxGeometry(const physx::PxBoxGeometry& geometry) {
-		m_geometry = geometry;
+	float PhysicsMaterial::getStaticFriction() const {
+		return m_pxMaterial->getStaticFriction();
 	}
 
-	BoxGeometry::BoxGeometry(BoxGeometry& boxGeometry) {
-		m_geometry = boxGeometry.m_geometry;
-	}
-
-	physx::PxGeometryType::Enum BoxGeometry::getType() const {
-		return m_geometry.getType();
-	}
-
-	physx::PxGeometry* BoxGeometry::getPxGeometry() {
-		return &m_geometry;
-	}
-	const physx::PxGeometry* BoxGeometry::getPxGeometry() const {
-		return &m_geometry;
-	}
-
-	void BoxGeometry::setHalfExtents(glm::vec3 halfExtents) {
-		m_geometry.halfExtents = { halfExtents.x, halfExtents.y, halfExtents.z };
-	}
-
-	glm::vec3 BoxGeometry::getHalfExtents() {
-		return { m_geometry.halfExtents.x, m_geometry.halfExtents.y, m_geometry.halfExtents.z };
-	}
-
-	PlaneGeometry::PlaneGeometry()
-		: m_geometry()
-	{}
-
-	PlaneGeometry::PlaneGeometry(const physx::PxPlaneGeometry& geometry)
-		: m_geometry(geometry)
-	{}
-
-	PlaneGeometry::PlaneGeometry(PlaneGeometry& planeGeometry)
-		: m_geometry(planeGeometry.m_geometry)
-	{}
-
-	physx::PxGeometryType::Enum PlaneGeometry::getType() const {
-		return m_geometry.getType();
-	}
-
-	physx::PxGeometry* PlaneGeometry::getPxGeometry() {
-		return &m_geometry;
-	}
-	const physx::PxGeometry* PlaneGeometry::getPxGeometry() const {
-		return &m_geometry;
+	float PhysicsMaterial::getRestitution() const {
+		return m_pxMaterial->getRestitution();
 	}
 
 	Shape::Shape(const PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform, physx::PxShapeFlags shapeFlags) {
@@ -101,11 +63,25 @@ namespace Zap {
 		const auto& geometry = m_pxShape->getGeometry();
 		switch (geometry.getType())
 		{
+		case physx::PxGeometryType::eSPHERE:
+			return std::make_unique<SphereGeometry>(static_cast<const physx::PxSphereGeometry&>(m_pxShape->getGeometry()));
+		case physx::PxGeometryType::eCAPSULE:
+			return std::make_unique<CapsuleGeometry>(static_cast<const physx::PxCapsuleGeometry&>(m_pxShape->getGeometry()));
 		case physx::PxGeometryType::eBOX:
-			return std::unique_ptr<PhysicsGeometry>(new BoxGeometry(static_cast<const physx::PxBoxGeometry&>(m_pxShape->getGeometry())));
+			return std::make_unique<BoxGeometry>(static_cast<const physx::PxBoxGeometry&>(m_pxShape->getGeometry()));
 		case physx::PxGeometryType::ePLANE:
-			return std::unique_ptr<PhysicsGeometry>(new PlaneGeometry(static_cast<const physx::PxPlaneGeometry&>(m_pxShape->getGeometry())));
+			return std::make_unique<PlaneGeometry>(static_cast<const physx::PxPlaneGeometry&>(m_pxShape->getGeometry()));
+		case physx::PxGeometryType::eCONVEXMESH:
+			return std::make_unique<ConvexMeshGeometry>(static_cast<const physx::PxConvexMeshGeometry&>(m_pxShape->getGeometry()));
+		default: {
+			ZP_WARN(false, "Shape::getGeometry unknown geometry type");
+			return nullptr;
 		}
+		}
+	}
+
+	bool Shape::isExclusive() {
+		return m_pxShape->isExclusive();
 	}
 
 	void Shape::setLocalPose(glm::mat4 transform) {
@@ -137,6 +113,14 @@ namespace Zap {
 	glm::quat Shape::getLocalRotation() {
 		auto pxTransform = m_pxShape->getLocalPose();
 		return PxUtils::quatToGlmQuat(pxTransform.q);
+	}
+
+	PhysicsMaterial Shape::getMaterial() {
+		size_t nbMaterials = m_pxShape->getNbMaterials();
+		ZP_ASSERT(nbMaterials > 0, "Shape has no Materials");
+		physx::PxMaterial* pxMaterial;
+		m_pxShape->getMaterials(&pxMaterial, 1); // get the one Material
+		return pxMaterial;
 	}
 
 	physx::PxShape* Shape::getPxShape() {

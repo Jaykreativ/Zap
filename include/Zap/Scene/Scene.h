@@ -8,7 +8,7 @@
 #include "Zap/Scene/Camera.h"
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Model.h"
-#include "Zap/Scene/PhysicsComponent.h"
+#include "Zap/Physics/PhysicsComponent.h"
 #include "Zap/Scene/Transform.h"
 
 #include "glm.hpp"
@@ -91,6 +91,10 @@ namespace Zap {
 		uint32_t modelCount = 0;
 	};
 
+	struct SceneDesc {
+		glm::vec3 gravity = {0, -9.81, 0};
+	};
+
 	class Scene
 	{
 	public:
@@ -104,7 +108,7 @@ namespace Zap {
 
 		bool isValid();
 
-		void init();
+		void init(SceneDesc desc = {});
 
 		void destroy();
 
