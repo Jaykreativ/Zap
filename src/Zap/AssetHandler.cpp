@@ -181,9 +181,6 @@ namespace Zap {
 				int index = std::stoi(serializer.readAttribute("index"));
 				glm::mat4 transform = serializer.readAttributeMat4("transform");
 
-				if (filepath.is_relative())
-					filepath = alpath.remove_filename() / filepath;
-
 				MeshLoader meshloader;
 				meshloader.loadFromFile(filepath, index, transform, handle);
 				serializer.endElement();
