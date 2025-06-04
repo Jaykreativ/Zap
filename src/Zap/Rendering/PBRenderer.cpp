@@ -19,6 +19,8 @@ void updateLightBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* 
 	vk::Buffer* pBuffer = (vk::Buffer*)obj;
 	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
 	auto descriptor = pDescriptorSet->getDescriptor(1);
+	descriptor.bufferInfos[0].pBuffer = pBuffer;
+	descriptor.bufferInfos[0].offset = 0;
 	descriptor.bufferInfos[0].range = pBuffer->getSize();
 	pDescriptorSet->setDescriptor(1, descriptor);
 	
@@ -32,6 +34,8 @@ void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable
 	vk::Buffer* pBuffer = (vk::Buffer*)obj;
 	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
 	auto descriptor = pDescriptorSet->getDescriptor(2);
+	descriptor.bufferInfos[0].pBuffer = pBuffer;
+	descriptor.bufferInfos[0].offset = 0;
 	descriptor.bufferInfos[0].range = pBuffer->getSize();
 	pDescriptorSet->setDescriptor(2, descriptor);
 
@@ -406,7 +410,12 @@ namespace Zap {
 	}
 
 	void PBRenderer::changeScene(Scene* pScene) {
-
+		m_pScene = pScene;
+		updateLightBufferDescriptorSetPBR(&m_pScene->m_lightBuffer, &m_descriptorSet, vk::eUPDATE);
+		updatePerMeshBufferDescriptorSetPBR(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, vk::eUPDATE);
+		Base* base = Base::getBase();
+		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPBR);
+		base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetPBR);
 	}
 
 	void PBRenderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
