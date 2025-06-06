@@ -157,7 +157,10 @@ namespace Zap {
 			Vertex* data = (Vertex*)rawData;
 			for (uint32_t i = 0; i < aMesh->mNumVertices; i++) {
 				data[i].pos = *((glm::vec3*)&aMesh->mVertices[i]);
-				data[i].texCoords = *((glm::vec2*)&aMesh->mTextureCoords[0][i]);
+				if (aMesh->mTextureCoords[0])
+					data[i].texCoords = *((glm::vec2*)&aMesh->mTextureCoords[0][i]);
+				else
+					data[i].texCoords = { 0, 0 };
 				data[i].normal = *((glm::vec3*)&aMesh->mNormals[i]);
 			}
 			vertexStgBuffer.unmap();
