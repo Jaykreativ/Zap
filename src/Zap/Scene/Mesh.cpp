@@ -43,6 +43,12 @@ namespace Zap {
 		data->m_indexBuffer.destroy();
 	}
 
+	void Mesh::remove() {
+		destroy();
+		auto* base = Base::getBase();
+		base->m_assetHandler.m_meshes.erase(m_handle);
+	}
+
 	void Mesh::setBoundingBox(glm::vec3 boundMin, glm::vec3 boundMax) {
 		auto* base = Base::getBase();
 		MeshData* data = base->m_assetHandler.getMeshDataPtr(m_handle);

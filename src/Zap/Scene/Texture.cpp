@@ -50,6 +50,12 @@ namespace Zap {
 		data->image.destroy();
 	}
 
+	void Texture::remove() {
+		destroy();
+		auto* base = Base::getBase();
+		base->m_assetHandler.m_materials.erase(m_handle);
+	}
+
 	bool Texture::exists() const {
 		return Base::getBase()->m_assetHandler.m_textures.count(m_handle);
 	}

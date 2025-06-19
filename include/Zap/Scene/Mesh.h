@@ -26,6 +26,10 @@ namespace Zap {
 		void destroy();
 		static void destroy(MeshData* data);
 
+		// removes asset from assetLibrary and destroys it
+		// only works correctly with runtime generated assets
+		void remove();
+
 		void setBoundingBox(glm::vec3 boundMin, glm::vec3 boundMax);
 		
 		bool exists() const;
