@@ -28,6 +28,10 @@ namespace Zap {
 		void destroy();
 		static void destroy(TextureData* data);
 
+		// removes asset from assetLibrary and destroys it
+		// only works correctly with runtime generated assets
+		void remove();
+
 		bool exists() const;
 
 		UUID getHandle();

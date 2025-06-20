@@ -18,6 +18,12 @@ namespace Zap {
 	void Material::destroy() {}
 	void Material::destroy(MaterialData* data) {}
 
+	void Material::remove() {
+		destroy();
+		auto* base = Base::getBase();
+		base->m_assetHandler.m_materials.erase(m_handle);
+	}
+
 	bool Material::exists() const {
 		return Base::getBase()->m_assetHandler.m_materials.count(m_handle);
 	}

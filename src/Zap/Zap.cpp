@@ -220,9 +220,6 @@ namespace Zap {
 	}
 
 	void Base::terminate() {
-		if (!m_assetHandler.getAssetLibrary().empty()) {
-			m_assetHandler.saveToFile();
-		}
 		m_assetHandler.destroyAssets();
 
 		m_pxPhysics->release();
