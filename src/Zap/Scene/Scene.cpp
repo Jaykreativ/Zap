@@ -150,8 +150,15 @@ namespace Zap {
 	void Scene::destroy() {
 		m_perMeshInstanceBuffer.destroy();
 		m_lightBuffer.destroy();
+
+		m_cameraComponents.clear();
+		m_lightComponents.clear();
+		m_modelComponents.clear();
 		for (auto const& x : m_rigidDynamicComponents) x.second.pxActor->release();
+		m_rigidDynamicComponents.clear();
 		for (auto const& x : m_rigidStaticComponents) x.second.pxActor->release();
+		m_rigidStaticComponents.clear();
+		m_transformComponents.clear();
 	}
 
 	void Scene::attachActor(Actor& actor) {
