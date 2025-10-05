@@ -31,6 +31,12 @@ namespace Zap {
 		// Should not be overwritten
 		void resizeTargetDependencies();
 
+		// Only works when a scene ptr was supplied in the constructor
+		std::unordered_map<UUID, Model>::iterator beginSceneModels();
+
+		// Only works when a scene ptr was supplied in the constructor
+		std::unordered_map<UUID, Model>::iterator endSceneModels();
+
 		// returns a ptr to the engines global vulkan registery object
 		vk::Registery* getRegistery();
 
@@ -54,6 +60,8 @@ namespace Zap {
 		std::unordered_map<UUID, TextureData>* getTextureDataMap();
 
 		uint32_t getTextureIndex(UUID texture);
+
+		vk::Sampler* getTextureSampler();
 
 	private:
 		bool m_isEnabled = true;

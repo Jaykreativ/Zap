@@ -19,6 +19,14 @@ namespace Zap {
 
 	void RenderTaskTemplate::resizeTargetDependencies() { m_pRenderer->resizeRenderTaskTargetDependencies(this); }
 
+	std::unordered_map<UUID, Model>::iterator RenderTaskTemplate::beginSceneModels() {
+		return m_pScene->m_modelComponents.begin();
+	}
+
+	std::unordered_map<UUID, Model>::iterator RenderTaskTemplate::endSceneModels() {
+		return m_pScene->m_modelComponents.end();
+	}
+
 	vk::Registery* RenderTaskTemplate::getRegistery() {
 		return &Base::getBase()->m_registery;
 	}
@@ -57,6 +65,10 @@ namespace Zap {
 
 	uint32_t RenderTaskTemplate::getTextureIndex(UUID texture) {
 		return Base::getBase()->m_textureIndices.at(texture);
+	}
+
+	vk::Sampler* RenderTaskTemplate::getTextureSampler() {
+		return &Base::getBase()->m_textureSampler;
 	}
 
 }
