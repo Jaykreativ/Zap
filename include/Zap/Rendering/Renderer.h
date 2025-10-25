@@ -8,6 +8,54 @@
 #include "glm.hpp"
 
 namespace Zap {
+	class RenderTargetHandle {
+		friend class Renderer;
+	public:
+		RenderTargetHandle(const RenderTargetHandle& other);
+		~RenderTargetHandle();
+
+	private:
+		RenderTargetHandle();
+	};
+
+	class RenderTarget : protected Image {
+		friend class Renderer;
+	public:
+		RenderTarget();
+		~RenderTarget();
+
+		bool isValid();
+
+	private:
+		bool m_isValid = false;
+	};
+
+	template<class T>
+	class RenderTaskHandle {
+		friend class Renderer;
+	public:
+		RenderTaskHandle(const RenderTaskHandle& other)
+			: m_handle(other.m_handle), m_renderer(other.m_renderer)
+		{}
+
+
+		T* operator->() {
+			return m_renderer.getRenderTask(m_handle);
+		}
+
+		operator bool() const {
+			return m_renderer.getRenderTask(m_handle) != nullptr;
+		}
+
+	private:
+		UUID m_handle;
+		Renderer& m_renderer;
+
+		RenderTaskHandle(UUID handle, Renderer& renderer)
+			: m_handle(handle), m_renderer(renderer)
+		{}
+	};
+
 	class Renderer
 	{
 	public:
@@ -18,11 +66,29 @@ namespace Zap {
 
 		void destroy();
 
-		//Only works on image targets
-		//Has to be called when the target image gets resized
+		// Only works on image targets
+		// Has to be called when the target image gets resized
 		void resize();
 
 		void render();
+
+		template<class T, class... Types>
+		RenderTaskHandle<T> createRenderTask(Types&&... args) {
+			static_assert(std::is_base_of_v<RenderTaskTemplate, T>, "Type has to be child class of RenderTaskTemplate");
+			auto handle = UUID();
+			m_renderTaskMap[handle] = std::make_unique<T>(std::forward<Types>(args)...);
+			return RenderTaskHandle<T>(handle, *this);
+		}
+
+		template<class T>
+		void destroyRenderTask(RenderTaskHandle<T> handle) {
+			if(handle)
+				m_renderTaskMap.erase(handle.m_handle);
+		}
+
+		RenderTargetHandle createRenderTarget();
+
+		// record
 
 		void beginRecord();
 
@@ -32,17 +98,13 @@ namespace Zap {
 
 		void recChangeImageLayout(Image* pImage, VkImageLayout layout, VkAccessFlags accessMask);
 
-		void addRenderTask(RenderTaskTemplate* pRenderTemplate);
-
-		//called before init
-		void setTarget(vk::Image* imageTarget);
-		//called before init
-		void setTarget(Window* windowTarget);
-
 #ifndef ZP_ALL_PUBLIC
 	private:
 #endif
 		bool m_isInit = false;
+
+		std::unordered_map<UUID, std::unique_ptr<RenderTaskTemplate>> m_renderTaskMap = {};
+		std::unordered_map<UUID, std::unique_ptr<RenderTarget>> m_renderTargetMap = {};
 
 		//Target
 		Window* m_pWindowTarget = nullptr;
@@ -73,10 +135,14 @@ namespace Zap {
 
 		void recordCommandBuffer();
 
-		static void onWindowResize(ResizeEvent& eventParams, void* customParams);
+		RenderTaskTemplate* getRenderTask(UUID handle);
 
-		friend class Window;
+		static void onWindowResize(ResizeEvent& eventParams, void* customParams);
+		
+		template<class U>
+		friend class RenderTaskHandle;
 		friend class RenderTaskTemplate;
+		friend class Window;
 		friend class PBRenderer;//TODO add rendertoolkit for userdefined rendertasks
 		friend class RaytracingRenderer;
 		friend class PathTracer;

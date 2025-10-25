@@ -2,6 +2,31 @@
 #include "VulkanUtils.h"
 
 namespace Zap {
+	RenderTargetHandle::RenderTargetHandle(){}
+	RenderTargetHandle::RenderTargetHandle(const RenderTargetHandle& other) {}
+
+	RenderTargetHandle::~RenderTargetHandle(){}
+
+	RenderTarget::RenderTarget()
+		: Image()
+	{
+		setFormat(Zap::GlobalSettings::getColorFormat());
+		setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+		setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		setLayout(VK_IMAGE_LAYOUT_PREINITIALIZED);
+		setExtent({ 1, 1, 1 });
+
+		init();
+		allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		initView();
+	}
+
+	RenderTarget::~RenderTarget(){}
+
+	bool RenderTarget::isValid() {
+		return true;
+	}
+
 	Renderer::Renderer() {}
 
 	Renderer::~Renderer() {
@@ -124,23 +149,53 @@ namespace Zap {
 		memcpy(&m_recordedParams[oldSize+sizeof(Image*)+sizeof(VkImageLayout)], &accessMask, sizeof(VkAccessFlags));
 	}
 
-	void Renderer::addRenderTask(RenderTaskTemplate* renderTask) {
-		m_renderTasks.push_back(renderTask);
-		renderTask->m_pRenderer = this;
+	RenderTargetHandle Renderer::createRenderTarget() {
+		return RenderTargetHandle();
 	}
 
-	void Renderer::setTarget(vk::Image* imageTarget) {
-		m_pTarget = imageTarget;
-		if (m_pWindowTarget)
-			m_pWindowTarget->getResizeEventHandler()->removeCallback(Renderer::onWindowResize, this);
-		m_pWindowTarget = nullptr;
-	}
-
-	void Renderer::setTarget(Window* windowTarget) {
-		m_pWindowTarget = windowTarget;
-		m_pWindowTarget->getResizeEventHandler()->addCallback(Renderer::onWindowResize, this);
-		m_pTarget = nullptr;
-	}
+	//void Renderer::addRenderTask(RenderTaskTemplate* renderTask) {
+	//	m_renderTasks.push_back(renderTask);
+	//	renderTask->m_pRenderer = this;
+	//}
+	//
+	//void Renderer::addProcessTarget(std::weak_ptr<RenderTarget> wpTarget) {
+	//	if (!wpTarget.expired())
+	//		m_targets.push_back(wpTarget);
+	//	else
+	//		ZP_WARN(false, "expired weak_ptr to RenderTarget supplied");
+	//}
+	//
+	//void Renderer::removeProcessTarget(std::weak_ptr<RenderTarget> wpTarget) {
+	//	if (auto spTarget = wpTarget.lock()) {
+	//		if(auto spResultTarget = m_wpTarget.lock())
+	//			if (spResultTarget == spTarget) {
+	//				ZP_WARN(false, "result target cannot be removed");
+	//				return;
+	//			}
+	//		for (auto it = m_targets.begin(); it != m_targets.end(); it++) {
+	//			if (auto sp = it->lock()) {
+	//				if (sp == spTarget) {
+	//					m_targets.erase(it);
+	//				}
+	//			}
+	//		}
+	//	}
+	//	else
+	//		ZP_WARN(false, "expired weak_ptr to RenderTarget supplied");
+	//}
+	//
+	//void Renderer::setResultTarget(std::weak_ptr<RenderTarget> imageTarget) {
+	//	m_wpTarget = imageTarget;
+	//	if (m_pWindowTarget)
+	//		m_pWindowTarget->getResizeEventHandler()->removeCallback(Renderer::onWindowResize, this);
+	//	m_pWindowTarget = nullptr;
+	//}
+	//
+	//void Renderer::setResultTarget(Window* windowTarget) {
+	//	m_pWindowTarget = windowTarget;
+	//	m_pWindowTarget->getResizeEventHandler()->addCallback(Renderer::onWindowResize, this);
+	//	m_pTarget = nullptr;
+	//}
 
 	void Renderer::initRenderTaskTargetDependencies(RenderTaskTemplate* task) {
 		VkExtent3D targetExtent;
@@ -231,6 +286,13 @@ namespace Zap {
 		}
 
 		cmd->end();
+	}
+
+	RenderTaskTemplate* Renderer::getRenderTask(UUID handle) {
+		if (m_renderTaskMap.count(handle))
+			return m_renderTaskMap.at(handle).get();
+		else
+			return nullptr;
 	}
 
 	void Renderer::onWindowResize(ResizeEvent& eventParams, void* customParams) {
