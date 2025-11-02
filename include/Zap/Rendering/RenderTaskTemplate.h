@@ -8,29 +8,19 @@ namespace Zap {
 	class Texture;
 	class Actor;
 
-	class RenderTaskTemplate {
+	class RenderTask {
 	public:
-		RenderTaskTemplate();
+		RenderTask();
 		// Can be used by scene dependant tasks to gain access to private storage buffers
-		RenderTaskTemplate(Scene* pScene);
+		RenderTask(Scene* pScene);
 
-		~RenderTaskTemplate();
+		~RenderTask();
 
 		void disable() { m_isEnabled = false; }
 
 		void enable() { m_isEnabled = true; }
 
 	protected:
-		// Executes the overwritten initTargetDependencies function
-		// Can be called in the init function
-		// Should not be overwritten
-		void initTargetDependencies();
-
-		// Executes the overwritten resizeTargetDependencies function
-		// Can be called in the resize function
-		// Should not be overwritten
-		void resizeTargetDependencies();
-
 		// Only works when a scene ptr was supplied in the constructor
 		std::unordered_map<UUID, Model>::iterator beginSceneModels();
 
@@ -70,25 +60,16 @@ namespace Zap {
 
 		virtual void init(uint32_t width, uint32_t height, uint32_t imageCount) = 0;
 
-		//Will be imageCount times executed
-		//Target extent will remain the same
-		virtual void initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) = 0;
-
-		//Will be called when the target gets resized
-		virtual void resize(uint32_t width, uint32_t height, uint32_t imageCount) = 0;
-
-		//Will be called when the target gets resized
-		//Will be imageCount times executed
-		//Target extent will remain the same
-		virtual void resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) = 0;
-
 		virtual void destroy() = 0;
 
-		virtual void beforeRender(vk::Image* pTarget, uint32_t imageIndex) = 0;
+		virtual void recordCommands(const vk::CommandBuffer* cmd) = 0;
 
-		virtual void afterRender(vk::Image* pTarget, uint32_t imageIndex) = 0;
+		virtual void beforeRender(vk::Image* pTarget, uint32_t imageIndex) {};
 
-		virtual void recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex) = 0;
+		virtual void afterRender(vk::Image* pTarget, uint32_t imageIndex) {};
+
+		//Will be called when the target gets resized
+		virtual void onResize(uint32_t width, uint32_t height, uint32_t imageCount) {};
 
 		friend class Renderer;
 	};
