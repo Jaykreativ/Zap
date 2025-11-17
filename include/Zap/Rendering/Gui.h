@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Zap/Zap.h"
-#include "Zap/Rendering/RenderTaskTemplate.h"
-
+#include "Zap/Rendering/RenderTask.h"
+#include "Zap/Rendering/RenderTargets.h"
+#include "Zap/Rendering/Framebuffer.h"
 
 namespace Zap {
 	typedef VkDescriptorSet GuiTexture;
@@ -26,9 +27,9 @@ namespace Zap {
 		VkDescriptorSet m_guiTexture;
 	};
 
-	class Gui : public RenderTaskTemplate {
+	class Gui : public RenderTask {
 	public:
-		Gui();
+		Gui(RenderTargetHandle<> target);
 		~Gui();
 
 		GuiTexture loadTexture(Zap::Image* pImage);
@@ -47,27 +48,22 @@ namespace Zap {
 	private:
 		bool m_shouldClear = false;// TODO make Gui a singleton
 
-		uint32_t m_framebufferCount = 0;
-		vk::Framebuffer* m_framebuffers = nullptr;
+		RenderTargetHandle<> m_target;
+
+		FramebufferHandle m_framebuffer;
 
 		vk::Sampler m_textureSampler;
 		std::vector<vk::Image> m_textures = {};
 
-		void init(uint32_t width, uint32_t height, uint32_t imageCount);
+		void init() override;
 
-		void initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex);
+		void destroy() override;
 
-		void resize(uint32_t width, uint32_t height, uint32_t imageCount);
+		void beforeRender() override;
 
-		void resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex);
+		void afterRender() override;
 
-		void destroy();
-
-		void beforeRender(vk::Image* pTarget, uint32_t imageIndex);
-
-		void afterRender(vk::Image* pTarget, uint32_t imageIndex);
-
-		void recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex);
+		void recordCommands(const vk::CommandBuffer* cmd) override;
 
 		static bool isImGuiInit;
 		static VkDescriptorPool descriptorPool;

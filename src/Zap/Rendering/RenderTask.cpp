@@ -1,4 +1,4 @@
-#include "Zap/Rendering/RenderTaskTemplate.h"
+#include "Zap/Rendering/RenderTask.h"
 
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Scene/Scene.h"
@@ -14,10 +14,6 @@ namespace Zap {
 	{}
 
 	RenderTask::~RenderTask(){}
-
-	void RenderTask::initTargetDependencies() { m_pRenderer->initRenderTaskTargetDependencies(this); }
-
-	void RenderTask::resizeTargetDependencies() { m_pRenderer->resizeRenderTaskTargetDependencies(this); }
 
 	std::unordered_map<UUID, Model>::iterator RenderTask::beginSceneModels() {
 		return m_pScene->m_modelComponents.begin();

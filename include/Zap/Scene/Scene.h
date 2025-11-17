@@ -205,7 +205,7 @@ namespace Zap {
 		friend class Actor;
 		friend class RigidDynamic;
 		friend class RigidStatic;
-		friend class RenderTaskTemplate;
+		friend class RenderTask;
 		friend class PBRenderer;
 		friend class RaytracingRenderer;
 		friend class PathTracer;

@@ -1,4 +1,8 @@
 #include "Zap/Rendering/Renderer.h"
+
+#include "Zap/Rendering/RenderTargets.h"
+#include "Zap/Rendering/Framebuffer.h"
+#include "Zap/Rendering/RenderTask.h"
 #include "VulkanUtils.h"
 
 namespace Zap {
@@ -25,7 +29,14 @@ namespace Zap {
 		vk::destroyFence(m_renderComplete);
 	}
 
-	void Renderer::resize() {} // TODO resize targets in this renderer
+	void Renderer::resize(glm::vec2 size) {
+		for (auto& targetPair : m_renderTargetMap) {
+			targetPair.second->resizeInternal(size); // call the internal resize function of all targets
+		}
+		for (auto& framebufferPair : m_framebufferMap) {
+			framebufferPair.second->update(); // update all framebuffers after resizing their contents
+		}
+	}
 
 	void Renderer::render() {
 		for (auto& taskPair : m_renderTaskMap) {
@@ -55,6 +66,18 @@ namespace Zap {
 
 	void Renderer::endRecord() {}
 
+	class Renderer::RecRenderTask : public Renderer::RecordFunctor {
+	public:
+		RecRenderTask(RenderTaskHandle<> taskHandle)
+			: m_taskHandle(taskHandle)
+		{}
+
+		virtual void operator()(const vk::CommandBuffer& cmd) override;
+
+	private:
+		RenderTaskHandle<> m_taskHandle;
+	};
+
 	void Renderer::recRenderTemplate(RenderTaskHandle<RenderTask> taskHandle) {
 		m_recordedFunctors.push_back(std::make_unique<RecRenderTask>(taskHandle));
 	}
@@ -83,6 +106,13 @@ namespace Zap {
 	RenderTarget* Renderer::getRenderTarget(UUID handle) {
 		if (m_renderTargetMap.count(handle))
 			return m_renderTargetMap.at(handle).get();
+		else
+			return nullptr;
+	}
+
+	Framebuffer* Renderer::getFramebuffer(UUID handle) {
+		if (m_framebufferMap.count(handle))
+			return m_framebufferMap.at(handle).get();
 		else
 			return nullptr;
 	}

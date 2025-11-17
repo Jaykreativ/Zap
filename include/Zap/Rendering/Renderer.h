@@ -1,88 +1,15 @@
 #pragma once
 
 #include "Zap/Zap.h"
-#include "Zap/Rendering/RenderTargets.h"
-#include "Zap/Rendering/RenderTaskTemplate.h"
 #include "Zap/Rendering/Window.h"
+#include "Zap/Rendering/RenderTargets.h"
+#include "Zap/Rendering/Framebuffer.h"
+#include "Zap/Rendering/RenderTask.h"
 #include "Zap/Vertex.h"
 #include "Zap/Scene/Camera.h"
 #include "glm.hpp"
 
 namespace Zap {
-	// handle to a RenderTarget stored in a Renderer
-	// invalid if the Renderer was destroyed
-	template<class T = RenderTarget>
-	class RenderTargetHandle {
-		friend class Renderer;
-	public:
-		RenderTargetHandle() = default;
-		RenderTargetHandle(const RenderTargetHandle<T>& other)
-			: m_handle(other.m_handle), m_renderer(other.m_renderer)
-		{}
-		~RenderTargetHandle() = default;
-
-		operator RenderTargetHandle<RenderTarget>() {
-			return RenderTargetHandle<RenderTarget>(m_handle, m_renderer);
-		}
-
-		T* get() {
-			return m_renderer->getRenderTarget(m_handle);
-		}
-
-		T* operator->() {
-			return get();
-		}
-
-		operator bool() const {
-			return m_renderer != nullptr && get() != nullptr;
-		}
-
-	private:
-		UUID m_handle = 0;
-		Renderer* m_renderer = nullptr;
-
-		RenderTargetHandle(UUID handle, Renderer* renderer)
-			: m_handle(handle), m_renderer(renderer)
-		{}
-	};
-
-	// handle to a RenderTask stored in a Renderer
-	// invalid if the Renderer was destroyed
-	template<class T = RenderTask>
-	class RenderTaskHandle {
-		friend class Renderer;
-	public:
-		RenderTaskHandle() = default;
-		RenderTaskHandle(const RenderTaskHandle<T>& other)
-			: m_handle(other.m_handle), m_renderer(other.m_renderer)
-		{}
-		~RenderTaskHandle() = default;
-
-		operator RenderTaskHandle<RenderTask>() {
-			return RenderTaskHandle<RenderTask>(m_handle, m_renderer);
-		}
-
-		T* get() {
-			return m_renderer->getRenderTask(m_handle);
-		}
-
-		T* operator->() {
-			return get();
-		}
-
-		operator bool() const {
-			return m_renderer != nullptr && get() != nullptr;
-		}
-
-	private:
-		UUID m_handle = 0;
-		Renderer* m_renderer = nullptr;
-
-		RenderTaskHandle(UUID handle, Renderer* renderer)
-			: m_handle(handle), m_renderer(renderer)
-		{}
-	};
-
 	class Renderer
 	{
 	public:
@@ -93,7 +20,8 @@ namespace Zap {
 
 		void destroy();
 
-		void resize();
+		// user interface to resize all RenderTargets in this renderer
+		void resize(glm::vec2 size);
 
 		void render();
 
@@ -117,13 +45,25 @@ namespace Zap {
 			static_assert(std::is_base_of_v<RenderTarget, T>, "Type has to be child class of RenderTarget");
 			auto handle = UUID();
 			m_renderTargetMap[handle] = std::make_unique<T>(std::forward<Types>(args)...);
-			return RenderTargetHandle<T>(handle, *this);
+			m_renderTargetMap.at(handle)->m_pRenderer = this;
+			return RenderTargetHandle<T>(handle, this);
 		}
 
 		template<class T>
 		void destroyRenderTarget(RenderTargetHandle<T> handle) {
 			if (handle)
 				m_renderTargetMap.erase(handle.m_handle);
+		}
+
+		FramebufferHandle createFramebuffer(VkRenderPass renderPass, std::initializer_list<RenderTargetHandle<>> targets) {
+			auto handle = UUID();
+			m_framebufferMap[handle] = std::make_unique<Framebuffer>(renderPass, targets);
+			return FramebufferHandle(handle, this);
+		}
+
+		void destroyFramebuffer(FramebufferHandle handle) {
+			if (handle)
+				m_framebufferMap.erase(handle.m_handle);
 		}
 
 		// record
@@ -143,6 +83,7 @@ namespace Zap {
 
 		std::unordered_map<UUID, std::unique_ptr<RenderTask>> m_renderTaskMap = {};
 		std::unordered_map<UUID, std::unique_ptr<RenderTarget>> m_renderTargetMap = {};
+		std::unordered_map<UUID, std::unique_ptr<Framebuffer>> m_framebufferMap = {};
 
 		//CommandBuffer
 		vk::CommandBuffer m_commandBuffer;
@@ -160,23 +101,15 @@ namespace Zap {
 			virtual void operator()(const vk::CommandBuffer& cmd) = 0;
 		};
 
-		class RecRenderTask : public RecordFunctor {
-		public:
-			RecRenderTask(RenderTaskHandle<> taskHandle)
-				: m_taskHandle(taskHandle)
-			{}
-
-			virtual void operator()(const vk::CommandBuffer& cmd) override;
-
-		private:
-			RenderTaskHandle<> m_taskHandle;
-		};
+		class RecRenderTask;
 
 		std::vector<std::unique_ptr<RecordFunctor>> m_recordedFunctors;
 
 		void recordCommandBuffer();
 
 		RenderTarget* getRenderTarget(UUID handle);
+
+		Framebuffer* getFramebuffer(UUID handle);
 
 		RenderTask* getRenderTask(UUID handle);
 		
@@ -185,6 +118,7 @@ namespace Zap {
 		friend class RenderTask;
 		template<class T>
 		friend class RenderTargetHandle;
+		friend class FramebufferHandle;
 		friend class Window;
 		friend class PBRenderer;//TODO add rendertoolkit for userdefined rendertasks
 		friend class RaytracingRenderer;

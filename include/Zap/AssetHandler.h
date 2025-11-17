@@ -188,7 +188,7 @@ namespace Zap {
 		friend class MeshLoader;
 		friend class HitMeshLoader;
 		friend class ModelLoader;
-		friend class RenderTaskTemplate;
+		friend class RenderTask;
 	};
 }
 

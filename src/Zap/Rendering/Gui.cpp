@@ -46,71 +46,46 @@ namespace Zap {
 		m_guiTexture = ImGui_ImplVulkan_AddTexture(m_texSampler, m_imageView, VK_IMAGE_LAYOUT_GENERAL);
 	}
 
-	Gui::Gui(){}
+	Gui::Gui(RenderTargetHandle<> target)
+		: m_target(target)
+	{}
 
 	Gui::~Gui(){}
 
-	void Gui::init(uint32_t width, uint32_t height, uint32_t imageCount) {
+	void Gui::init() {
 		/*Framebuffer*/
-		m_framebufferCount = imageCount;
-		m_framebuffers = new vk::Framebuffer[m_framebufferCount]();
+		m_framebuffer = m_pRenderer->createFramebuffer(renderPass, {m_target});
 
 		m_textureSampler = vk::Sampler();
 		m_textureSampler.init();
-
-		RenderTaskTemplate::initTargetDependencies();
-	}
-
-	void Gui::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
-		m_framebuffers[imageIndex].setWidth(width);
-		m_framebuffers[imageIndex].setHeight(height);
-		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
-		m_framebuffers[imageIndex].setRenderPass(renderPass);
-		m_framebuffers[imageIndex].init();
-	}
-
-	void Gui::resize(uint32_t width, uint32_t height, uint32_t imageCount) {
-		RenderTaskTemplate::resizeTargetDependencies();
-	}
-
-	void Gui::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
-		m_framebuffers[imageIndex].setWidth(width);
-		m_framebuffers[imageIndex].setHeight(height);
-		m_framebuffers[imageIndex].delAttachment(0);
-		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
-		m_framebuffers[imageIndex].update();
 	}
 
 	void Gui::destroy() {
-		for (uint32_t i = 0; i < m_framebufferCount; i++) {
-			m_framebuffers[i].destroy();
-		}
+		m_pRenderer->destroyFramebuffer(m_framebuffer);
 
 		for (auto image : m_textures)
 			image.destroy();
 		m_textureSampler.destroy();
 	}
 
-	void Gui::beforeRender(vk::Image* pTarget, uint32_t imageIndex) {
+	void Gui::beforeRender() {
 		ImGui::Render();
 	}
 
-	void Gui::afterRender(vk::Image* pTarget, uint32_t imageIndex) {
+	void Gui::afterRender() {
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 	}
 
-	void Gui::recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex) {
-		pTarget->cmdChangeLayout(*cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-
-		VkExtent3D targetExtent = pTarget->getExtent();
+	void Gui::recordCommands(const vk::CommandBuffer* cmd) {
+		VkExtent3D targetExtent = m_target->getExtent();
 
 		VkRenderPassBeginInfo renderPassBeginInfo;
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
 		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
+		renderPassBeginInfo.framebuffer = *m_framebuffer.get();
 		renderPassBeginInfo.renderArea = { 0, 0, targetExtent.width, targetExtent.height };
 		VkClearValue clearColor = { 0, 0, 0, 1 };
 		renderPassBeginInfo.clearValueCount = 1;

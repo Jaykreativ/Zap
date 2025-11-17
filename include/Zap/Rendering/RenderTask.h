@@ -53,24 +53,68 @@ namespace Zap {
 
 		vk::Sampler* getTextureSampler();
 
+	protected:
+		Renderer* m_pRenderer = nullptr;
+
 	private:
 		bool m_isEnabled = true;
 		Scene* m_pScene = nullptr;
-		Renderer* m_pRenderer = nullptr;
 
-		virtual void init(uint32_t width, uint32_t height, uint32_t imageCount) = 0;
+		virtual void init() = 0;
 
 		virtual void destroy() = 0;
 
 		virtual void recordCommands(const vk::CommandBuffer* cmd) = 0;
 
-		virtual void beforeRender(vk::Image* pTarget, uint32_t imageIndex) {};
+		virtual void beforeRender() {};
 
-		virtual void afterRender(vk::Image* pTarget, uint32_t imageIndex) {};
+		virtual void afterRender() {};
 
 		//Will be called when the target gets resized
-		virtual void onResize(uint32_t width, uint32_t height, uint32_t imageCount) {};
+		virtual void onResize() {};
 
 		friend class Renderer;
+	};
+
+	// handle to a RenderTask stored in a Renderer
+	// invalid if the Renderer was destroyed
+	template<class T = RenderTask>
+	class RenderTaskHandle {
+		friend class Renderer;
+		template<class U>
+		friend class RenderTaskHandle;
+	public:
+		RenderTaskHandle() = default;
+		RenderTaskHandle(const RenderTaskHandle<T>& other)
+			: m_handle(other.m_handle), m_renderer(other.m_renderer)
+		{}
+		~RenderTaskHandle() = default;
+
+		operator RenderTaskHandle<RenderTask>() {
+			return RenderTaskHandle<RenderTask>(m_handle, m_renderer);
+		}
+
+		T* get() {
+			return reinterpret_cast<T*>(m_renderer->getRenderTask(m_handle));
+		}
+		const T* get() const {
+			return reinterpret_cast<T*>(m_renderer->getRenderTask(m_handle));
+		}
+
+		T* operator->() {
+			return get();
+		}
+
+		operator bool() const {
+			return m_renderer != nullptr && get() != nullptr;
+		}
+
+	private:
+		UUID m_handle = 0;
+		Renderer* m_renderer = nullptr;
+
+		RenderTaskHandle(UUID handle, Renderer* renderer)
+			: m_handle(handle), m_renderer(renderer)
+		{}
 	};
 }
