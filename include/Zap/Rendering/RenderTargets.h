@@ -13,7 +13,15 @@ namespace Zap {
 
 		void resize(glm::vec2 size);
 
+		virtual void recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) = 0;
+
 		bool isValid();
+
+		void setInitialLayout(VkImageLayout initialLayout);
+		void setFinalLayout(VkImageLayout finalLayout);
+
+		VkImageLayout getInitialLayout();
+		VkImageLayout getFinalLayout();
 
 		virtual VkExtent3D getExtent() = 0;
 
@@ -30,6 +38,9 @@ namespace Zap {
 		virtual void resizeInternal(glm::vec2 size) = 0;
 	private:
 		bool m_isValid = false;
+
+		VkImageLayout m_initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkImageLayout m_finalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	};
 
 	// handle to a RenderTarget stored in a Renderer
@@ -37,6 +48,7 @@ namespace Zap {
 	template<class T = RenderTarget>
 	class RenderTargetHandle {
 		friend class Renderer;
+		friend class LayoutTransitionHelper;
 		template<class U>
 		friend class RenderTargetHandle;
 	public:
@@ -51,10 +63,10 @@ namespace Zap {
 		}
 
 		T* get() {
-			return m_renderer->getRenderTarget(m_handle);
+			return reinterpret_cast<T*>(m_renderer->getRenderTarget(m_handle));
 		}
 		const T* get() const {
-			return m_renderer->getRenderTarget(m_handle);
+			return reinterpret_cast<T*>(m_renderer->getRenderTarget(m_handle));
 		}
 
 		T* operator->() {
@@ -63,6 +75,11 @@ namespace Zap {
 
 		operator bool() const {
 			return m_renderer != nullptr && get() != nullptr;
+		}
+
+		void reset() {
+			m_handle = 0;
+			m_renderer = nullptr;
 		}
 
 	private:
@@ -80,9 +97,21 @@ namespace Zap {
 		RenderTargetImage();
 		~RenderTargetImage();
 
+		virtual void recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override;
+
+		void setAspect(VkImageAspectFlags aspect);
+
+		void setFormat(VkFormat format);
+
+		void setUsage(VkImageUsageFlags usage);
+
+		void init(VkMemoryPropertyFlags memoryProperty);
+		
+		Image& getImage();
+
 		virtual VkExtent3D getExtent() override;
 
-		virtual VkImageView getImageView(uint32_t index) override;
+		virtual VkImageView getImageView(uint32_t index = 0) override;
 
 	protected:
 		void resizeInternal(glm::vec2 size) override;
@@ -90,11 +119,34 @@ namespace Zap {
 		Image m_image;
 	};
 
+	class RenderTargetGuiImage : public RenderTargetImage {
+	public:
+		RenderTargetGuiImage();
+		~RenderTargetGuiImage();
+
+		void init(VkMemoryPropertyFlags memoryProperty);
+
+		operator VkDescriptorSet() { return m_imageDescriptorSet; }
+
+		const vk::Sampler& getSampler() { return m_sampler; }
+
+		VkDescriptorSet getDescriptorSet() { return m_imageDescriptorSet; }
+
+	protected:
+		virtual void resizeInternal(glm::vec2 size) override;
+
+	private:
+		vk::Sampler m_sampler;
+		VkDescriptorSet m_imageDescriptorSet;
+	};
+
 	// references a Zap window and allows rendering to it
 	class RenderTargetWindow : public RenderTarget {
 	public:
 		RenderTargetWindow(Window& window);
 		~RenderTargetWindow();
+
+		virtual void recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override;
 
 		virtual VkExtent3D getExtent() override;
 

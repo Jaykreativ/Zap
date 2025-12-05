@@ -7,9 +7,77 @@
 #include "Zap/Rendering/RenderTask.h"
 #include "Zap/Vertex.h"
 #include "Zap/Scene/Camera.h"
+
 #include "glm.hpp"
 
+#include <memory>
+#include <unordered_map>
+#include <vector>
+
 namespace Zap {
+	class TaskLayoutTransitions {
+		friend class LayoutTransitionHelper;
+	public:
+		struct TargetLayout {
+			RenderTargetHandle<> target;
+			VkImageLayout layout;
+		};
+
+		void addLayout(RenderTargetHandle<> target, VkImageLayout layout);
+
+	private:
+		std::vector<TargetLayout> m_layouts = {};
+	};
+
+	// transitions can be done using tasks and barriers
+	class LayoutTransitionHelper {
+	public:
+		struct LayoutTransition {
+			VkImageLayout oldLayout;
+			VkImageLayout newLayout;
+		};
+
+		class TransitionList {
+		public:
+			TransitionList() {}
+			TransitionList(RenderTargetHandle<> target)
+				: m_target(target)
+			{}
+
+			void addLayout(VkImageLayout layout) { m_layouts.push_back(layout); }
+
+			void next() { m_currentIndex++; }
+
+			void reset() { m_currentIndex = 0; }
+
+			LayoutTransition getTransition() const { return { m_layouts[m_currentIndex], m_layouts[(m_currentIndex + 1) % m_layouts.size()] }; }
+
+			RenderTargetHandle<> getTarget() { return m_target; }
+
+		private:
+			RenderTargetHandle<> m_target;
+			uint32_t m_currentIndex = 0;
+			std::vector<VkImageLayout> m_layouts;
+		};
+
+		void reset();
+
+		void next(TaskLayoutTransitions& transitions);
+
+		void recInitialTransitions(vk::CommandBuffer& cmd);
+
+		// replaces the newLayouts with the ones from the added transitions and stores them in the oldLayouts
+		void addTransitions(TaskLayoutTransitions& transitions);
+
+		void addFinalTransitions();
+
+		bool hasTransition(RenderTargetHandle<> handle) const;
+
+		LayoutTransition getTransition(RenderTargetHandle<> handle) const;
+	private:
+		std::unordered_map<UUID, TransitionList> m_transitionMap = {};
+	};
+
 	class Renderer
 	{
 	public:
@@ -29,7 +97,7 @@ namespace Zap {
 		RenderTaskHandle<T> createRenderTask(Types&&... args) {
 			static_assert(std::is_base_of_v<RenderTask, T>, "Type has to be child class of RenderTask");
 			auto handle = UUID();
-			m_renderTaskMap[handle] = std::make_unique<T>(std::forward<Types>(args)...);
+			m_renderTaskMap[handle] = std::move(std::make_unique<T>(std::forward<Types>(args)...));
 			m_renderTaskMap.at(handle)->m_pRenderer = this;
 			return RenderTaskHandle<T>(handle, this);
 		}
@@ -44,7 +112,7 @@ namespace Zap {
 		RenderTargetHandle<T> createRenderTarget(Types&&... args) {
 			static_assert(std::is_base_of_v<RenderTarget, T>, "Type has to be child class of RenderTarget");
 			auto handle = UUID();
-			m_renderTargetMap[handle] = std::make_unique<T>(std::forward<Types>(args)...);
+			m_renderTargetMap[handle] = std::move(std::make_unique<T>(std::forward<Types>(args)...));
 			m_renderTargetMap.at(handle)->m_pRenderer = this;
 			return RenderTargetHandle<T>(handle, this);
 		}
@@ -57,7 +125,7 @@ namespace Zap {
 
 		FramebufferHandle createFramebuffer(VkRenderPass renderPass, std::initializer_list<RenderTargetHandle<>> targets) {
 			auto handle = UUID();
-			m_framebufferMap[handle] = std::make_unique<Framebuffer>(renderPass, targets);
+			m_framebufferMap[handle] = std::move(std::make_unique<Framebuffer>(renderPass, targets));
 			return FramebufferHandle(handle, this);
 		}
 
@@ -72,7 +140,7 @@ namespace Zap {
 
 		void endRecord();
 
-		void recRenderTemplate(RenderTaskHandle<> taskHandle);
+		void recRenderTask(RenderTaskHandle<> taskHandle);
 
 		void recChangeImageLayout(Image* pImage, VkImageLayout layout, VkAccessFlags accessMask);
 
@@ -100,10 +168,12 @@ namespace Zap {
 
 			virtual void operator()(const vk::CommandBuffer& cmd) = 0;
 		};
-
 		class RecRenderTask;
 
-		std::vector<std::unique_ptr<RecordFunctor>> m_recordedFunctors;
+		std::vector<std::unique_ptr<RecordFunctor>> m_recordedFunctors = {};
+
+		std::vector<UUID> m_renderTaskRecordOrder = {};
+		LayoutTransitionHelper m_layoutTransitionHelper;
 
 		void recordCommandBuffer();
 
@@ -112,6 +182,8 @@ namespace Zap {
 		Framebuffer* getFramebuffer(UUID handle);
 
 		RenderTask* getRenderTask(UUID handle);
+
+		RenderTask* getRenderTaskOrdered(uint32_t index);
 		
 		template<class T>
 		friend class RenderTaskHandle;

@@ -55,13 +55,15 @@ namespace Zap {
 		vk::Sampler m_textureSampler;
 		std::vector<vk::Image> m_textures = {};
 
-		void init() override;
+		void init(const LayoutTransitionHelper& layoutTransitionHelper) override;
 
 		void destroy() override;
 
 		void beforeRender() override;
 
 		void afterRender() override;
+
+		TaskLayoutTransitions getLayoutTransitions() override;
 
 		void recordCommands(const vk::CommandBuffer* cmd) override;
 

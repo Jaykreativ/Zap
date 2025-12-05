@@ -3,20 +3,22 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Material.h"
-#include "Zap/Rendering/RenderTaskTemplate.h"
+#include "Zap/Rendering/Framebuffer.h"
+#include "Zap/Rendering/RenderTargets.h"
+#include "Zap/Rendering/RenderTask.h"
 
 #include "glm.hpp"
 
 namespace Zap {
 	class Scene;
 
-	class PBRenderer : public RenderTaskTemplate
+	class PBRenderer : public RenderTask
 	{
 	public:
 		glm::vec4 clearColor        = { 0.0f, 0.0f, 0.0f, 1.0f };
 		glm::vec2 clearDepthStencil = { 1.0f, 0.0f };
 
-		PBRenderer(Scene* pScene);
+		PBRenderer(RenderTargetHandle<> target, Scene* pScene);
 		PBRenderer(const PBRenderer& pbrenderer);
 		~PBRenderer();
 
@@ -36,9 +38,10 @@ namespace Zap {
 
 		vk::RenderPass m_renderPass = vk::RenderPass();
 
-		vk::Image m_depthImage;
+		RenderTargetHandle<> m_target;
+		RenderTargetHandle<RenderTargetImage> m_depthTarget;
 
-		std::vector<vk::Framebuffer> m_framebuffers;
+		FramebufferHandle m_framebuffer;
 
 		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
 		vk::DescriptorSet m_descriptorSet = vk::DescriptorSet();
@@ -67,21 +70,15 @@ namespace Zap {
 
 		uint32_t m_loadedTextureCount = 0;
 
-		void init(uint32_t width, uint32_t height, uint32_t imageCount);
+		void init(const LayoutTransitionHelper& layoutTransitionHelper) override;
 
-		void initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex);
+		void destroy() override;
 
-		void resize(uint32_t width, uint32_t height, uint32_t imageCount);
+		void recordCommands(const vk::CommandBuffer* cmd) override;
 
-		void resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex);
+		void beforeRender() override;
 
-		void destroy();
-
-		void beforeRender(vk::Image* pTarget, uint32_t imageIndex);
-
-		void afterRender(vk::Image* pTarget, uint32_t imageIndex);
-
-		void recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex);
+		TaskLayoutTransitions getLayoutTransitions() override;
 
 		void updateTextureDescriptor();
 

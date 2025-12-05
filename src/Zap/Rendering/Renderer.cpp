@@ -13,12 +13,30 @@ namespace Zap {
 	void Renderer::init() {
 		m_commandBuffer.allocate();
 
-		// Init Tasks
-		for (auto& taskPair : m_renderTaskMap) {
-			taskPair.second->init();
+		// Init recorded Tasks
+		// transitions: (initial) -> (task) -> (final) for every target
+		auto firstTask = getRenderTaskOrdered(0);
+		if (firstTask)
+			m_layoutTransitionHelper.addTransitions(firstTask->getLayoutTransitions()); // transition from initial layout to the requested layout of the first task
+		for (uint32_t i = 0; i < m_renderTaskRecordOrder.size(); i++) {
+			auto task = getRenderTaskOrdered(i);
+			if (task) {
+				if (i + 1 >= m_renderTaskRecordOrder.size()) {
+					m_layoutTransitionHelper.addFinalTransitions(); // transition from the layout of this task to the final layout
+				}
+				else {
+					auto nextTask = getRenderTaskOrdered(i+1);
+					m_layoutTransitionHelper.addTransitions(nextTask->getLayoutTransitions()); // transition from the layout of this task to the next task's requested layout
+				}
+
+				m_layoutTransitionHelper.next(task->getLayoutTransitions());
+				task->init(m_layoutTransitionHelper);
+			}
 		}
+		m_layoutTransitionHelper.reset();
 
 		vk::createFence(&m_renderComplete);
+		m_isInit = true;
 	}
 
 	void Renderer::destroy() {
@@ -27,6 +45,7 @@ namespace Zap {
 			taskPair.second->destroy();
 		}
 		vk::destroyFence(m_renderComplete);
+		m_isInit = false;
 	}
 
 	void Renderer::resize(glm::vec2 size) {
@@ -61,10 +80,16 @@ namespace Zap {
 	}
 
 	void Renderer::beginRecord() {
+		if (m_isInit)
+			destroy();
 		m_recordedFunctors.clear();
+		m_renderTaskRecordOrder.clear();
 	}
 
-	void Renderer::endRecord() {}
+	void Renderer::endRecord() {
+		if (!m_isInit)
+			init();
+	}
 
 	class Renderer::RecRenderTask : public Renderer::RecordFunctor {
 	public:
@@ -78,8 +103,9 @@ namespace Zap {
 		RenderTaskHandle<> m_taskHandle;
 	};
 
-	void Renderer::recRenderTemplate(RenderTaskHandle<RenderTask> taskHandle) {
+	void Renderer::recRenderTask(RenderTaskHandle<RenderTask> taskHandle) {
 		m_recordedFunctors.push_back(std::make_unique<RecRenderTask>(taskHandle));
+		m_renderTaskRecordOrder.push_back(taskHandle.m_handle); // remember the order of render tasks
 	}
 	void Renderer::RecRenderTask::operator()(const vk::CommandBuffer& cmd) {
 		if (!m_taskHandle->m_isEnabled) // dont record commands for disabled tasks
@@ -96,6 +122,8 @@ namespace Zap {
 
 		m_commandBuffer.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
+		m_layoutTransitionHelper.recInitialTransitions(m_commandBuffer);
+
 		for (auto& pFunctor : m_recordedFunctors) {
 			(*pFunctor)(m_commandBuffer);
 		}
@@ -106,21 +134,82 @@ namespace Zap {
 	RenderTarget* Renderer::getRenderTarget(UUID handle) {
 		if (m_renderTargetMap.count(handle))
 			return m_renderTargetMap.at(handle).get();
-		else
-			return nullptr;
+		return nullptr;
 	}
 
 	Framebuffer* Renderer::getFramebuffer(UUID handle) {
 		if (m_framebufferMap.count(handle))
 			return m_framebufferMap.at(handle).get();
-		else
-			return nullptr;
+		return nullptr;
 	}
 
 	RenderTask* Renderer::getRenderTask(UUID handle) {
 		if (m_renderTaskMap.count(handle))
 			return m_renderTaskMap.at(handle).get();
-		else
-			return nullptr;
+		return nullptr;
+	}
+
+	RenderTask* Renderer::getRenderTaskOrdered(uint32_t index) {
+		UUID currentTaskHandle = m_renderTaskRecordOrder[index];
+		if (m_renderTaskMap.count(currentTaskHandle)) {
+			return getRenderTask(currentTaskHandle);
+		}
+		return nullptr;
+	}
+
+	void TaskLayoutTransitions::addLayout(RenderTargetHandle<> target, VkImageLayout layout) {
+		m_layouts.push_back({target, layout});
+	}
+
+	void LayoutTransitionHelper::reset() {
+		for (auto& pair : m_transitionMap) {
+			pair.second.reset();
+		}
+	}
+
+	void LayoutTransitionHelper::next(TaskLayoutTransitions& transitions) {
+		for (auto& pair : transitions.m_layouts) {
+			if (m_transitionMap.count(pair.target.m_handle)) {
+				m_transitionMap.at(pair.target.m_handle).next();
+			}
+		}
+	}
+
+	void LayoutTransitionHelper::recInitialTransitions(vk::CommandBuffer& cmd) {
+		reset();
+		for (auto& transitionPair : m_transitionMap) {
+			auto transition = transitionPair.second.getTransition();
+			transitionPair.second.getTarget()->recLayoutTransition(cmd, transition.oldLayout, transition.newLayout, VK_ACCESS_NONE, VK_ACCESS_MEMORY_WRITE_BIT);
+		}
+	}
+
+	void LayoutTransitionHelper::addTransitions(TaskLayoutTransitions& transitions) {
+		for (auto& taskLayout : transitions.m_layouts) {
+			auto& handle = taskLayout.target.m_handle;
+			if (m_transitionMap.count(handle)) {
+				m_transitionMap.at(handle).addLayout(taskLayout.layout);
+			}
+			else {
+				m_transitionMap[handle] = TransitionList(taskLayout.target); // create new target entry
+				m_transitionMap.at(handle).addLayout(taskLayout.target->getInitialLayout());
+				m_transitionMap.at(handle).addLayout(taskLayout.layout);
+			}
+		}
+	}
+
+	void LayoutTransitionHelper::addFinalTransitions() {
+		TaskLayoutTransitions transitions;
+		for (auto& transitionPair : m_transitionMap) {
+			transitions.addLayout(transitionPair.second.getTarget(), transitionPair.second.getTarget()->getFinalLayout());
+		}
+		addTransitions(transitions);
+	}
+
+	bool LayoutTransitionHelper::hasTransition(RenderTargetHandle<> handle) const {
+		return m_transitionMap.count(handle.m_handle);
+	}
+
+	LayoutTransitionHelper::LayoutTransition LayoutTransitionHelper::getTransition(RenderTargetHandle<> handle) const {
+		return m_transitionMap.at(handle.m_handle).getTransition();
 	}
 }

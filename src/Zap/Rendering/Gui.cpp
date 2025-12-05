@@ -52,7 +52,7 @@ namespace Zap {
 
 	Gui::~Gui(){}
 
-	void Gui::init() {
+	void Gui::init(const LayoutTransitionHelper& layoutTransitionHelper) {
 		/*Framebuffer*/
 		m_framebuffer = m_pRenderer->createFramebuffer(renderPass, {m_target});
 
@@ -76,6 +76,12 @@ namespace Zap {
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+	}
+
+	TaskLayoutTransitions Gui::getLayoutTransitions() {
+		TaskLayoutTransitions helper;
+		helper.addLayout(m_target, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		return helper;
 	}
 
 	void Gui::recordCommands(const vk::CommandBuffer* cmd) {

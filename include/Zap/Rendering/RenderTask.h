@@ -7,6 +7,8 @@ namespace Zap {
 	class Mesh;
 	class Texture;
 	class Actor;
+	class LayoutTransitionHelper;
+	class TaskLayoutTransitions;
 
 	class RenderTask {
 	public:
@@ -60,7 +62,7 @@ namespace Zap {
 		bool m_isEnabled = true;
 		Scene* m_pScene = nullptr;
 
-		virtual void init() = 0;
+		virtual void init(const LayoutTransitionHelper& layoutTransitionHelper) = 0;
 
 		virtual void destroy() = 0;
 
@@ -69,6 +71,8 @@ namespace Zap {
 		virtual void beforeRender() {};
 
 		virtual void afterRender() {};
+
+		virtual TaskLayoutTransitions getLayoutTransitions() = 0;
 
 		//Will be called when the target gets resized
 		virtual void onResize() {};
@@ -107,6 +111,11 @@ namespace Zap {
 
 		operator bool() const {
 			return m_renderer != nullptr && get() != nullptr;
+		}
+
+		void reset() {
+			m_handle = 0;
+			m_renderer = nullptr;
 		}
 
 	private:

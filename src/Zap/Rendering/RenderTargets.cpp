@@ -3,6 +3,9 @@
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
 
+#include "backends/imgui_impl_vulkan.h"
+#include "imgui.h"
+
 namespace Zap {
 	void RenderTarget::resize(glm::vec2 size) {
 		m_pRenderer->resize(size);
@@ -10,6 +13,22 @@ namespace Zap {
 
 	bool RenderTarget::isValid() {
 		return true;
+	}
+
+	void RenderTarget::setInitialLayout(VkImageLayout initialLayout) {
+		m_initialLayout = initialLayout;
+	}
+
+	void RenderTarget::setFinalLayout(VkImageLayout finalLayout) {
+		m_finalLayout = finalLayout;
+	}
+
+	VkImageLayout RenderTarget::getInitialLayout() {
+		return m_initialLayout;
+	}
+
+	VkImageLayout RenderTarget::getFinalLayout() {
+		return m_finalLayout;
 	}
 
 	uint32_t RenderTarget::getImageCount() {
@@ -23,20 +42,47 @@ namespace Zap {
 	// Image
 	RenderTargetImage::RenderTargetImage()
 		: RenderTarget()
-	{
-		m_image.setFormat(Zap::GlobalSettings::getColorFormat());
-		m_image.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-		m_image.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-		m_image.setLayout(VK_IMAGE_LAYOUT_PREINITIALIZED);
-		m_image.setExtent({ 1, 1, 1 });
-
-		m_image.init();
-		m_image.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_image.initView();
-	}
+	{}
 
 	RenderTargetImage::~RenderTargetImage() {
 		m_image.destroy();
+	}
+
+	void RenderTargetImage::recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) {
+		VkImageMemoryBarrier imageMemoryBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, nullptr };
+		imageMemoryBarrier.srcAccessMask = srcAccessMask;
+		imageMemoryBarrier.dstAccessMask = dstAccessMask;
+		imageMemoryBarrier.oldLayout = oldLayout;
+		imageMemoryBarrier.newLayout = newLayout;
+		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.image = m_image;
+		imageMemoryBarrier.subresourceRange = *m_image.getSubresourceRange();
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+	}
+
+	void RenderTargetImage::setAspect(VkImageAspectFlags aspect) {
+		m_image.setAspect(aspect);
+	}
+
+	void RenderTargetImage::setFormat(VkFormat format) {
+		m_image.setFormat(format);
+	}
+
+	void RenderTargetImage::setUsage(VkImageUsageFlags usage) {
+		m_image.setUsage(usage);
+	}
+
+	void RenderTargetImage::init(VkMemoryPropertyFlags memoryProperty) {
+		m_image.init();
+		m_image.allocate(memoryProperty);
+		m_image.initView();
+		if (getInitialLayout() != VK_IMAGE_LAYOUT_UNDEFINED)
+			m_image.changeLayout(getInitialLayout(), VK_ACCESS_MEMORY_WRITE_BIT);
+	}
+
+	Image& RenderTargetImage::getImage() {
+		return m_image;
 	}
 
 	VkExtent3D RenderTargetImage::getExtent() {
@@ -51,6 +97,31 @@ namespace Zap {
 		m_image.resize(size.x, size.y);
 	}
 
+	// Gui Image
+	RenderTargetGuiImage::RenderTargetGuiImage()
+		: RenderTargetImage()
+	{
+		m_sampler.init();
+		setInitialLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		setFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
+
+	RenderTargetGuiImage::~RenderTargetGuiImage() {
+		ImGui_ImplVulkan_RemoveTexture(m_imageDescriptorSet);
+		m_sampler.destroy();
+	}
+
+	void RenderTargetGuiImage::init(VkMemoryPropertyFlags memoryProperty) {
+		RenderTargetImage::init(memoryProperty);
+		m_imageDescriptorSet = ImGui_ImplVulkan_AddTexture(m_sampler, getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
+
+	void RenderTargetGuiImage::resizeInternal(glm::vec2 size) {
+		ImGui_ImplVulkan_RemoveTexture(m_imageDescriptorSet);
+		RenderTargetImage::resizeInternal(size);
+		m_imageDescriptorSet = ImGui_ImplVulkan_AddTexture(m_sampler, getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
+
 	// Window
 	RenderTargetWindow::RenderTargetWindow(Window& window)
 		: RenderTarget(), m_window(window)
@@ -60,6 +131,21 @@ namespace Zap {
 
 	RenderTargetWindow::~RenderTargetWindow() {
 		m_window.getResizeEventHandler()->removeCallback(resizeCallback, this);
+	}
+
+	void RenderTargetWindow::recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) {
+		auto image = m_window.getSwapchain()->getImage(m_window.getSwapchainImageIndex());
+
+		VkImageMemoryBarrier imageMemoryBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, nullptr };
+		imageMemoryBarrier.srcAccessMask = srcAccessMask;
+		imageMemoryBarrier.dstAccessMask = dstAccessMask;
+		imageMemoryBarrier.oldLayout = oldLayout;
+		imageMemoryBarrier.newLayout = newLayout;
+		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.image = image->getVkImage();
+		imageMemoryBarrier.subresourceRange = *image->getSubresourceRange();
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 	}
 
 	VkExtent3D RenderTargetWindow::getExtent() {
