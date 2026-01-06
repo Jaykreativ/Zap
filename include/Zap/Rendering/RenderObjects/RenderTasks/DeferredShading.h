@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Zap/Zap.h"
-#include "Zap/Rendering/RenderTaskTemplate.h"
+#include "Zap/Rendering/RenderObjects/RenderTask.h"
 
 #include "glm.hpp"
 
 namespace Zap {
-	class GeometryPass : public RenderTaskTemplate {
+	class GeometryPass : public RenderTask {
 	public:
 		glm::vec4 clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 		glm::vec2 clearDepthStencil = { 1.0f, 0.0f };

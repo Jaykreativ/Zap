@@ -1,4 +1,4 @@
-#include "Zap/Rendering/RaytracingRenderer.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/RaytracingRenderer.h"
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
@@ -201,10 +201,10 @@ namespace Zap {
 
 		m_descriptorSet.addDescriptor(perMeshInstanceBufferDescriptor);
 
-		auto* textureMap = RenderTaskTemplate::getTextureDataMap();
+		auto* textureMap = RenderTask::getTextureDataMap();
 		std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {
-			uint32_t i = RenderTaskTemplate::getTextureIndex(texturePair.first);
+			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
 			vk::DescriptorImageInfo textureImageInfo{};
 			textureImageInfo.pSampler = &base->m_textureSampler;
 			textureImageInfo.pImage = &texturePair.second.image;
@@ -224,8 +224,6 @@ namespace Zap {
 		m_loadedTextureCount = textureMap->size();
 
 		m_targetDescriptorSets.resize(imageCount);
-
-		RenderTaskTemplate::initTargetDependencies();
 
 		m_descriptorPool.addDescriptorSet(m_rtDescriptorSet);
 		m_descriptorPool.addDescriptorSet(m_descriptorSet);
@@ -279,8 +277,6 @@ namespace Zap {
 		if (width <= 0) width = 1;
 		if (height <= 0) height = 1;
 		m_extent = { width, height };
-
-		RenderTaskTemplate::resizeTargetDependencies();
 	}
 
 	void RaytracingRenderer::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
@@ -372,10 +368,10 @@ namespace Zap {
 
 	void RaytracingRenderer::updateTextureDescriptor() {
 		Base* base = Base::getBase();// TODO add default texture
-		auto* textureMap = RenderTaskTemplate::getTextureDataMap();
+		auto* textureMap = RenderTask::getTextureDataMap();
 		std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {
-			uint32_t i = RenderTaskTemplate::getTextureIndex(texturePair.first);
+			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
 			vk::DescriptorImageInfo textureImageInfo{};
 			textureImageInfo.pSampler = &base->m_textureSampler;
 			textureImageInfo.pImage = &texturePair.second.image;

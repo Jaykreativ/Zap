@@ -1,4 +1,4 @@
-#include "Zap/Rendering/Framebuffer.h"
+#include "Zap/Rendering/RenderObjects/Framebuffer.h"
 
 #include "Zap/Rendering/Renderer.h"
 
@@ -36,6 +36,10 @@ namespace Zap {
 			for(auto& target : m_targets)
 				framebuffer.addAttachment(target->getImageView(index));
 			framebuffer.setRenderPass(renderPass);
+			if (m_targets.size()) { // set default width/height to the extent of the first target in this Framebuffer
+				framebuffer.setWidth(m_targets[0]->getExtent().width);
+				framebuffer.setHeight(m_targets[0]->getExtent().height);
+			}
 			framebuffer.init();
 			index++;
 		}
@@ -50,10 +54,15 @@ namespace Zap {
 	void Framebuffer::update() {
 		uint32_t index = 0;
 		for (auto& framebuffer : m_framebuffers) {
+			VkExtent2D maxExtent = {1, 1};
 			for (auto& target : m_targets) {
 				framebuffer.delAttachment(0);
 				framebuffer.addAttachment(target->getImageView(index));
+				maxExtent.width = std::max(maxExtent.width, target->getExtent().width);
+				maxExtent.height = std::max(maxExtent.height, target->getExtent().height);
 			}
+			framebuffer.setWidth(maxExtent.width);
+			framebuffer.setHeight(maxExtent.height);
 			framebuffer.update();
 			index++;
 		}

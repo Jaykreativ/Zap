@@ -1,4 +1,4 @@
-#include "Zap/Rendering/RenderTargets.h"
+#include "Zap/Rendering/RenderObjects/RenderTargets.h"
 
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
@@ -39,6 +39,8 @@ namespace Zap {
 		return -1;
 	}
 
+	// RenderTargetDescriptorSet
+	
 	// Image
 	RenderTargetImage::RenderTargetImage()
 		: RenderTarget()

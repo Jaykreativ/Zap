@@ -13,6 +13,14 @@ file(GLOB Zap_Rendering_SRC
 	"src/Zap/Rendering/*.cpp"
 	"include/Zap/Rendering/*.h"
 )
+file(GLOB Zap_Rendering_RenderObjects_SRC
+	"src/Zap/Rendering/RenderObjects/*.cpp"
+	"include/Zap/Rendering/RenderObjects/*.h"
+)
+file(GLOB Zap_Rendering_RenderObjects_RenderTasks_SRC
+	"src/Zap/Rendering/RenderObjects/RenderTasks/*.cpp"
+	"include/Zap/Rendering/RenderObjects/RenderTasks/*.h"
+)
 file(GLOB Zap_Physics_SRC
 	"src/Zap/Physics/*.cpp"
 	"include/Zap/Physics/*.h"
@@ -28,9 +36,18 @@ file(GLOB Imgui_SRC
 	"Dependencies/imgui/backends/imgui_impl_glfw.cpp"
 	"Dependencies/imgui/backends/imgui_impl_glfw.h"
 )
+file(GLOB_RECURSE Zap_All_SRC
+	"src/Zap/*.cpp"
+	"include/Zap/*.h"
+	FILES ${Imgui_SRC}
+	FILES ${Zap_Shader_SRC}
+)
 
 source_group("Source" FILES ${Zap_SRC})
 source_group("Source/Scene" FILES ${Zap_Scene_SRC})
+source_group("Source/Rendering" FILES ${Zap_Rendering_SRC})
+source_group("Source/Rendering/RenderObjects" FILES ${Zap_Rendering_RenderObjects_SRC})
+source_group("Source/Rendering/RenderObjects/RenderTasks" FILES ${Zap_Rendering_RenderObjects_RenderTasks_SRC})
 source_group("Source/Rendering" FILES ${Zap_Rendering_SRC})
 source_group("Source/Physics" FILES ${Zap_Physics_SRC})
 source_group("Shader" FILES ${Zap_Shader_SRC})
@@ -39,7 +56,7 @@ source_group("Imgui" FILES ${Imgui_SRC})
 set(${BUILD_SHARED_LIBS} false)
 set(${CMAKE_BUILD_PARALLEL_LEVEL} 16)
 
-add_library(Zap ${Zap_SRC} ${Zap_Scene_SRC} ${Zap_Shader_SRC} ${Zap_Rendering_SRC} ${Zap_Physics_SRC} ${Imgui_SRC})
+add_library(Zap ${Zap_All_SRC})
 
 set_property(TARGET Zap PROPERTY CXX_STANDARD 17)
 

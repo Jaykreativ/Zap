@@ -3,9 +3,10 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Material.h"
-#include "Zap/Rendering/Framebuffer.h"
-#include "Zap/Rendering/RenderTargets.h"
-#include "Zap/Rendering/RenderTask.h"
+#include "Zap/Rendering/RenderObjects/Framebuffer.h"
+#include "Zap/Rendering/RenderObjects/RenderTargets.h"
+#include "Zap/Rendering/RenderObjects/RenderTask.h"
+#include "Zap/Rendering/RenderObjects/DescriptorSet.h"
 
 #include "glm.hpp"
 
@@ -43,9 +44,8 @@ namespace Zap {
 
 		FramebufferHandle m_framebuffer;
 
-		vk::DescriptorPool m_descriptorPool = vk::DescriptorPool();
-		vk::DescriptorSet m_descriptorSet = vk::DescriptorSet();
-		vk::DescriptorSet m_textureSet = vk::DescriptorSet();
+		DescriptorSetHandle<GenericDescriptorSet> m_descriptorSet;
+		DescriptorSetHandle<GenericDescriptorSet> m_textureSet;
 
 		vk::Shader m_vertexShader = vk::Shader();
 		vk::Shader m_fragmentShader = vk::Shader();
@@ -77,6 +77,8 @@ namespace Zap {
 		void recordCommands(const vk::CommandBuffer* cmd) override;
 
 		void beforeRender() override;
+
+		void addDescriptorPoolSizes(DescriptorPoolSizeList& poolSizes) override;
 
 		TaskLayoutTransitions getLayoutTransitions() override;
 

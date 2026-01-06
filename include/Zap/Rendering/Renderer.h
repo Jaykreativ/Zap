@@ -2,9 +2,10 @@
 
 #include "Zap/Zap.h"
 #include "Zap/Rendering/Window.h"
-#include "Zap/Rendering/RenderTargets.h"
-#include "Zap/Rendering/Framebuffer.h"
-#include "Zap/Rendering/RenderTask.h"
+#include "Zap/Rendering/RenderObjects/RenderTargets.h"
+#include "Zap/Rendering/RenderObjects/Framebuffer.h"
+#include "Zap/Rendering/RenderObjects/RenderTask.h"
+#include "Zap/Rendering/RenderObjects/DescriptorSet.h"
 #include "Zap/Vertex.h"
 #include "Zap/Scene/Camera.h"
 
@@ -13,8 +14,27 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <array>
 
 namespace Zap {
+	class RenderObject {};
+
+	enum RenderEventType {
+		eMAX_TYPE
+	};
+
+	class RenderEvent {};
+
+	class RenderEventListenerList {
+	private:
+		std::vector<RenderObject> m_listeners = {};
+	};
+
+	class RenderEventHandler {
+	private:
+		std::array<RenderEventListenerList, eMAX_TYPE> m_eventLists;
+	};
+
 	class TaskLayoutTransitions {
 		friend class LayoutTransitionHelper;
 	public:
@@ -134,6 +154,21 @@ namespace Zap {
 				m_framebufferMap.erase(handle.m_handle);
 		}
 
+		template<class T, class... Types>
+		DescriptorSetHandle<T> createDescriptorSet(Types&&... args) {
+			static_assert(std::is_base_of_v<DescriptorSet, T>, "Type has to be child class of DescriptorSet");
+			auto handle = UUID();
+			m_descriptorSetMap[handle] = std::move(std::make_unique<T>(std::forward<Types>(args)...));
+			m_descriptorSetMap.at(handle)->m_pRenderer = this;
+			return DescriptorSetHandle<T>(handle, this);
+		}
+
+		template<class T>
+		void destroyDescriptorSet(DescriptorSetHandle<T> handle) {
+			if (handle)
+				m_descriptorSetMap.erase(handle.m_handle);
+		}
+
 		// record
 
 		void beginRecord();
@@ -152,6 +187,11 @@ namespace Zap {
 		std::unordered_map<UUID, std::unique_ptr<RenderTask>> m_renderTaskMap = {};
 		std::unordered_map<UUID, std::unique_ptr<RenderTarget>> m_renderTargetMap = {};
 		std::unordered_map<UUID, std::unique_ptr<Framebuffer>> m_framebufferMap = {};
+		std::unordered_map<UUID, std::unique_ptr<DescriptorSet>> m_descriptorSetMap = {};
+
+		//DescriptorPool
+		bool m_isDescriptorPoolInit = false;
+		vk::DescriptorPool m_descriptorPool;
 
 		//CommandBuffer
 		vk::CommandBuffer m_commandBuffer;
@@ -181,6 +221,10 @@ namespace Zap {
 
 		Framebuffer* getFramebuffer(UUID handle);
 
+		DescriptorSet* getDescriptorSet(UUID handle);
+
+		VkDescriptorPool getDescriptorPool();
+
 		RenderTask* getRenderTask(UUID handle);
 
 		RenderTask* getRenderTaskOrdered(uint32_t index);
@@ -191,6 +235,9 @@ namespace Zap {
 		template<class T>
 		friend class RenderTargetHandle;
 		friend class FramebufferHandle;
+		template<class T>
+		friend class DescriptorSetHandle;
+		friend class DescriptorSet;
 		friend class Window;
 		friend class PBRenderer;//TODO add rendertoolkit for userdefined rendertasks
 		friend class RaytracingRenderer;

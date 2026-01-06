@@ -9,6 +9,7 @@ namespace Zap {
 	class Actor;
 	class LayoutTransitionHelper;
 	class TaskLayoutTransitions;
+	class DescriptorPoolSizeList;
 
 	class RenderTask {
 	public:
@@ -71,6 +72,8 @@ namespace Zap {
 		virtual void beforeRender() {};
 
 		virtual void afterRender() {};
+
+		virtual void addDescriptorPoolSizes(DescriptorPoolSizeList& poolSizes) = 0;
 
 		virtual TaskLayoutTransitions getLayoutTransitions() = 0;
 

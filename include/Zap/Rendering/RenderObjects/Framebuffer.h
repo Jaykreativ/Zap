@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Zap/Rendering/RenderTargets.h"
+#include "Zap/Rendering/RenderObjects/RenderTargets.h"
 
 #include <vector>
 

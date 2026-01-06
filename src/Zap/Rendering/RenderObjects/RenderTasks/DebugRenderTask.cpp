@@ -1,4 +1,4 @@
-#include "Zap/Rendering/DebugRenderTask.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/DebugRenderTask.h"
 
 namespace Zap {
 	/* DebugRenderVertex */
@@ -191,7 +191,6 @@ namespace Zap {
 		}
 
 		m_framebuffers.resize(imageCount);
-		Zap::RenderTaskTemplate::initTargetDependencies();
 
 #ifdef _DEBUG
 		static bool areShadersCompiled = false;
@@ -252,9 +251,6 @@ namespace Zap {
 		m_depthImage.resize(width, height);
 
 		m_descriptorSet.update();
-
-		RenderTaskTemplate::resizeTargetDependencies();
-
 	}
 
 	void DebugRenderTask::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {

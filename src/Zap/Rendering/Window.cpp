@@ -1,6 +1,5 @@
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
-#include "Zap/Rendering/PBRenderer.h"
 #include "VulkanUtils.h"
 
 namespace Zap {

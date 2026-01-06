@@ -1,4 +1,4 @@
-#include "Zap/Rendering/Gui.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/Gui.h"
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Rendering/stb_image.h"
 #include "VulkanUtils.h"
@@ -77,6 +77,8 @@ namespace Zap {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 	}
+
+	void Gui::addDescriptorPoolSizes(DescriptorPoolSizeList& poolSizes) {}
 
 	TaskLayoutTransitions Gui::getLayoutTransitions() {
 		TaskLayoutTransitions helper;

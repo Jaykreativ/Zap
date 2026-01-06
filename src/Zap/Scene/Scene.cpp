@@ -3,7 +3,7 @@
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Material.h"
 #include "Zap/Physics/PhysicsComponent.h"
-#include "Zap/Rendering/DebugRenderTask.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/DebugRenderTask.h"
 
 namespace Zap {
 	Scene::Scene()

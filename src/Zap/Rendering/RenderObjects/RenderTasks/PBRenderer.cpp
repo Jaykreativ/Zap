@@ -1,5 +1,7 @@
-#include "Zap/Rendering/DeferredShading.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/PBRenderer.h"
 #include "Zap/Rendering/Renderer.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "Zap/Rendering/stb_image.h"
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
@@ -10,7 +12,7 @@
 
 #include <array>
 
-void updatePerMeshBufferDescriptorSetGeom(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+void updateLightBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
 	if (func != vk::eUPDATE)
 		return;
 
@@ -21,105 +23,120 @@ void updatePerMeshBufferDescriptorSetGeom(vk::Registerable* obj, vk::Registerabl
 	descriptor.bufferInfos[0].offset = 0;
 	descriptor.bufferInfos[0].range = pBuffer->getSize();
 	pDescriptorSet->setDescriptor(1, descriptor);
+	
+	pDescriptorSet->update();
+}
+
+void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+	if (func != vk::eUPDATE)
+		return;
+
+	vk::Buffer* pBuffer = (vk::Buffer*)obj;
+	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
+	auto descriptor = pDescriptorSet->getDescriptor(2);
+	descriptor.bufferInfos[0].pBuffer = pBuffer;
+	descriptor.bufferInfos[0].offset = 0;
+	descriptor.bufferInfos[0].range = pBuffer->getSize();
+	pDescriptorSet->setDescriptor(2, descriptor);
 
 	pDescriptorSet->update();
 }
 
 namespace Zap {
-	GeometryPass::GeometryPass(Scene* pScene)
-		: RenderTaskTemplate(pScene), m_pScene(pScene)
+	PBRenderer::PBRenderer(RenderTargetHandle<> target, Scene* pScene)
+		: RenderTask(pScene), m_target(target), m_pScene(pScene)
 	{}
 
-	GeometryPass::GeometryPass(const GeometryPass& geometryPass)
-		: m_pScene(geometryPass.m_pScene)
+	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
+		: m_pScene(pbrenderer.m_pScene)
 	{}
 
-	GeometryPass::~GeometryPass() {}
+	PBRenderer::~PBRenderer() {}
 
-	void GeometryPass::init(uint32_t width, uint32_t height, uint32_t imageCount) {
-		/*UniformBuffers*/
+	TaskLayoutTransitions PBRenderer::getLayoutTransitions() {
+		TaskLayoutTransitions layouts;
+		layouts.addLayout(m_target, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL); // define target layout at time of rendering
+		return layouts;
+	}
+
+	void PBRenderer::init(const LayoutTransitionHelper& layoutTransitionHelper) {
+		/* UniformBuffer */
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		/*DescriptorPool*/ {
-			vk::DescriptorBufferInfo uniformBufferInfo{};
-			uniformBufferInfo.pBuffer = &m_uniformBuffer;
-			uniformBufferInfo.offset = 0;
-			uniformBufferInfo.range = m_uniformBuffer.getSize();
+		/* DescriptorSet */
+		m_descriptorSet = m_pRenderer->createDescriptorSet<GenericDescriptorSet>(3); // create the main descriptor set with room for 3 descriptor bindings
 
-			vk::Descriptor uniformBufferDescriptor{};
-			uniformBufferDescriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			uniformBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-			uniformBufferDescriptor.binding = 0;
-			uniformBufferDescriptor.bufferInfos = { uniformBufferInfo };
+		// Describe bindings for the descriptorSet layout
+		DescriptorSetBinding uniformBufferBinding( // binding #0
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, // Type
+			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT // Stages the uniform buffer is used in
+		);
+		VkDescriptorBufferInfo uniformBufferInfo{ m_uniformBuffer, 0, m_uniformBuffer.getSize() }; // describe the actual buffer object using: handle, offset, size
 
-			m_descriptorSet.addDescriptor(uniformBufferDescriptor);
+		DescriptorSetBinding lightBufferBinding( // binding #1
+			VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			VK_SHADER_STAGE_FRAGMENT_BIT
+		);
+		VkDescriptorBufferInfo lightBufferInfo{ *getSceneLightBuffer(), 0, getSceneLightBuffer()->getSize()};
 
-			vk::DescriptorBufferInfo perMeshBufferInfo;
-			perMeshBufferInfo.pBuffer = getScenePerMeshInstanceBuffer();
-			perMeshBufferInfo.offset = 0;
-			perMeshBufferInfo.range = getScenePerMeshInstanceBuffer()->getSize();
+		DescriptorSetBinding perMeshBufferBinding( // binding #2
+			VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
+		);
+		VkDescriptorBufferInfo perMeshBufferInfo{ *getScenePerMeshInstanceBuffer(), 0, getScenePerMeshInstanceBuffer()->getSize()};
 
-			vk::Descriptor perMeshBufferDescriptor{};
-			perMeshBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			perMeshBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-			perMeshBufferDescriptor.binding = 2;
-			perMeshBufferDescriptor.bufferInfos = { perMeshBufferInfo };
-			m_descriptorSet.addDescriptor(perMeshBufferDescriptor);
+		m_descriptorSet->addBinding(uniformBufferBinding);
+		m_descriptorSet->addBinding(lightBufferBinding);
+		m_descriptorSet->addBinding(perMeshBufferBinding);
+		m_descriptorSet->createLayout(); // create the layout using the previously added bindings
+		m_descriptorSet->allocate(); // allocates the descriptorSet in this renderers pool
 
-			m_descriptorPool.addDescriptorSet(m_descriptorSet);
-
-			Base* base = Base::getBase();// TODO add default texture
-			auto* textureMap = RenderTaskTemplate::getTextureDataMap();
-			std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
-			for (auto& texturePair : *textureMap) {
-				uint32_t i = RenderTaskTemplate::getTextureIndex(texturePair.first);
-				vk::DescriptorImageInfo textureImageInfo{};
-				textureImageInfo.pSampler = getTextureSampler();
-				textureImageInfo.pImage = &texturePair.second.image;
-				textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-				textureImageInfos[i] = textureImageInfo;
-			}
-
-			vk::Descriptor texturesDescriptor{};
-			texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			texturesDescriptor.count = textureImageInfos.size();
-			texturesDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
-			texturesDescriptor.binding = 0;
-			texturesDescriptor.imageInfos = textureImageInfos;
-
-			m_loadedTextureCount = textureMap->size();
-
-			m_textureSet.addDescriptor(texturesDescriptor);
-
-			m_descriptorPool.addDescriptorSet(m_textureSet);
-			m_descriptorPool.init();
-
-			m_descriptorSet.init();
-			m_descriptorSet.allocate();
-			m_descriptorSet.update();
-
-			m_textureSet.init();
-			m_textureSet.allocate();
-			m_textureSet.update();
-
-			getRegistery()->connect(getScenePerMeshInstanceBuffer(), &m_descriptorSet, updatePerMeshBufferDescriptorSetGeom);
+		{ // write references to the buffers to the descriptorSet
+			std::array<VkWriteDescriptorSet, 3> writes = {
+				m_descriptorSet->writeBuffer(uniformBufferInfo, 0),
+				m_descriptorSet->writeBuffer(lightBufferInfo,   1),
+				m_descriptorSet->writeBuffer(perMeshBufferInfo, 2)
+			};
+			m_descriptorSet->write(writes.size(), writes.data());
 		}
 
-		/*Depth Image*/
-		m_depthImage = vk::Image();
-		m_depthImage.setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-		m_depthImage.setExtent({ width, height, 1 });
-		m_depthImage.setFormat(Zap::GlobalSettings::getDepthStencilFormat());
-		m_depthImage.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
-		m_depthImage.setType(VK_IMAGE_TYPE_2D);
-		m_depthImage.setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-		m_depthImage.setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_depthImage.init();
-		m_depthImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_depthImage.initView();
+		/* TextureSet */
+		m_textureSet = m_pRenderer->createDescriptorSet<GenericDescriptorSet>();
 
-		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+		Base* base = Base::getBase();// TODO add default texture
+		auto* textureMap = RenderTask::getTextureDataMap();
+		DescriptorSetBinding texturesBinding(
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			textureMap->size()
+		);
+		std::vector<VkDescriptorImageInfo> textureImageInfos(textureMap->size());
+		for (auto& texturePair : *textureMap) {
+			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
+			textureImageInfos[i] = { base->m_textureSampler, texturePair.second.image.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL };
+		}
+
+		m_textureSet->addBinding(texturesBinding);
+		m_textureSet->createLayout();
+		m_textureSet->allocate();
+
+		{
+			auto write = m_textureSet->writeImage(textureImageInfos.data(), textureImageInfos.size(), 0);
+			m_textureSet->write(1, &write);
+		}
+
+		//base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPBR); TODO update descriptorSets using the renderers event system
+		//base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetPBR);
+
+		/*Depth Image*/
+		m_depthTarget = m_pRenderer->createRenderTarget<RenderTargetImage>();
+		m_depthTarget->setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+		m_depthTarget->setFormat(Zap::GlobalSettings::getDepthStencilFormat());
+		m_depthTarget->setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		m_depthTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		m_depthTarget->getImage().changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
 		/*RenderPass*/
 		{
@@ -131,8 +148,8 @@ namespace Zap {
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;//TODO lookup what this means
-			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			colorAttachment.initialLayout = layoutTransitionHelper.getTransition(m_target).oldLayout;
+			colorAttachment.finalLayout = layoutTransitionHelper.getTransition(m_target).newLayout;
 
 			m_renderPass.addAttachmentDescription(colorAttachment);
 
@@ -198,14 +215,14 @@ namespace Zap {
 		}
 
 		/*Framebuffer*/
-		m_framebuffers.resize(imageCount);
+		m_framebuffer = m_pRenderer->createFramebuffer(m_renderPass, {m_target, m_depthTarget});
 
 		/*Shader*/ // TODO add Shader system to add custom shader and to compile them in an easy way
 		m_vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
-		m_vertexShader.setPath("GeomPass.vert.spv");
+		m_vertexShader.setPath("PBRShader.vert.spv");
 
 		m_fragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
-		m_fragmentShader.setPath("GeomPass.frag.spv");
+		m_fragmentShader.setPath("PBRShader.frag.spv");
 
 		m_vertexShader.init();
 		m_fragmentShader.init();
@@ -214,8 +231,8 @@ namespace Zap {
 		m_pipeline.addShader(m_vertexShader.getShaderStage());
 		m_pipeline.addShader(m_fragmentShader.getShaderStage());
 
-		m_pipeline.addDescriptorSetLayout(m_descriptorSet.getVkDescriptorSetLayout());
-		m_pipeline.addDescriptorSetLayout(m_textureSet.getVkDescriptorSetLayout());
+		m_pipeline.addDescriptorSetLayout(m_descriptorSet->getLayout());
+		m_pipeline.addDescriptorSetLayout(m_textureSet->getLayout());
 		for (auto attributeDescription : Vertex::getVertexInputAttributeDescriptions()) {
 			m_pipeline.addVertexInputAttrubuteDescription(attributeDescription);
 		}
@@ -237,55 +254,24 @@ namespace Zap {
 		m_pipeline.init();
 
 		Base::getBase()->getAssetHandler()->getTextureLoadEventHandler()->addCallback(textureLoadCallback, this);
-
-		RenderTaskTemplate::initTargetDependencies();
 	}
 
-	void GeometryPass::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
-		/*Framebuffer*/
-		m_framebuffers[imageIndex].setWidth(width);
-		m_framebuffers[imageIndex].setHeight(height);
-		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
-		m_framebuffers[imageIndex].addAttachment(m_depthImage.getVkImageView());
-		m_framebuffers[imageIndex].setRenderPass(m_renderPass);
-		m_framebuffers[imageIndex].init();
-	}
-
-	void GeometryPass::resize(uint32_t width, uint32_t height, uint32_t imageCount) {
-		m_depthImage.setWidth(width);
-		m_depthImage.setHeight(height);
-		m_depthImage.update();
-
-		m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-
-		RenderTaskTemplate::resizeTargetDependencies();
-	}
-
-	void GeometryPass::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
-		m_framebuffers[imageIndex].setWidth(width);
-		m_framebuffers[imageIndex].setHeight(height);
-		m_framebuffers[imageIndex].delAttachment(0);
-		m_framebuffers[imageIndex].delAttachment(0);
-		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
-		m_framebuffers[imageIndex].addAttachment(m_depthImage.getVkImageView());
-		m_framebuffers[imageIndex].update();
-	}
-
-	void GeometryPass::destroy() {
+	void PBRenderer::destroy() {
+		Base::getBase()->getAssetHandler()->getTextureLoadEventHandler()->removeCallback(textureLoadCallback, this);
 		m_pipeline.destroy();
 		m_fragmentShader.destroy();
 		m_vertexShader.destroy();
-		for (auto& framebuffer : m_framebuffers) framebuffer.destroy();
-		m_framebuffers.clear();
+		m_pRenderer->destroyFramebuffer(m_framebuffer);
 		m_renderPass.destroy();
-		m_depthImage.destroy();
-		m_descriptorSet.destroy();
-		m_textureSet.destroy();
-		m_descriptorPool.destroy();
+		m_pRenderer->destroyRenderTarget(m_depthTarget);
+		m_descriptorSet->destroy();
+		m_textureSet->destroy();
 		m_uniformBuffer.destroy();
 	}
 
-	void GeometryPass::beforeRender(vk::Image* pTarget, uint32_t imageIndex) {
+	void PBRenderer::beforeRender() {
+		m_ubo.lightCount = m_pScene->m_lightComponents.size();
+
 		if (m_areTexturesOutdated)
 			updateTextureDescriptor();
 
@@ -294,22 +280,25 @@ namespace Zap {
 		m_uniformBuffer.unmap();
 	}
 
-	void GeometryPass::afterRender(vk::Image* pTarget, uint32_t imageIndex) {}
+	void PBRenderer::addDescriptorPoolSizes(DescriptorPoolSizeList& poolSizes) {
+		poolSizes.addSets(2);
+		poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1);
+		poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2);
+		poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1);
+	}
 
-	void GeometryPass::recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex) {
-		pTarget->cmdChangeLayout(*cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-
+	void PBRenderer::recordCommands(const vk::CommandBuffer* cmd) {
 		VkRenderPassBeginInfo renderPassBeginInfo;
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
 		renderPassBeginInfo.renderPass = m_renderPass;
-		renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
+		renderPassBeginInfo.framebuffer = *m_framebuffer.get();
 
 		VkRect2D renderArea{};
 		int32_t restX, restY;
 		uint32_t maxWidth, maxHeight;// render area cant be larger then the image to write to
-		maxWidth = pTarget->getExtent().width;
-		maxHeight = pTarget->getExtent().height;
+		maxWidth = m_target->getExtent().width;
+		maxHeight = m_target->getExtent().height;
 
 		restX = maxWidth - (m_scissor.extent.width + m_scissor.offset.x);
 		restY = maxHeight - (m_scissor.extent.height + m_scissor.offset.y);
@@ -348,8 +337,8 @@ namespace Zap {
 		vkCmdSetScissor(*cmd, 0, 1, &renderArea);
 
 		uint32_t i = 0;
-		for (auto it = beginSceneModels(); it != endSceneModels(); it++) {
-			for (Mesh mesh : it->second.meshes) {
+		for (auto const& modelPair : m_pScene->m_modelComponents) {
+			for (Mesh mesh : modelPair.second.meshes) {
 				auto* base = Base::getBase();
 
 				VkDeviceSize offsets[] = { 0 };
@@ -370,20 +359,24 @@ namespace Zap {
 		vkCmdEndRenderPass(*cmd);
 	}
 
-	void GeometryPass::updateCamera(Actor camera) {
+	void PBRenderer::updateCamera(Actor camera) {
 		m_ubo.view = camera.cmpCamera_getView();
 		m_ubo.perspective = camera.cmpCamera_getPerspective(m_viewport.width / m_viewport.height);
+		m_ubo.camPos = camera.cmpTransform_getPos() + glm::vec3(camera.cmpCamera_getOffset()[3]);
 	}
 
-	void GeometryPass::changeScene(Scene* pScene) {
+	void PBRenderer::changeScene(Scene* pScene) {
 		m_pScene = pScene;
-		updatePerMeshBufferDescriptorSetGeom(getScenePerMeshInstanceBuffer(), &m_descriptorSet, vk::eUPDATE);
-		getRegistery()->connect(getScenePerMeshInstanceBuffer(), &m_descriptorSet, updatePerMeshBufferDescriptorSetGeom);
+		//updateLightBufferDescriptorSetPBR(&m_pScene->m_lightBuffer, &m_descriptorSet, vk::eUPDATE);
+		//updatePerMeshBufferDescriptorSetPBR(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, vk::eUPDATE);
+		//Base* base = Base::getBase();
+		//base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPBR);
+		//base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetPBR);
 	}
 
-	void GeometryPass::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
-		width = std::max<uint32_t>(width, x + 1);
-		height = std::max<uint32_t>(height, y + 1);
+	void PBRenderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
+		width = std::max<uint32_t>(width, x+1);
+		height = std::max<uint32_t>(height, y+1);
 
 		m_viewport.x = x;
 		m_viewport.y = y;
@@ -398,21 +391,21 @@ namespace Zap {
 		m_scissor.extent.height = height;
 	}
 
-	void GeometryPass::getViewport(uint32_t& width, uint32_t& height, uint32_t& x, uint32_t& y) {
+	void PBRenderer::getViewport(uint32_t& width, uint32_t& height, uint32_t& x, uint32_t& y) {
 		width = m_viewport.width;
 		height = m_viewport.height;
 		x = m_viewport.x;
 		y = m_viewport.y;
 	}
 
-	void GeometryPass::updateTextureDescriptor() {
+	void PBRenderer::updateTextureDescriptor() {
 		Base* base = Base::getBase();
-		auto* textureMap = RenderTaskTemplate::getTextureDataMap();
+		auto* textureMap = RenderTask::getTextureDataMap();
 		std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {
-			uint32_t i = RenderTaskTemplate::getTextureIndex(texturePair.first);
+			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
 			vk::DescriptorImageInfo textureImageInfo{};
-			textureImageInfo.pSampler = getTextureSampler();
+			textureImageInfo.pSampler = &base->m_textureSampler;
 			textureImageInfo.pImage = &texturePair.second.image;
 			textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 			textureImageInfos[i] = textureImageInfo;
@@ -424,29 +417,29 @@ namespace Zap {
 		texturesDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
 		texturesDescriptor.binding = 0;
 		texturesDescriptor.imageInfos = textureImageInfos;
-
+		
 		uint32_t oldLoadedTextureCount = m_loadedTextureCount;
 		m_loadedTextureCount = textureMap->size();
 
-		m_descriptorPool.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_loadedTextureCount - oldLoadedTextureCount);
-		m_descriptorPool.update();
-
-		m_textureSet.setDescriptor(0, texturesDescriptor);
-		m_descriptorSet.setDescriptorPool(&m_descriptorPool);
-		m_textureSet.update();
-
-		m_descriptorSet.setDescriptorPool(&m_descriptorPool);
-		m_descriptorSet.update();
-
-		m_pipeline.setDescriptorSetLayout(0, m_descriptorSet.getVkDescriptorSetLayout());
-		m_pipeline.setDescriptorSetLayout(1, m_textureSet.getVkDescriptorSetLayout());
-		m_pipeline.update();
+		//m_descriptorPool.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_loadedTextureCount - oldLoadedTextureCount);
+		//m_descriptorPool.update();
+		//
+		//m_textureSet.setDescriptor(0, texturesDescriptor);
+		//m_descriptorSet.setDescriptorPool(&m_descriptorPool);
+		//m_textureSet.update();
+		//
+		//m_descriptorSet.setDescriptorPool(&m_descriptorPool);
+		//m_descriptorSet.update();
+		//
+		//m_pipeline.setDescriptorSetLayout(0, m_descriptorSet.getVkDescriptorSetLayout());
+		//m_pipeline.setDescriptorSetLayout(1, m_textureSet.getVkDescriptorSetLayout());
+		//m_pipeline.update();
 
 		m_areTexturesOutdated = false;
 	}
 
-	void GeometryPass::textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams) {
-		Zap::GeometryPass* pObj = reinterpret_cast<Zap::GeometryPass*>(customParams);
+	void PBRenderer::textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams) {
+		Zap::PBRenderer* pObj = reinterpret_cast<Zap::PBRenderer*>(customParams);
 		pObj->m_areTexturesOutdated = true;
 	}
 }

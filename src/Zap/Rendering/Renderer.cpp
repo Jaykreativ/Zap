@@ -1,8 +1,5 @@
 #include "Zap/Rendering/Renderer.h"
 
-#include "Zap/Rendering/RenderTargets.h"
-#include "Zap/Rendering/Framebuffer.h"
-#include "Zap/Rendering/RenderTask.h"
 #include "VulkanUtils.h"
 
 namespace Zap {
@@ -12,6 +9,18 @@ namespace Zap {
 
 	void Renderer::init() {
 		m_commandBuffer.allocate();
+
+		// Init DescriptorPool
+		DescriptorPoolSizeList list;
+		for (auto& taskPair : m_renderTaskMap) {
+			taskPair.second->addDescriptorPoolSizes(list); // add the tasks descriptors to the pool size list
+		}
+		m_descriptorPool.addPoolSizes(list.m_poolSizes.data(), list.m_poolSizes.size());
+		m_descriptorPool.setMaxSets(list.m_maxSets);
+		if (list.m_maxSets > 0) {
+			m_descriptorPool.init();
+			m_isDescriptorPoolInit = true;
+		}
 
 		// Init recorded Tasks
 		// transitions: (initial) -> (task) -> (final) for every target
@@ -40,11 +49,13 @@ namespace Zap {
 	}
 
 	void Renderer::destroy() {
-		m_commandBuffer.free();
+		vk::destroyFence(m_renderComplete);
 		for (auto& taskPair : m_renderTaskMap) {
 			taskPair.second->destroy();
 		}
-		vk::destroyFence(m_renderComplete);
+		if(m_isDescriptorPoolInit)
+			m_descriptorPool.destroy();
+		m_commandBuffer.free();
 		m_isInit = false;
 	}
 
@@ -54,6 +65,9 @@ namespace Zap {
 		}
 		for (auto& framebufferPair : m_framebufferMap) {
 			framebufferPair.second->update(); // update all framebuffers after resizing their contents
+		}
+		for (auto& taskPair : m_renderTaskMap) {
+			taskPair.second->onResize();
 		}
 	}
 
@@ -141,6 +155,16 @@ namespace Zap {
 		if (m_framebufferMap.count(handle))
 			return m_framebufferMap.at(handle).get();
 		return nullptr;
+	}
+
+	DescriptorSet* Renderer::getDescriptorSet(UUID handle) {
+		if (m_descriptorSetMap.count(handle))
+			return m_descriptorSetMap.at(handle).get();
+		return nullptr;
+	}
+
+	VkDescriptorPool Renderer::getDescriptorPool() {
+		return m_descriptorPool;
 	}
 
 	RenderTask* Renderer::getRenderTask(UUID handle) {

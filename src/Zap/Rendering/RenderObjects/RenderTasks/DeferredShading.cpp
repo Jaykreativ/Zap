@@ -1,7 +1,5 @@
-#include "Zap/Rendering/PBRenderer.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/DeferredShading.h"
 #include "Zap/Rendering/Renderer.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include "Zap/Rendering/stb_image.h"
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
@@ -12,7 +10,7 @@
 
 #include <array>
 
-void updateLightBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
+void updatePerMeshBufferDescriptorSetGeom(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
 	if (func != vk::eUPDATE)
 		return;
 
@@ -23,43 +21,99 @@ void updateLightBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* 
 	descriptor.bufferInfos[0].offset = 0;
 	descriptor.bufferInfos[0].range = pBuffer->getSize();
 	pDescriptorSet->setDescriptor(1, descriptor);
-	
-	pDescriptorSet->update();
-}
-
-void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
-	if (func != vk::eUPDATE)
-		return;
-
-	vk::Buffer* pBuffer = (vk::Buffer*)obj;
-	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
-	auto descriptor = pDescriptorSet->getDescriptor(2);
-	descriptor.bufferInfos[0].pBuffer = pBuffer;
-	descriptor.bufferInfos[0].offset = 0;
-	descriptor.bufferInfos[0].range = pBuffer->getSize();
-	pDescriptorSet->setDescriptor(2, descriptor);
 
 	pDescriptorSet->update();
 }
 
 namespace Zap {
-	PBRenderer::PBRenderer(RenderTargetHandle<> target, Scene* pScene)
-		: RenderTask(pScene), m_target(target), m_pScene(pScene)
+	//void GBuffer::init(uint32_t width, uint32_t height) {
+	//	/*Depth Image*/
+	//	depth = vk::Image();
+	//	depth.setAspect(VK_IMAGE_ASPECT_DEPTH_BIT);
+	//	depth.setExtent({ width, height, 1 });
+	//	depth.setFormat(VK_FORMAT_D16_UNORM);
+	//	depth.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+	//	depth.setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+	//	depth.init();
+	//	depth.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	//	depth.initView();
+	//
+	//	/*Pos Image*/
+	//	pos = vk::Image();
+	//	pos.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+	//	pos.setExtent({ width, height, 1 });
+	//	pos.setFormat(VK_FORMAT_R32G32B32_SFLOAT);
+	//	pos.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+	//	pos.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+	//	pos.init();
+	//	pos.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	//	pos.initView();
+	//
+	//	/*Normal Image*/
+	//	normal = vk::Image();
+	//	normal.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+	//	normal.setExtent({ width, height, 1 });
+	//	normal.setFormat(VK_FORMAT_R32G32B32_SFLOAT);
+	//	normal.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+	//	normal.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+	//	normal.init();
+	//	normal.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	//	normal.initView();
+	//
+	//	/*Albedo Image*/
+	//	albedo = vk::Image();
+	//	albedo.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+	//	albedo.setExtent({ width, height, 1 });
+	//	albedo.setFormat(VK_FORMAT_R32G32B32_SFLOAT);
+	//	albedo.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+	//	albedo.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+	//	albedo.init();
+	//	albedo.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	//	albedo.initView();
+	//
+	//	/*Metallic/Roughness Image*/
+	//	metallicRoughness = vk::Image();
+	//	metallicRoughness.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+	//	metallicRoughness.setExtent({ width, height, 1 });
+	//	metallicRoughness.setFormat(VK_FORMAT_R32G32_SFLOAT);
+	//	metallicRoughness.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+	//	metallicRoughness.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+	//	metallicRoughness.init();
+	//	metallicRoughness.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	//	metallicRoughness.initView();
+	//
+	//	/*Emissive Image*/
+	//	emissive = vk::Image();
+	//	emissive.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+	//	emissive.setExtent({ width, height, 1 });
+	//	emissive.setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+	//	emissive.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+	//	emissive.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+	//	emissive.init();
+	//	emissive.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	//	emissive.initView();
+	//}
+	//
+	//void GBuffer::destroy() {
+	//	depth.destroy();
+	//	pos.destroy();
+	//	normal.destroy();
+	//	albedo.destroy();
+	//	metallicRoughness.destroy();
+	//	emissive.destroy();
+	//}
+
+	GeometryPass::GeometryPass(Scene* pScene)
+		: RenderTask(pScene), m_pScene(pScene)
 	{}
 
-	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
-		: m_pScene(pbrenderer.m_pScene)
+	GeometryPass::GeometryPass(const GeometryPass& geometryPass)
+		: m_pScene(geometryPass.m_pScene)
 	{}
 
-	PBRenderer::~PBRenderer() {}
+	GeometryPass::~GeometryPass() {}
 
-	TaskLayoutTransitions PBRenderer::getLayoutTransitions() {
-		TaskLayoutTransitions layouts;
-		layouts.addLayout(m_target, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL); // define target layout at time of rendering
-		return layouts;
-	}
-
-	void PBRenderer::init(const LayoutTransitionHelper& layoutTransitionHelper) {
+	void GeometryPass::init(uint32_t width, uint32_t height, uint32_t imageCount) {
 		/*UniformBuffers*/
 		m_uniformBuffer = vk::Buffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -78,23 +132,10 @@ namespace Zap {
 
 			m_descriptorSet.addDescriptor(uniformBufferDescriptor);
 
-			vk::DescriptorBufferInfo lightBufferInfo{};
-			lightBufferInfo.pBuffer = &m_pScene->m_lightBuffer;
-			lightBufferInfo.offset = 0;
-			lightBufferInfo.range = m_pScene->m_lightBuffer.getSize();
-
-			vk::Descriptor lightBufferDescriptor{};
-			lightBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			lightBufferDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
-			lightBufferDescriptor.binding = 1;
-			lightBufferDescriptor.bufferInfos = { lightBufferInfo };
-
-			m_descriptorSet.addDescriptor(lightBufferDescriptor);
-
 			vk::DescriptorBufferInfo perMeshBufferInfo;
-			perMeshBufferInfo.pBuffer = &m_pScene->m_perMeshInstanceBuffer;
+			perMeshBufferInfo.pBuffer = getScenePerMeshInstanceBuffer();
 			perMeshBufferInfo.offset = 0;
-			perMeshBufferInfo.range = m_pScene->m_perMeshInstanceBuffer.getSize();
+			perMeshBufferInfo.range = getScenePerMeshInstanceBuffer()->getSize();
 
 			vk::Descriptor perMeshBufferDescriptor{};
 			perMeshBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -111,7 +152,7 @@ namespace Zap {
 			for (auto& texturePair : *textureMap) {
 				uint32_t i = RenderTask::getTextureIndex(texturePair.first);
 				vk::DescriptorImageInfo textureImageInfo{};
-				textureImageInfo.pSampler = &base->m_textureSampler;
+				textureImageInfo.pSampler = getTextureSampler();
 				textureImageInfo.pImage = &texturePair.second.image;
 				textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 				textureImageInfos[i] = textureImageInfo;
@@ -138,19 +179,13 @@ namespace Zap {
 			m_textureSet.init();
 			m_textureSet.allocate();
 			m_textureSet.update();
-			
-			base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPBR);
-			base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetPBR);
+
+			getRegistery()->connect(getScenePerMeshInstanceBuffer(), &m_descriptorSet, updatePerMeshBufferDescriptorSetGeom);
 		}
 
-		/*Depth Image*/
-		m_depthTarget = m_pRenderer->createRenderTarget<RenderTargetImage>();
-		m_depthTarget->setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-		m_depthTarget->setFormat(Zap::GlobalSettings::getDepthStencilFormat());
-		m_depthTarget->setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-		m_depthTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		//m_gBuffer.init(width, height);
 
-		m_depthTarget->getImage().changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+		//m_gBuffer.depth.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
 		/*RenderPass*/
 		{
@@ -162,8 +197,8 @@ namespace Zap {
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			colorAttachment.initialLayout = layoutTransitionHelper.getTransition(m_target).oldLayout;
-			colorAttachment.finalLayout = layoutTransitionHelper.getTransition(m_target).newLayout;
+			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; // TODO lookup what this means
+			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 			m_renderPass.addAttachmentDescription(colorAttachment);
 
@@ -229,14 +264,14 @@ namespace Zap {
 		}
 
 		/*Framebuffer*/
-		m_framebuffer = m_pRenderer->createFramebuffer(m_renderPass, {m_target, m_depthTarget});
+		m_framebuffers.resize(imageCount);
 
 		/*Shader*/ // TODO add Shader system to add custom shader and to compile them in an easy way
 		m_vertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
-		m_vertexShader.setPath("PBRShader.vert.spv");
+		m_vertexShader.setPath("GeomPass.vert.spv");
 
 		m_fragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
-		m_fragmentShader.setPath("PBRShader.frag.spv");
+		m_fragmentShader.setPath("GeomPass.frag.spv");
 
 		m_vertexShader.init();
 		m_fragmentShader.init();
@@ -270,22 +305,49 @@ namespace Zap {
 		Base::getBase()->getAssetHandler()->getTextureLoadEventHandler()->addCallback(textureLoadCallback, this);
 	}
 
-	void PBRenderer::destroy() {
+	void GeometryPass::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		/*Framebuffer*/
+		m_framebuffers[imageIndex].setWidth(width);
+		m_framebuffers[imageIndex].setHeight(height);
+		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
+		//m_framebuffers[imageIndex].addAttachment(m_depthImage.getVkImageView());
+		m_framebuffers[imageIndex].setRenderPass(m_renderPass);
+		m_framebuffers[imageIndex].init();
+	}
+
+	void GeometryPass::resize(uint32_t width, uint32_t height, uint32_t imageCount) {
+		//m_depthImage.setWidth(width);
+		//m_depthImage.setHeight(height);
+		//m_depthImage.update();
+
+		//m_depthImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+	}
+
+	void GeometryPass::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
+		m_framebuffers[imageIndex].setWidth(width);
+		m_framebuffers[imageIndex].setHeight(height);
+		m_framebuffers[imageIndex].delAttachment(0);
+		m_framebuffers[imageIndex].delAttachment(0);
+		m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
+		//m_framebuffers[imageIndex].addAttachment(m_depthImage.getVkImageView());
+		m_framebuffers[imageIndex].update();
+	}
+
+	void GeometryPass::destroy() {
 		m_pipeline.destroy();
 		m_fragmentShader.destroy();
 		m_vertexShader.destroy();
-		m_pRenderer->destroyFramebuffer(m_framebuffer);
+		for (auto& framebuffer : m_framebuffers) framebuffer.destroy();
+		m_framebuffers.clear();
 		m_renderPass.destroy();
-		m_pRenderer->destroyRenderTarget(m_depthTarget);
+		//m_gBuffer.destroy();
 		m_descriptorSet.destroy();
 		m_textureSet.destroy();
 		m_descriptorPool.destroy();
 		m_uniformBuffer.destroy();
 	}
 
-	void PBRenderer::beforeRender() {
-		m_ubo.lightCount = m_pScene->m_lightComponents.size();
-
+	void GeometryPass::beforeRender(vk::Image* pTarget, uint32_t imageIndex) {
 		if (m_areTexturesOutdated)
 			updateTextureDescriptor();
 
@@ -294,18 +356,22 @@ namespace Zap {
 		m_uniformBuffer.unmap();
 	}
 
-	void PBRenderer::recordCommands(const vk::CommandBuffer* cmd) {
+	void GeometryPass::afterRender(vk::Image* pTarget, uint32_t imageIndex) {}
+
+	void GeometryPass::recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex) {
+		pTarget->cmdChangeLayout(*cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
 		VkRenderPassBeginInfo renderPassBeginInfo;
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
 		renderPassBeginInfo.renderPass = m_renderPass;
-		renderPassBeginInfo.framebuffer = *m_framebuffer.get();
+		renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
 
 		VkRect2D renderArea{};
 		int32_t restX, restY;
 		uint32_t maxWidth, maxHeight;// render area cant be larger then the image to write to
-		maxWidth = m_target->getExtent().width;
-		maxHeight = m_target->getExtent().height;
+		maxWidth = pTarget->getExtent().width;
+		maxHeight = pTarget->getExtent().height;
 
 		restX = maxWidth - (m_scissor.extent.width + m_scissor.offset.x);
 		restY = maxHeight - (m_scissor.extent.height + m_scissor.offset.y);
@@ -344,8 +410,8 @@ namespace Zap {
 		vkCmdSetScissor(*cmd, 0, 1, &renderArea);
 
 		uint32_t i = 0;
-		for (auto const& modelPair : m_pScene->m_modelComponents) {
-			for (Mesh mesh : modelPair.second.meshes) {
+		for (auto it = beginSceneModels(); it != endSceneModels(); it++) {
+			for (Mesh mesh : it->second.meshes) {
 				auto* base = Base::getBase();
 
 				VkDeviceSize offsets[] = { 0 };
@@ -366,24 +432,20 @@ namespace Zap {
 		vkCmdEndRenderPass(*cmd);
 	}
 
-	void PBRenderer::updateCamera(Actor camera) {
+	void GeometryPass::updateCamera(Actor camera) {
 		m_ubo.view = camera.cmpCamera_getView();
 		m_ubo.perspective = camera.cmpCamera_getPerspective(m_viewport.width / m_viewport.height);
-		m_ubo.camPos = camera.cmpTransform_getPos() + glm::vec3(camera.cmpCamera_getOffset()[3]);
 	}
 
-	void PBRenderer::changeScene(Scene* pScene) {
+	void GeometryPass::changeScene(Scene* pScene) {
 		m_pScene = pScene;
-		updateLightBufferDescriptorSetPBR(&m_pScene->m_lightBuffer, &m_descriptorSet, vk::eUPDATE);
-		updatePerMeshBufferDescriptorSetPBR(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, vk::eUPDATE);
-		Base* base = Base::getBase();
-		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPBR);
-		base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetPBR);
+		updatePerMeshBufferDescriptorSetGeom(getScenePerMeshInstanceBuffer(), &m_descriptorSet, vk::eUPDATE);
+		getRegistery()->connect(getScenePerMeshInstanceBuffer(), &m_descriptorSet, updatePerMeshBufferDescriptorSetGeom);
 	}
 
-	void PBRenderer::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
-		width = std::max<uint32_t>(width, x+1);
-		height = std::max<uint32_t>(height, y+1);
+	void GeometryPass::setViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y) {
+		width = std::max<uint32_t>(width, x + 1);
+		height = std::max<uint32_t>(height, y + 1);
 
 		m_viewport.x = x;
 		m_viewport.y = y;
@@ -398,21 +460,21 @@ namespace Zap {
 		m_scissor.extent.height = height;
 	}
 
-	void PBRenderer::getViewport(uint32_t& width, uint32_t& height, uint32_t& x, uint32_t& y) {
+	void GeometryPass::getViewport(uint32_t& width, uint32_t& height, uint32_t& x, uint32_t& y) {
 		width = m_viewport.width;
 		height = m_viewport.height;
 		x = m_viewport.x;
 		y = m_viewport.y;
 	}
 
-	void PBRenderer::updateTextureDescriptor() {
+	void GeometryPass::updateTextureDescriptor() {
 		Base* base = Base::getBase();
 		auto* textureMap = RenderTask::getTextureDataMap();
 		std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {
 			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
 			vk::DescriptorImageInfo textureImageInfo{};
-			textureImageInfo.pSampler = &base->m_textureSampler;
+			textureImageInfo.pSampler = getTextureSampler();
 			textureImageInfo.pImage = &texturePair.second.image;
 			textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 			textureImageInfos[i] = textureImageInfo;
@@ -424,7 +486,7 @@ namespace Zap {
 		texturesDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
 		texturesDescriptor.binding = 0;
 		texturesDescriptor.imageInfos = textureImageInfos;
-		
+
 		uint32_t oldLoadedTextureCount = m_loadedTextureCount;
 		m_loadedTextureCount = textureMap->size();
 
@@ -445,8 +507,8 @@ namespace Zap {
 		m_areTexturesOutdated = false;
 	}
 
-	void PBRenderer::textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams) {
-		Zap::PBRenderer* pObj = reinterpret_cast<Zap::PBRenderer*>(customParams);
+	void GeometryPass::textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams) {
+		Zap::GeometryPass* pObj = reinterpret_cast<Zap::GeometryPass*>(customParams);
 		pObj->m_areTexturesOutdated = true;
 	}
 }

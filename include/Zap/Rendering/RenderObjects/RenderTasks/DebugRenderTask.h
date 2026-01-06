@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
-#include "Zap/Rendering/RenderTaskTemplate.h"
+#include "Zap/Rendering/RenderObjects/RenderTask.h"
 #include "Zap/Scene/Actor.h"
 
 namespace Zap {
@@ -25,7 +25,7 @@ namespace Zap {
 		static VkVertexInputBindingDescription getVertexInputBindingDescription();
 	};
 
-	class DebugRenderTask : public Zap::RenderTaskTemplate {
+	class DebugRenderTask : public Zap::RenderTask {
 	public:
 		DebugRenderTask();
 		~DebugRenderTask();

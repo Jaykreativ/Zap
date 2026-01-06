@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Zap/Zap.h"
-#include "Zap/Rendering/RenderTask.h"
-#include "Zap/Rendering/RenderTargets.h"
-#include "Zap/Rendering/Framebuffer.h"
+#include "Zap/Rendering/RenderObjects/RenderTask.h"
+#include "Zap/Rendering/RenderObjects/RenderTargets.h"
+#include "Zap/Rendering/RenderObjects/Framebuffer.h"
 
 namespace Zap {
 	typedef VkDescriptorSet GuiTexture;
@@ -62,6 +62,8 @@ namespace Zap {
 		void beforeRender() override;
 
 		void afterRender() override;
+
+		void addDescriptorPoolSizes(DescriptorPoolSizeList& poolSizes) override;
 
 		TaskLayoutTransitions getLayoutTransitions() override;
 
