@@ -71,6 +71,7 @@ namespace Zap {
 		Texture load(std::filesystem::path modelpath, std::filesystem::path textureID, UUID handle = UUID());
 
 		friend class AssetHandler;
+		friend class Base;
 	};
 
 	class MaterialLoader : protected TextureLoader

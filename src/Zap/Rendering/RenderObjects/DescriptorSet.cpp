@@ -27,6 +27,7 @@ namespace Zap {
 			bindings[i].descriptorType = m_bindings[i].m_type;
 			bindings[i].descriptorCount = m_bindings[i].m_count;
 			bindings[i].stageFlags = m_bindings[i].m_stages;
+			bindings[i].pImmutableSamplers = nullptr;
 		}
 
 		VkDescriptorSetLayoutCreateInfo info {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0};
@@ -51,7 +52,7 @@ namespace Zap {
 	}
 
 	VkWriteDescriptorSet DescriptorSet::writeImage(const VkDescriptorImageInfo* pImageInfos, uint32_t imageCount, uint32_t binding) {
-		bool hasSpace = m_bindings[binding].m_count < imageCount;
+		bool hasSpace = m_bindings[binding].m_count <= imageCount;
 		ZP_WARN(hasSpace, "Binding has not enough space for all images, confirm image count and the bindings descriptor count match");
 
 		VkWriteDescriptorSet write {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr};
@@ -69,7 +70,7 @@ namespace Zap {
 	}
 
 	VkWriteDescriptorSet DescriptorSet::writeBuffer(const VkDescriptorBufferInfo* pBufferInfos, uint32_t bufferCount, uint32_t binding) {
-		bool hasSpace = m_bindings[binding].m_count < bufferCount;
+		bool hasSpace = m_bindings[binding].m_count <= bufferCount;
 		ZP_WARN(hasSpace, "Binding has not enough space for all buffers, confirm buffer count and the bindings descriptor count match");
 
 		VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr };

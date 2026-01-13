@@ -1,5 +1,6 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
+#include "Zap/FileLoader.h"
 #include "Zap/Physics/PhysicsComponent.h"
 
 #include "glm/gtc/quaternion.hpp"
@@ -83,7 +84,8 @@ namespace Zap {
 		// init device
 		initInfo.checkDeviceSupport = false;// request extensions, layers, features
 		initInfo.requestedDeviceExtensions = {
-			VK_KHR_SWAPCHAIN_EXTENSION_NAME
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+			"VK_EXT_robustness2"
 		};
 
 		if (m_settings.enableRaytracing) {
@@ -213,6 +215,11 @@ namespace Zap {
 		if (!m_assetHandler.getAssetLibrary().empty()) {
 			m_assetHandler.loadFromFile();
 		}
+
+		// load default assets
+		TextureLoader texLoader;
+		glm::u8vec4 texCol = { 255, 255, 255, 255 };
+		texLoader.load(&texCol, 1, 1);
 	}
 
 	void Base::update() { // TODO implement base update
