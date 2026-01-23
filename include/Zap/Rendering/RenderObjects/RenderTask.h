@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Rendering/RenderObject.h"
 
 namespace Zap {
 	class Model;
@@ -11,11 +12,11 @@ namespace Zap {
 	class TaskLayoutTransitions;
 	class DescriptorPoolSizeList;
 
-	class RenderTask {
+	class RenderTask : public RenderObject {
 	public:
-		RenderTask();
+		RenderTask(Renderer* pRenderer);
 		// Can be used by scene dependant tasks to gain access to private storage buffers
-		RenderTask(Scene* pScene);
+		RenderTask(Renderer* pRenderer, Scene* pScene);
 
 		~RenderTask();
 
@@ -56,9 +57,6 @@ namespace Zap {
 
 		vk::Sampler* getTextureSampler();
 
-	protected:
-		Renderer* m_pRenderer = nullptr;
-
 	private:
 		bool m_isEnabled = true;
 		Scene* m_pScene = nullptr;
@@ -76,9 +74,6 @@ namespace Zap {
 		virtual void addDescriptorPoolSizes(DescriptorPoolSizeList& poolSizes) = 0;
 
 		virtual TaskLayoutTransitions getLayoutTransitions() = 0;
-
-		//Will be called when the target gets resized
-		virtual void onResize() {};
 
 		friend class Renderer;
 	};

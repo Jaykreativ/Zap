@@ -7,6 +7,10 @@
 #include "imgui.h"
 
 namespace Zap {
+	RenderTarget::RenderTarget(Renderer* pRenderer)
+		: RenderObject(pRenderer)
+	{}
+
 	void RenderTarget::resize(glm::vec2 size) {
 		m_pRenderer->resize(size);
 	}
@@ -42,8 +46,8 @@ namespace Zap {
 	// RenderTargetDescriptorSet
 	
 	// Image
-	RenderTargetImage::RenderTargetImage()
-		: RenderTarget()
+	RenderTargetImage::RenderTargetImage(Renderer* pRenderer)
+		: RenderTarget(pRenderer)
 	{}
 
 	RenderTargetImage::~RenderTargetImage() {
@@ -100,8 +104,8 @@ namespace Zap {
 	}
 
 	// Gui Image
-	RenderTargetGuiImage::RenderTargetGuiImage()
-		: RenderTargetImage()
+	RenderTargetGuiImage::RenderTargetGuiImage(Renderer* pRenderer)
+		: RenderTargetImage(pRenderer)
 	{
 		m_sampler.init();
 		setInitialLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -125,8 +129,8 @@ namespace Zap {
 	}
 
 	// Window
-	RenderTargetWindow::RenderTargetWindow(Window& window)
-		: RenderTarget(), m_window(window)
+	RenderTargetWindow::RenderTargetWindow(Renderer* pRenderer, Window& window)
+		: RenderTarget(pRenderer), m_window(window)
 	{
 		m_window.getResizeEventHandler()->addCallback(resizeCallback, this);
 	}

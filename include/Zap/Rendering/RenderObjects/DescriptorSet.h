@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Rendering/RenderObject.h"
 
 namespace Zap {
 // --- Vulkan DescriptorSet Logic ---
@@ -44,9 +45,9 @@ namespace Zap {
 		friend class DescriptorSet;
 	};
 
-	class DescriptorSet {
+	class DescriptorSet : public RenderObject {
 	public:
-		DescriptorSet(uint32_t size = 1);
+		DescriptorSet(Renderer* pRenderer, uint32_t size = 1);
 
 		operator VkDescriptorSet() { return m_descriptorSet; }
 
@@ -81,8 +82,6 @@ namespace Zap {
 
 		VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
 		VkDescriptorSetLayout m_layout = VK_NULL_HANDLE;
-
-		Renderer* m_pRenderer = nullptr;
 
 		friend class Renderer;
 	};
@@ -136,7 +135,7 @@ namespace Zap {
 
 	class GenericDescriptorSet : public DescriptorSet {
 	public:
-		GenericDescriptorSet(uint32_t size = 1);
+		GenericDescriptorSet(Renderer* pRenderer, uint32_t size = 1);
 
 		friend class Renderer;
 	};

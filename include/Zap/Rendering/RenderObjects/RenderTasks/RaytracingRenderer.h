@@ -10,7 +10,7 @@ namespace Zap {
 	class RaytracingRenderer : public RenderTask
 	{
 	public:
-		RaytracingRenderer(Scene* pScene);
+		RaytracingRenderer(Renderer* pRenderer, Scene* pScene);
 		~RaytracingRenderer();
 
 		void updateCamera(const Actor camera);

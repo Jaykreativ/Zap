@@ -7,7 +7,9 @@ namespace Zap {
 		: m_type(type), m_stages(stages), m_count(count)
 	{}
 
-	DescriptorSet::DescriptorSet(uint32_t size) {
+	DescriptorSet::DescriptorSet(Renderer* pRenderer, uint32_t size)
+		: RenderObject(pRenderer)
+	{
 		m_bindings.resize(size);
 	}
 
@@ -99,7 +101,7 @@ namespace Zap {
 		return m_layout;
 	}
 
-	GenericDescriptorSet::GenericDescriptorSet(uint32_t size)
-		: DescriptorSet(size)
+	GenericDescriptorSet::GenericDescriptorSet(Renderer* pRenderer, uint32_t size)
+		: DescriptorSet(pRenderer, size)
 	{}
 }

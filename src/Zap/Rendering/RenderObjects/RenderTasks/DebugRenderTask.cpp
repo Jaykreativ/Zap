@@ -43,7 +43,9 @@ namespace Zap {
 
 	/* DebugRenderTask */
 
-	DebugRenderTask::DebugRenderTask() {}
+	DebugRenderTask::DebugRenderTask(Renderer* pRenderer) 
+		: RenderTask(pRenderer)
+	{}
 
 	DebugRenderTask::~DebugRenderTask() {}
 

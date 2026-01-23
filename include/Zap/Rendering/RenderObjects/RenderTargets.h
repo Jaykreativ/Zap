@@ -1,14 +1,15 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Rendering/RenderObject.h"
 
 namespace Zap {
 	class ResizeEvent;
 
-	class RenderTarget {
+	class RenderTarget : public RenderObject {
 		friend class Renderer;
 	public:
-		RenderTarget() = default;
+		RenderTarget(Renderer* pRenderer);
 		virtual ~RenderTarget() = default;
 
 		void resize(glm::vec2 size);
@@ -32,8 +33,6 @@ namespace Zap {
 		virtual int getImageIndex();
 
 		virtual VkImageView getImageView(uint32_t index) = 0;
-	protected:
-		Renderer* m_pRenderer = nullptr;
 
 		virtual void resizeInternal(glm::vec2 size) = 0;
 	private:
@@ -94,7 +93,7 @@ namespace Zap {
 	// wrapper for a standart Zap image used by rendering
 	class RenderTargetImage : public RenderTarget {
 	public:
-		RenderTargetImage();
+		RenderTargetImage(Renderer* pRenderer);
 		~RenderTargetImage();
 
 		virtual void recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override;
@@ -121,7 +120,7 @@ namespace Zap {
 
 	class RenderTargetGuiImage : public RenderTargetImage {
 	public:
-		RenderTargetGuiImage();
+		RenderTargetGuiImage(Renderer* pRenderer);
 		~RenderTargetGuiImage();
 
 		void init(VkMemoryPropertyFlags memoryProperty);
@@ -143,7 +142,7 @@ namespace Zap {
 	// references a Zap window and allows rendering to it
 	class RenderTargetWindow : public RenderTarget {
 	public:
-		RenderTargetWindow(Window& window);
+		RenderTargetWindow(Renderer* pRenderer, Window& window);
 		~RenderTargetWindow();
 
 		virtual void recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override;

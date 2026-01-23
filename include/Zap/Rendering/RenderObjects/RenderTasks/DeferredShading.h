@@ -11,8 +11,7 @@ namespace Zap {
 		glm::vec4 clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 		glm::vec2 clearDepthStencil = { 1.0f, 0.0f };
 
-		GeometryPass(Scene* pScene);
-		GeometryPass(const GeometryPass& geometryPass);
+		GeometryPass(Renderer* pRenderer, Scene* pScene);
 		~GeometryPass();
 
 		void updateCamera(Actor camera);

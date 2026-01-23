@@ -46,8 +46,8 @@ namespace Zap {
 		m_guiTexture = ImGui_ImplVulkan_AddTexture(m_texSampler, m_imageView, VK_IMAGE_LAYOUT_GENERAL);
 	}
 
-	Gui::Gui(RenderTargetHandle<> target)
-		: m_target(target)
+	Gui::Gui(Renderer* pRenderer, RenderTargetHandle<> target)
+		: RenderTask(pRenderer), m_target(target)
 	{}
 
 	Gui::~Gui(){}

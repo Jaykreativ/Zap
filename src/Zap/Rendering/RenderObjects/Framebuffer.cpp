@@ -18,8 +18,8 @@ namespace Zap {
 		return m_renderer != nullptr && get() != nullptr;
 	}
 
-	Framebuffer::Framebuffer(VkRenderPass renderPass, std::initializer_list<RenderTargetHandle<>> targets)
-		: m_targets(targets)
+	Framebuffer::Framebuffer(Renderer* pRenderer, VkRenderPass renderPass, std::initializer_list<RenderTargetHandle<>> targets)
+		: RenderObject(pRenderer), RenderEventListener<RenderEvent::Resize>(getEventHandler()), m_targets(targets)
 	{
 		uint32_t imageCount = 0;
 		uint32_t swapchainCount = 0;
@@ -80,5 +80,9 @@ namespace Zap {
 			}
 		}
 		return m_framebuffers[0];
+	}
+
+	void Framebuffer::callback(const RenderEvent::Resize& event) {
+		update();
 	}
 }

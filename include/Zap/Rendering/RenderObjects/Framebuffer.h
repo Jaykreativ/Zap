@@ -1,17 +1,21 @@
 #pragma once
 
+#include "Zap/Rendering/RenderObject.h"
+#include "Zap/Rendering/RenderEvents.h"
 #include "Zap/Rendering/RenderObjects/RenderTargets.h"
 
 #include <vector>
 
 namespace Zap {
-	class Framebuffer {
+	class Framebuffer : virtual public RenderObject, public RenderEventListener<RenderEvent::Resize> {
 	public:
-		Framebuffer(VkRenderPass renderPass, std::initializer_list<RenderTargetHandle<>> targets);
+		Framebuffer(Renderer* pRenderer, VkRenderPass renderPass, std::initializer_list<RenderTargetHandle<>> targets);
 		~Framebuffer();
 
 		// recreates internal framebuffers using the same targets
 		void update();
+
+		virtual void callback(const RenderEvent::Resize& event) override;
 
 		operator VkFramebuffer();
 

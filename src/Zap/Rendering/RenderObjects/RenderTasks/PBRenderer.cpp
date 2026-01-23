@@ -43,12 +43,12 @@ void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable
 }
 
 namespace Zap {
-	PBRenderer::PBRenderer(RenderTargetHandle<> target, Scene* pScene)
-		: RenderTask(pScene), m_target(target), m_pScene(pScene)
+	PBRenderer::PBRenderer(Renderer* pRenderer, RenderTargetHandle<> target, Scene* pScene)
+		: RenderTask(pRenderer, pScene), m_target(target), m_pScene(pScene)
 	{}
 
 	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
-		: m_pScene(pbrenderer.m_pScene)
+		: RenderTask(pbrenderer.m_pRenderer, pbrenderer.m_pScene), m_pScene(pbrenderer.m_pScene)
 	{}
 
 	PBRenderer::~PBRenderer() {}

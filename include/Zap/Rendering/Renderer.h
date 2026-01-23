@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Rendering/RenderEvents.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/RenderObjects/RenderTargets.h"
 #include "Zap/Rendering/RenderObjects/Framebuffer.h"
@@ -17,24 +18,6 @@
 #include <array>
 
 namespace Zap {
-	class RenderObject {};
-
-	enum RenderEventType {
-		eMAX_TYPE
-	};
-
-	class RenderEvent {};
-
-	class RenderEventListenerList {
-	private:
-		std::vector<RenderObject> m_listeners = {};
-	};
-
-	class RenderEventHandler {
-	private:
-		std::array<RenderEventListenerList, eMAX_TYPE> m_eventLists;
-	};
-
 	class TaskLayoutTransitions {
 		friend class LayoutTransitionHelper;
 	public:
@@ -117,7 +100,7 @@ namespace Zap {
 		RenderTaskHandle<T> createRenderTask(Types&&... args) {
 			static_assert(std::is_base_of_v<RenderTask, T>, "Type has to be child class of RenderTask");
 			auto handle = UUID();
-			m_renderTaskMap[handle] = std::move(std::make_unique<T>(std::forward<Types>(args)...));
+			m_renderTaskMap[handle] = std::move(std::make_unique<T>(this, std::forward<Types>(args)...));
 			m_renderTaskMap.at(handle)->m_pRenderer = this;
 			return RenderTaskHandle<T>(handle, this);
 		}
@@ -132,7 +115,7 @@ namespace Zap {
 		RenderTargetHandle<T> createRenderTarget(Types&&... args) {
 			static_assert(std::is_base_of_v<RenderTarget, T>, "Type has to be child class of RenderTarget");
 			auto handle = UUID();
-			m_renderTargetMap[handle] = std::move(std::make_unique<T>(std::forward<Types>(args)...));
+			m_renderTargetMap[handle] = std::move(std::make_unique<T>(this, std::forward<Types>(args)...));
 			m_renderTargetMap.at(handle)->m_pRenderer = this;
 			return RenderTargetHandle<T>(handle, this);
 		}
@@ -145,7 +128,7 @@ namespace Zap {
 
 		FramebufferHandle createFramebuffer(VkRenderPass renderPass, std::initializer_list<RenderTargetHandle<>> targets) {
 			auto handle = UUID();
-			m_framebufferMap[handle] = std::move(std::make_unique<Framebuffer>(renderPass, targets));
+			m_framebufferMap[handle] = std::move(std::make_unique<Framebuffer>(this, renderPass, targets));
 			return FramebufferHandle(handle, this);
 		}
 
@@ -158,7 +141,7 @@ namespace Zap {
 		DescriptorSetHandle<T> createDescriptorSet(Types&&... args) {
 			static_assert(std::is_base_of_v<DescriptorSet, T>, "Type has to be child class of DescriptorSet");
 			auto handle = UUID();
-			m_descriptorSetMap[handle] = std::move(std::make_unique<T>(std::forward<Types>(args)...));
+			m_descriptorSetMap[handle] = std::move(std::make_unique<T>(this, std::forward<Types>(args)...));
 			m_descriptorSetMap.at(handle)->m_pRenderer = this;
 			return DescriptorSetHandle<T>(handle, this);
 		}
@@ -183,6 +166,8 @@ namespace Zap {
 	private:
 #endif
 		bool m_isInit = false;
+
+		RenderEventHandler m_eventHandler;
 
 		std::unordered_map<UUID, std::unique_ptr<RenderTask>> m_renderTaskMap = {};
 		std::unordered_map<UUID, std::unique_ptr<RenderTarget>> m_renderTargetMap = {};
@@ -229,6 +214,7 @@ namespace Zap {
 
 		RenderTask* getRenderTaskOrdered(uint32_t index);
 		
+		friend class RenderObject;
 		template<class T>
 		friend class RenderTaskHandle;
 		friend class RenderTask;
@@ -239,7 +225,7 @@ namespace Zap {
 		friend class DescriptorSetHandle;
 		friend class DescriptorSet;
 		friend class Window;
-		friend class PBRenderer;//TODO add rendertoolkit for userdefined rendertasks
+		friend class PBRenderer;
 		friend class RaytracingRenderer;
 		friend class PathTracer;
 		friend class Gui;

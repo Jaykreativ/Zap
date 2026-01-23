@@ -7,10 +7,12 @@
 #include "Zap/Scene/Mesh.h"
 
 namespace Zap {
-	RenderTask::RenderTask() {}
+	RenderTask::RenderTask(Renderer* pRenderer)
+		: RenderObject(pRenderer)
+	{}
 
-	RenderTask::RenderTask(Scene* pScene)
-		: m_pScene(pScene)
+	RenderTask::RenderTask(Renderer* pRenderer, Scene* pScene)
+		: RenderObject(pRenderer), m_pScene(pScene)
 	{}
 
 	RenderTask::~RenderTask(){}

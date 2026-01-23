@@ -57,8 +57,8 @@ void updateAccelerationStructureDescriptorSetRT(vk::Registerable* obj, vk::Regis
 }
 
 namespace Zap {
-	RaytracingRenderer::RaytracingRenderer(Scene* pScene)
-		: m_pScene(pScene)
+	RaytracingRenderer::RaytracingRenderer(Renderer* pRenderer, Scene* pScene)
+		: RenderTask(pRenderer, pScene), m_pScene(pScene)
 	{
 		auto base = Base::getBase();
 		auto settings = base->getSettings();

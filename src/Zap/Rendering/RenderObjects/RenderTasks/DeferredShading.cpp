@@ -103,12 +103,8 @@ namespace Zap {
 	//	emissive.destroy();
 	//}
 
-	GeometryPass::GeometryPass(Scene* pScene)
-		: RenderTask(pScene), m_pScene(pScene)
-	{}
-
-	GeometryPass::GeometryPass(const GeometryPass& geometryPass)
-		: m_pScene(geometryPass.m_pScene)
+	GeometryPass::GeometryPass(Renderer* pRenderer, Scene* pScene)
+		: RenderTask(pRenderer, pScene), m_pScene(pScene)
 	{}
 
 	GeometryPass::~GeometryPass() {}

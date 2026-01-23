@@ -63,12 +63,10 @@ namespace Zap {
 		for (auto& targetPair : m_renderTargetMap) {
 			targetPair.second->resizeInternal(size); // call the internal resize function of all targets
 		}
-		for (auto& framebufferPair : m_framebufferMap) {
-			framebufferPair.second->update(); // update all framebuffers after resizing their contents
-		}
-		for (auto& taskPair : m_renderTaskMap) {
-			taskPair.second->onResize();
-		}
+
+		RenderEvent::Resize resizeEvent;
+		resizeEvent.size = size;
+		m_eventHandler.pushEvent(resizeEvent);
 	}
 
 	void Renderer::render() {

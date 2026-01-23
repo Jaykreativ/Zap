@@ -19,7 +19,7 @@ namespace Zap {
 		glm::vec4 clearColor        = { 0.0f, 0.0f, 0.0f, 1.0f };
 		glm::vec2 clearDepthStencil = { 1.0f, 0.0f };
 
-		PBRenderer(RenderTargetHandle<> target, Scene* pScene);
+		PBRenderer(Renderer* pRenderer, RenderTargetHandle<> target, Scene* pScene);
 		PBRenderer(const PBRenderer& pbrenderer);
 		~PBRenderer();
 

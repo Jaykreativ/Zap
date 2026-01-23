@@ -27,7 +27,7 @@ namespace Zap {
 
 	class DebugRenderTask : public Zap::RenderTask {
 	public:
-		DebugRenderTask();
+		DebugRenderTask(Renderer* pRenderer);
 		~DebugRenderTask();
 
 		void updateCamera(Zap::Actor cam);

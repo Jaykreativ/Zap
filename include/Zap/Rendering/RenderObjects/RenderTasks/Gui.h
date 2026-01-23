@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Rendering/RenderObject.h"
 #include "Zap/Rendering/RenderObjects/RenderTask.h"
 #include "Zap/Rendering/RenderObjects/RenderTargets.h"
 #include "Zap/Rendering/RenderObjects/Framebuffer.h"
@@ -29,7 +30,7 @@ namespace Zap {
 
 	class Gui : public RenderTask {
 	public:
-		Gui(RenderTargetHandle<> target);
+		Gui(Renderer* pRenderer, RenderTargetHandle<> target);
 		~Gui();
 
 		GuiTexture loadTexture(Zap::Image* pImage);
