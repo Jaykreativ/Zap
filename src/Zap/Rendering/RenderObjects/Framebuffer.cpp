@@ -19,7 +19,7 @@ namespace Zap {
 	}
 
 	Framebuffer::Framebuffer(Renderer* pRenderer, VkRenderPass renderPass, std::initializer_list<RenderTargetHandle<>> targets)
-		: RenderObject(pRenderer), RenderEventListener<RenderEvent::Resize>(getEventHandler()), m_targets(targets)
+		: RenderObject(pRenderer), EventListener<RenderEvent::Resize>(getEventHandler()), m_targets(targets)
 	{
 		uint32_t imageCount = 0;
 		uint32_t swapchainCount = 0;

@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace Zap {
-	class Framebuffer : virtual public RenderObject, public RenderEventListener<RenderEvent::Resize> {
+	class Framebuffer : virtual public RenderObject, public EventListener<RenderEvent::Resize> {
 	public:
 		Framebuffer(Renderer* pRenderer, VkRenderPass renderPass, std::initializer_list<RenderTargetHandle<>> targets);
 		~Framebuffer();

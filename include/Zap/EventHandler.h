@@ -1,35 +1,81 @@
 #pragma once
 
-#include <set>
+#include <vector>
 
 namespace Zap {
-	template<typename T>
-	class EventHandler
-	{
-	private:
-		// uses a string of the combined values of the function ptr and the data pointer as key
-		std::set<std::pair<void (*)(T& eventParams, void* customParams), void*>> m_callbacks = {};
+	class Event {};
 
-		//std::vector<void*> m_customParams = {};
-		//std::vector<void (*)(T& eventParams, void* customParams)> m_callbacks = {};
+	template<class T>
+	class EventHandler;
+
+	template<class T>
+	class EventListener {
+	public:
+		EventListener(EventHandler<T>& handler);
+		~EventListener();
+
+		virtual void callback(const T& event) = 0;
+
+	private:
+		EventHandler<T>* m_pHandler = nullptr;
+
+		void resetHandler() {
+			m_pHandler = nullptr;
+		}
+
+		friend EventHandler<T>;
+	};
+
+	template<class T>
+	class EventHandler {
+	private:
+		std::vector<EventListener<T>*> m_listeners = {};
 
 	public:
-		EventHandler() = default;
-		~EventHandler() = default;
+		void addListener(EventListener<T>* pListener) {
+			m_listeners.push_back(pListener);
+		}
 
-		void pushEvent(T& event) {
-			for (auto const& callbackPair : m_callbacks) {
-				callbackPair.first(event, callbackPair.second);
+		void removeListener(EventListener<T>* pListener) {
+			for (auto it = m_listeners.begin(); it != m_listeners.end(); it++) {
+				if (*it == pListener) {
+					m_listeners.erase(it);
+					return;
+				}
+			}
+			ZP_WARN(false, "EventListenerList::remove(pListener) | listener is not part of list, cannot be removed");
+		}
+
+		void pushEvent(const T& event) const {
+			for (EventListener<T>* pListener : m_listeners) {
+				pListener->callback(event);
 			}
 		}
 
-		void addCallback(void (*callback)(T& eventParams, void* customParams), void* customData = nullptr) {
-			m_callbacks.insert(std::pair<void (*)(T & eventParams, void* customParams), void*>(callback, customData));
+	protected:
+		EventHandler() {
+			static_assert(std::is_base_of_v<Event, T>, "EventHandler: Type has to be child class of Event");
 		}
-
-		void removeCallback(void (*callback)(T& eventParams, void* customParams), void* customData = nullptr) {
-			m_callbacks.erase(std::pair<void (*)(T & eventParams, void* customParams), void*>(callback, customData));
+		~EventHandler() {
+			for (auto* pListener : m_listeners) {
+				pListener->resetHandler();
+			}
 		}
 	};
+
+	template<class T>
+	EventListener<T>::EventListener(EventHandler<T>& handler)
+		: m_pHandler(&handler)
+	{
+		static_assert(std::is_base_of_v<Event, T>, "EventListener: Type has to be child class of Event");
+		m_pHandler->addListener(this);
+	}
+
+	template<class T>
+	EventListener<T>::~EventListener() {
+		if(m_pHandler)
+			m_pHandler->removeListener(this);
+	}
+
 }
 
