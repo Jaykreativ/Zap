@@ -2,8 +2,7 @@
 
 #include "Zap/Zap.h"
 #include "Zap/UUID.h"
-#include "Zap/Event.h"
-#include "Zap/EventHandler.h"
+#include "Zap/Events.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Camera.h"
 #include "Zap/Scene/Light.h"

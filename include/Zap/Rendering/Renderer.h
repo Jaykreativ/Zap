@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
-#include "Zap/Rendering/RenderEvents.h"
+#include "Zap/Events.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/RenderObjects/RenderTargets.h"
 #include "Zap/Rendering/RenderObjects/Framebuffer.h"

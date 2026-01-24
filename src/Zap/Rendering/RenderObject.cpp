@@ -1,7 +1,7 @@
 #include "Zap/Rendering/RenderObject.h"
 
+#include "Zap/Events.h"
 #include "Zap/Rendering/Renderer.h"
-#include "Zap/Rendering/RenderEvents.h"
 
 namespace Zap {
 	RenderObject::RenderObject(Renderer* pRenderer)

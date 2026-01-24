@@ -1,5 +1,9 @@
 #pragma once
 
+#include "Zap/Zap.h"
+
+#include "glm.hpp"
+
 #include <vector>
 
 namespace Zap {
@@ -73,9 +77,27 @@ namespace Zap {
 
 	template<class T>
 	EventListener<T>::~EventListener() {
-		if(m_pHandler)
+		if (m_pHandler)
 			m_pHandler->removeListener(this);
 	}
 
+	namespace RenderEvent {
+		class RenderEvent : public Event {};
+
+		class Resize : public RenderEvent{
+		public:
+			glm::vec2 size;
+		};
+	}
+
+	class RenderEventHandler :
+		public EventHandler<RenderEvent::Resize>
+	{
+	private:
+		RenderEventHandler() = default;
+		~RenderEventHandler() = default;
+
+		friend class Renderer;
+	};
 }
 

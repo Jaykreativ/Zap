@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Zap/UUID.h"
-#include "Zap/EventHandler.h"
+#include "Zap/Events.h"
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Material.h"
 #include "Zap/Scene/Texture.h"

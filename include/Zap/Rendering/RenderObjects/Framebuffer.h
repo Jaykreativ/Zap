@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Zap/Events.h"
 #include "Zap/Rendering/RenderObject.h"
-#include "Zap/Rendering/RenderEvents.h"
 #include "Zap/Rendering/RenderObjects/RenderTargets.h"
 
 #include <vector>

@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
-#include "Zap/EventHandler.h"
-#include "Zap/Event.h"
+#include "Zap/Events.h"
 
 namespace Zap
 {
