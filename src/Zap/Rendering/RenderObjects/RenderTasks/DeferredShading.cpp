@@ -104,7 +104,8 @@ namespace Zap {
 	//}
 
 	GeometryPass::GeometryPass(Renderer* pRenderer, Scene* pScene)
-		: RenderTask(pRenderer, pScene), m_pScene(pScene)
+		: RenderTask(pRenderer, pScene), m_pScene(pScene),
+		EventListener<AssetHandlerEvent::TextureLoad>(Base::getBase()->getAssetHandler()->getEventHandler())
 	{}
 
 	GeometryPass::~GeometryPass() {}
@@ -297,8 +298,6 @@ namespace Zap {
 		m_pipeline.addPushConstantRange(pushConstantRange);
 
 		m_pipeline.init();
-
-		Base::getBase()->getAssetHandler()->getTextureLoadEventHandler()->addCallback(textureLoadCallback, this);
 	}
 
 	void GeometryPass::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
@@ -503,8 +502,7 @@ namespace Zap {
 		m_areTexturesOutdated = false;
 	}
 
-	void GeometryPass::textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams) {
-		Zap::GeometryPass* pObj = reinterpret_cast<Zap::GeometryPass*>(customParams);
-		pObj->m_areTexturesOutdated = true;
+	void GeometryPass::callback(const AssetHandlerEvent::TextureLoad& event) {
+		m_areTexturesOutdated = true;
 	}
 }

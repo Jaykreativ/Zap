@@ -17,79 +17,6 @@
 namespace Zap {
 	class Actor; // forward declaration
 	class DebugRenderVertex;
-
-	class SceneUpdateEvent : public Event {
-	public:
-		SceneUpdateEvent(Scene* pScene)
-			: pScene(pScene)
-		{};
-		~SceneUpdateEvent() = default;
-
-		Scene* pScene = nullptr;
-	};
-
-	class AddActorEvent : public Event {
-	public:
-		AddActorEvent(Scene* pScene, Actor actor)
-			: pScene(pScene), actor(actor)
-		{};
-		~AddActorEvent() = default;
-
-		Scene* pScene;
-		Actor actor;
-	};
-
-	class RemoveActorEvent : public Event {
-	public:
-		RemoveActorEvent(Scene* pScene, Actor actor)
-			: pScene(pScene), actor(actor)
-		{};
-		~RemoveActorEvent() = default;
-
-		Scene* pScene;
-		Actor actor;
-	};
-	
-	class AddLightEvent : public AddActorEvent {
-	public:
-		AddLightEvent(Scene* pScene, Actor actor, uint32_t lightCount)
-			: AddActorEvent(pScene, actor), lightCount(lightCount)
-		{};
-		~AddLightEvent() = default;
-
-		uint32_t lightCount = 0;
-	};
-
-	class RemoveLightEvent : public RemoveActorEvent {
-	public:
-		RemoveLightEvent(Scene* pScene, Actor actor, uint32_t lightCount)
-			: RemoveActorEvent(pScene, actor), lightCount(lightCount)
-		{};
-		~RemoveLightEvent() = default;
-
-		uint32_t lightCount = 0;
-	};
-
-	class AddModelEvent : public AddActorEvent {
-	public:
-		AddModelEvent(Scene* pScene, Actor actor, uint32_t modelCount)
-			: AddActorEvent(pScene, actor), modelCount(modelCount)
-		{};
-		~AddModelEvent() = default;
-
-		uint32_t modelCount = 0;
-	};
-
-	class RemoveModelEvent : public RemoveActorEvent {
-	public:
-		RemoveModelEvent(Scene* pScene, Actor actor, uint32_t modelCount)
-			: RemoveActorEvent(pScene, actor), modelCount(modelCount)
-		{};
-		~RemoveModelEvent() = default;
-
-		uint32_t modelCount = 0;
-	};
-
 	struct SceneDesc {
 		glm::vec3 gravity = {0, -9.81, 0};
 	};
@@ -132,19 +59,7 @@ namespace Zap {
 		*/
 		bool getPxDebugVertices(std::vector<DebugRenderVertex>& debugVertices);
 
-		EventHandler<SceneUpdateEvent>* getSceneUpdateEventHandler();
-
-		EventHandler<AddActorEvent>* getAddActorEventHandler();
-		
-		EventHandler<AddLightEvent>* getAddLightEventHandler();
-
-		EventHandler<AddModelEvent>* getAddModelEventHandler();
-
-		EventHandler<RemoveActorEvent>* getRemoveActorEventHandler();
-
-		EventHandler<RemoveLightEvent>* getRemoveLightEventHandler();
-
-		EventHandler<RemoveModelEvent>* getRemoveModelEventHandler();
+		SceneEventHandler& getEventHandler();
 
 #ifndef ZP_ALL_PUBLIC
 	private:
@@ -169,13 +84,7 @@ namespace Zap {
 #endif
 #endif
 
-		EventHandler<SceneUpdateEvent> m_sceneUpdateEventHandler;
-		EventHandler<AddActorEvent> m_addActorEventHandler;
-		EventHandler<AddLightEvent> m_addLightEventHandler;
-		EventHandler<AddModelEvent> m_addModelEventHandler;
-		EventHandler<RemoveActorEvent> m_removeActorEventHandler;
-		EventHandler<RemoveLightEvent> m_removeLightEventHandler;
-		EventHandler<RemoveModelEvent> m_removeModelEventHandler;
+		SceneEventHandler m_eventHandler;
 
 		struct LightData {
 			alignas(16) glm::vec3 pos;

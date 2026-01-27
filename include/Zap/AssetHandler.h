@@ -127,7 +127,7 @@ namespace Zap {
 		void destroyAssets();
 
 		// events
-		EventHandler<TextureLoadEvent>* getTextureLoadEventHandler();
+		AssetHandlerEventHandler& getEventHandler();
 
 	private:
 		class pairhash {
@@ -162,7 +162,7 @@ namespace Zap {
 		std::unordered_map<std::pair<std::filesystem::path, uint32_t>, UUID, pairhash> m_pathHitMeshMap = {};
 
 		// Events
-		EventHandler<TextureLoadEvent> m_textureLoadEventHandler;
+		AssetHandlerEventHandler m_eventHandler;
 
 		// register assets for Asset Library
 

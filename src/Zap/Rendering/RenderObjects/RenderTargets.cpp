@@ -130,14 +130,10 @@ namespace Zap {
 
 	// Window
 	RenderTargetWindow::RenderTargetWindow(Renderer* pRenderer, Window& window)
-		: RenderTarget(pRenderer), m_window(window)
-	{
-		m_window.getResizeEventHandler()->addCallback(resizeCallback, this);
-	}
+		: RenderTarget(pRenderer), EventListener<WindowEvent::Resize>(window.getEventHandler()), m_window(window)
+	{}
 
-	RenderTargetWindow::~RenderTargetWindow() {
-		m_window.getResizeEventHandler()->removeCallback(resizeCallback, this);
-	}
+	RenderTargetWindow::~RenderTargetWindow() {}
 
 	void RenderTargetWindow::recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) {
 		auto image = m_window.getSwapchain()->getImage(m_window.getSwapchainImageIndex());
@@ -172,8 +168,7 @@ namespace Zap {
 
 	void RenderTargetWindow::resizeInternal(glm::vec2 size) {}
 
-	void RenderTargetWindow::resizeCallback(ResizeEvent& eventParams, void* customParams) {
-		RenderTargetWindow* pObj = reinterpret_cast<RenderTargetWindow*>(customParams);
-		pObj->resize({ eventParams.width, eventParams.height });
+	void RenderTargetWindow::callback(const WindowEvent::Resize& event) {
+		resize({ event.width, event.height });
 	}
 }

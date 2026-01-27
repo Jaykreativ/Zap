@@ -44,11 +44,13 @@ void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable
 
 namespace Zap {
 	PBRenderer::PBRenderer(Renderer* pRenderer, RenderTargetHandle<> target, Scene* pScene)
-		: RenderTask(pRenderer, pScene), m_target(target), m_pScene(pScene)
+		: RenderTask(pRenderer, pScene), m_target(target), m_pScene(pScene),
+		EventListener<AssetHandlerEvent::TextureLoad>(Base::getBase()->getAssetHandler()->getEventHandler())
 	{}
 
 	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
-		: RenderTask(pbrenderer.m_pRenderer, pbrenderer.m_pScene), m_pScene(pbrenderer.m_pScene)
+		: RenderTask(pbrenderer.m_pRenderer, pbrenderer.m_pScene), m_pScene(pbrenderer.m_pScene),
+		EventListener<AssetHandlerEvent::TextureLoad>(Base::getBase()->getAssetHandler()->getEventHandler())
 	{}
 
 	PBRenderer::~PBRenderer() {}
@@ -252,12 +254,9 @@ namespace Zap {
 		m_pipeline.addPushConstantRange(pushConstantRange);
 
 		m_pipeline.init();
-
-		Base::getBase()->getAssetHandler()->getTextureLoadEventHandler()->addCallback(textureLoadCallback, this);
 	}
 
 	void PBRenderer::destroy() {
-		Base::getBase()->getAssetHandler()->getTextureLoadEventHandler()->removeCallback(textureLoadCallback, this);
 		m_pipeline.destroy();
 		m_fragmentShader.destroy();
 		m_vertexShader.destroy();
@@ -438,8 +437,7 @@ namespace Zap {
 		m_areTexturesOutdated = false;
 	}
 
-	void PBRenderer::textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams) {
-		Zap::PBRenderer* pObj = reinterpret_cast<Zap::PBRenderer*>(customParams);
-		pObj->m_areTexturesOutdated = true;
+	void PBRenderer::callback(const AssetHandlerEvent::TextureLoad& event) {
+		m_areTexturesOutdated = true;
 	}
 }

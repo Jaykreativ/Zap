@@ -1,12 +1,15 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Events.h"
 #include "Zap/Rendering/RenderObjects/RenderTask.h"
 
 #include "glm.hpp"
 
 namespace Zap {
-	class GeometryPass : public RenderTask {
+	class GeometryPass : public RenderTask,
+		public EventListener<AssetHandlerEvent::TextureLoad>
+	{
 	public:
 		glm::vec4 clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 		glm::vec2 clearDepthStencil = { 1.0f, 0.0f };
@@ -76,7 +79,6 @@ namespace Zap {
 
 		void updateTextureDescriptor();
 
-		static void textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams);
-
+		void callback(const AssetHandlerEvent::TextureLoad& event) override;
     };
 }

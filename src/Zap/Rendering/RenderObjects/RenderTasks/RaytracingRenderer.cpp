@@ -58,7 +58,8 @@ void updateAccelerationStructureDescriptorSetRT(vk::Registerable* obj, vk::Regis
 
 namespace Zap {
 	RaytracingRenderer::RaytracingRenderer(Renderer* pRenderer, Scene* pScene)
-		: RenderTask(pRenderer, pScene), m_pScene(pScene)
+		: RenderTask(pRenderer, pScene), m_pScene(pScene),
+		EventListener<AssetHandlerEvent::TextureLoad>(Base::getBase()->getAssetHandler()->getEventHandler())
 	{
 		auto base = Base::getBase();
 		auto settings = base->getSettings();
@@ -254,8 +255,6 @@ namespace Zap {
 		base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetRT);
 		base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetRT);
 		base->m_registery.connect(&m_tlas, &m_rtDescriptorSet, updateAccelerationStructureDescriptorSetRT);
-
-		Base::getBase()->getAssetHandler()->getTextureLoadEventHandler()->addCallback(textureLoadCallback, this);
 	}
 
 	void RaytracingRenderer::initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
@@ -412,8 +411,7 @@ namespace Zap {
 		m_areTexturesOutdated = false;
 	}
 
-	void RaytracingRenderer::textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams) {
-		Zap::RaytracingRenderer* pObj = reinterpret_cast<Zap::RaytracingRenderer*>(customParams);
-		pObj->m_areTexturesOutdated = true;
+	void RaytracingRenderer::callback(const AssetHandlerEvent::TextureLoad& event) {
+		m_areTexturesOutdated = true;
 	}
 }

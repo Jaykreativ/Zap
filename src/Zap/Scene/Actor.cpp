@@ -1,4 +1,5 @@
 #include "Zap/Zap.h"
+#include "Zap/Events.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Model.h"
@@ -21,7 +22,7 @@ namespace Zap {
 	Actor::~Actor(){}
 	
 	void Actor::destroy() {
-		m_pScene->getRemoveActorEventHandler()->pushEvent(RemoveActorEvent(m_pScene, *this));
+		m_pScene->getEventHandler().EventHandler<SceneEvent::RemoveActor>::pushEvent(SceneEvent::RemoveActor(m_pScene, *this));
 		if (hasCamera())
 			destroyCamera();
 		if (hasLight())
@@ -158,7 +159,7 @@ namespace Zap {
 		Model* cmp = &(m_pScene->m_modelComponents[m_handle] = model);
 		m_pScene->m_meshInstanceCount += cmp->meshes.size();
 
-		m_pScene->getAddModelEventHandler()->pushEvent(AddModelEvent(m_pScene, *this, m_pScene->m_modelComponents.size()));
+		m_pScene->getEventHandler().EventHandler<SceneEvent::AddModel>::pushEvent(SceneEvent::AddModel(m_pScene, *this, m_pScene->m_modelComponents.size()));
 	}
 
 	void Actor::destroyModel() {
@@ -167,7 +168,7 @@ namespace Zap {
 		m_pScene->m_meshInstanceCount -= cmp->meshes.size();
 		m_pScene->m_modelComponents.erase(m_handle);
 
-		m_pScene->getRemoveModelEventHandler()->pushEvent(RemoveModelEvent(m_pScene, *this, m_pScene->m_modelComponents.size()));
+		m_pScene->getEventHandler().EventHandler<SceneEvent::RemoveModel>::pushEvent(SceneEvent::RemoveModel(m_pScene, *this, m_pScene->m_modelComponents.size()));
 	}
 
 	bool Actor::hasModel() {
@@ -469,7 +470,7 @@ namespace Zap {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		ZP_ASSERT(!m_pScene->m_lightComponents.count(m_handle), "Actor can't have multiple lights");
 		m_pScene->m_lightComponents[m_handle] = light;
-		m_pScene->m_addLightEventHandler.pushEvent(AddLightEvent(m_pScene, *this, m_pScene->m_lightComponents.size()));
+		m_pScene->getEventHandler().EventHandler<SceneEvent::AddLight>::pushEvent(SceneEvent::AddLight(m_pScene, *this, m_pScene->m_lightComponents.size()));
 	}
 
 	void Actor::addLight(glm::vec3 color, float strength, float radius) {
@@ -479,7 +480,7 @@ namespace Zap {
 	void Actor::destroyLight() {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		m_pScene->m_lightComponents.erase(m_handle);
-		m_pScene->getRemoveLightEventHandler()->pushEvent(RemoveLightEvent(m_pScene, *this, m_pScene->m_lightComponents.size()));
+		m_pScene->getEventHandler().EventHandler<SceneEvent::RemoveLight>::pushEvent(SceneEvent::RemoveLight(m_pScene, *this, m_pScene->m_lightComponents.size()));
 	}
 
 	bool Actor::hasLight() {

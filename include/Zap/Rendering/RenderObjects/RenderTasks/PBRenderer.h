@@ -13,7 +13,8 @@
 namespace Zap {
 	class Scene;
 
-	class PBRenderer : public RenderTask
+	class PBRenderer : public RenderTask,
+		public EventListener<AssetHandlerEvent::TextureLoad>
 	{
 	public:
 		glm::vec4 clearColor        = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -84,7 +85,7 @@ namespace Zap {
 
 		void updateTextureDescriptor();
 
-		static void textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams);
+		void callback(const AssetHandlerEvent::TextureLoad& event) override;
 	};
 }
 

@@ -7,7 +7,8 @@
 namespace Zap {
 	class Actor; //forward declaration
 
-	class RaytracingRenderer : public RenderTask
+	class RaytracingRenderer : public RenderTask,
+		public EventListener<AssetHandlerEvent::TextureLoad>
 	{
 	public:
 		RaytracingRenderer(Renderer* pRenderer, Scene* pScene);
@@ -58,7 +59,7 @@ namespace Zap {
 
 		void updateTextureDescriptor();
 
-		static void textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams);
+		void callback(const AssetHandlerEvent::TextureLoad& event) override;
 	};
 }
 

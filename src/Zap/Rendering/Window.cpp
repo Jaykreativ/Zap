@@ -80,59 +80,39 @@ namespace Zap {
 		glfwShowWindow(m_window);
 	}
 
-	EventHandler<ResizeEvent>* Window::getResizeEventHandler() {
-		return &m_resizeEventHandler;
-	}
-
-	EventHandler<KeyEvent>* Window::getKeyEventHandler() {
-		return &m_keyEventHandler;
-	}
-
-	EventHandler<CursorPosEvent>* Window::getCursorPosEventHandler() {
-		return &m_cursorPosEventHandler;
-	}
-
-	EventHandler<MouseButtonEvent>* Window::getMouseButtonEventHandler() {
-		return &m_mouseButtonEventHandler;
-	}
-
-	EventHandler<ScrollEvent>* Window::getScrollEventHandler() {
-		return &m_scrollEventHandler;
-	}
-
-	EventHandler<DragDropEvent>* Window::getDragDropEventHandler() {
-		return &m_dragDropEventHandler;
+	WindowEventHandler& Window::getEventHandler() {
+		return m_eventHandler;
 	}
 
 	void Window::resizeGLFWCallback(GLFWwindow* window, int width, int height) {
 		Window* pWindow = Window::glfwWindowMap.at(window);
 		pWindow->resize(window, width, height);
-		pWindow->getResizeEventHandler()->pushEvent(ResizeEvent(pWindow, width, height));
+		pWindow->getEventHandler().EventHandler<WindowEvent::Resize>::pushEvent(WindowEvent::Resize(pWindow, width, height));
 	}
 
 	void Window::keyGLFWCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		Window* pWindow = Window::glfwWindowMap.at(window);
-		pWindow->getKeyEventHandler()->pushEvent(KeyEvent(pWindow, key, scancode, action, mods));
+		pWindow->getEventHandler().EventHandler<WindowEvent::Key>::pushEvent(WindowEvent::Key(pWindow, key, scancode, action, mods));
 	}
 
 	void Window::cursorPosGLFWCallback(GLFWwindow* window, double xPos, double yPos) {
 		Window* pWindow = Window::glfwWindowMap.at(window);
-		pWindow->getCursorPosEventHandler()->pushEvent(CursorPosEvent(pWindow, xPos, yPos));
+		pWindow->getEventHandler().EventHandler<WindowEvent::CursorPos>::pushEvent(WindowEvent::CursorPos(pWindow, xPos, yPos));
 	}
 
 	void Window::mouseButtonGLFWCallback(GLFWwindow* window, int button, int action, int mods) {
 		Window* pWindow = Window::glfwWindowMap.at(window);
-		pWindow->getMouseButtonEventHandler()->pushEvent(MouseButtonEvent(pWindow, button, action, mods));
+		pWindow->getEventHandler().EventHandler<WindowEvent::MouseButton>::pushEvent(WindowEvent::MouseButton(pWindow, button, action, mods));
 	}
 
 	void Window::scrollGLFWCallback(GLFWwindow* window, double xoffset, double yoffset) {
 		Window* pWindow = Window::glfwWindowMap.at(window);
-		pWindow->getScrollEventHandler()->pushEvent(ScrollEvent(pWindow, xoffset, yoffset));
+		pWindow->getEventHandler().EventHandler<WindowEvent::Scroll>::pushEvent(WindowEvent::Scroll(pWindow, xoffset, yoffset));
 	}
 
 	void Window::dragDropGLFWCallback(GLFWwindow* window, int path_count, const char* paths[]) {
 		Window* pWindow = Window::glfwWindowMap.at(window);
-		pWindow->getDragDropEventHandler()->pushEvent(DragDropEvent(pWindow, path_count, paths));
+		pWindow->getEventHandler().EventHandler<WindowEvent::DragDrop>::pushEvent(WindowEvent::DragDrop(pWindow, path_count, paths));
 	}
 
 	void Window::resize(GLFWwindow* window, int width, int height) {

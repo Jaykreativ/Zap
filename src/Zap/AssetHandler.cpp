@@ -357,8 +357,8 @@ namespace Zap {
 		m_texturePaths = {};
 	}
 
-	EventHandler<TextureLoadEvent>* AssetHandler::getTextureLoadEventHandler() {
-		return &m_textureLoadEventHandler;
+	AssetHandlerEventHandler& AssetHandler::getEventHandler() {
+		return m_eventHandler;
 	}
 
 	void AssetHandler::registerTexture(Texture texture, std::filesystem::path filepath) {
@@ -406,6 +406,6 @@ namespace Zap {
 
 	void AssetHandler::addLoadedTexture(Texture texture) {
 		m_loadedTextures.push_back(texture);
-		m_textureLoadEventHandler.pushEvent(TextureLoadEvent(texture));
+		m_eventHandler.EventHandler<AssetHandlerEvent::TextureLoad>::pushEvent(AssetHandlerEvent::TextureLoad(texture));
 	}
 }

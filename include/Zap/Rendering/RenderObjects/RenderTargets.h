@@ -4,8 +4,6 @@
 #include "Zap/Rendering/RenderObject.h"
 
 namespace Zap {
-	class ResizeEvent;
-
 	class RenderTarget : public RenderObject {
 		friend class Renderer;
 	public:
@@ -140,7 +138,9 @@ namespace Zap {
 	};
 
 	// references a Zap window and allows rendering to it
-	class RenderTargetWindow : public RenderTarget {
+	class RenderTargetWindow : public RenderTarget,
+		public EventListener<WindowEvent::Resize>
+	{
 	public:
 		RenderTargetWindow(Renderer* pRenderer, Window& window);
 		~RenderTargetWindow();
@@ -160,7 +160,7 @@ namespace Zap {
 	private:
 		Window& m_window;
 	
-		static void resizeCallback(ResizeEvent& eventParams, void* customParams);
+		void callback(const WindowEvent::Resize& event) override;
 	};
 
 }

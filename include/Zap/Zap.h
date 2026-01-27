@@ -20,6 +20,8 @@
 #include "Zap/AssetHandler.h"
 #include "VulkanFramework.h"
 
+#include "glm.hpp"
+
 #define PX_PHYSX_STATIC_LIB
 #include "PxPhysicsAPI.h"
 

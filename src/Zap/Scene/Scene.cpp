@@ -144,7 +144,7 @@ namespace Zap {
 			m_perMeshInstanceBuffer.unmap();
 		}
 
-		m_sceneUpdateEventHandler.pushEvent(SceneUpdateEvent(this));
+		m_eventHandler.EventHandler<SceneEvent::Update>::pushEvent(SceneEvent::Update(this));
 	}
 
 	void Scene::destroy() {
@@ -163,7 +163,8 @@ namespace Zap {
 
 	void Scene::attachActor(Actor& actor) {
 		actor.m_pScene = this;
-		m_addActorEventHandler.pushEvent(AddActorEvent(this, actor));
+
+		m_eventHandler.EventHandler<SceneEvent::AddActor>::pushEvent(SceneEvent::AddActor(this, actor));
 	}
 
 	bool Scene::raycast(glm::vec3 origin, glm::vec3 unitDir, uint32_t maxDistance, RaycastOutput* out, physx::PxQueryFilterCallback* filterCallback) {
@@ -244,31 +245,7 @@ namespace Zap {
 		return true;
 	}
 
-	EventHandler<SceneUpdateEvent>* Scene::getSceneUpdateEventHandler() {
-		return &m_sceneUpdateEventHandler;
-	}
-
-	EventHandler<AddActorEvent>* Scene::getAddActorEventHandler() {
-		return &m_addActorEventHandler;
-	}
-
-	EventHandler<AddLightEvent>* Scene::getAddLightEventHandler() {
-		return &m_addLightEventHandler;
-	}
-
-	EventHandler<AddModelEvent>* Scene::getAddModelEventHandler() {
-		return &m_addModelEventHandler;
-	}
-
-	EventHandler<RemoveActorEvent>* Scene::getRemoveActorEventHandler() {
-		return &m_removeActorEventHandler;
-	}
-
-	EventHandler<RemoveLightEvent>* Scene::getRemoveLightEventHandler() {
-		return &m_removeLightEventHandler;
-	}
-
-	EventHandler<RemoveModelEvent>* Scene::getRemoveModelEventHandler() {
-		return &m_removeModelEventHandler;
+	SceneEventHandler& Scene::getEventHandler() {
+		return m_eventHandler;
 	}
 }
