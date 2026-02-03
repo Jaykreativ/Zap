@@ -12,45 +12,19 @@
 
 #include <array>
 
-void updateLightBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
-	if (func != vk::eUPDATE)
-		return;
-
-	vk::Buffer* pBuffer = (vk::Buffer*)obj;
-	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
-	auto descriptor = pDescriptorSet->getDescriptor(1);
-	descriptor.bufferInfos[0].pBuffer = pBuffer;
-	descriptor.bufferInfos[0].offset = 0;
-	descriptor.bufferInfos[0].range = pBuffer->getSize();
-	pDescriptorSet->setDescriptor(1, descriptor);
-	
-	pDescriptorSet->update();
-}
-
-void updatePerMeshBufferDescriptorSetPBR(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
-	if (func != vk::eUPDATE)
-		return;
-
-	vk::Buffer* pBuffer = (vk::Buffer*)obj;
-	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
-	auto descriptor = pDescriptorSet->getDescriptor(2);
-	descriptor.bufferInfos[0].pBuffer = pBuffer;
-	descriptor.bufferInfos[0].offset = 0;
-	descriptor.bufferInfos[0].range = pBuffer->getSize();
-	pDescriptorSet->setDescriptor(2, descriptor);
-
-	pDescriptorSet->update();
-}
-
 namespace Zap {
 	PBRenderer::PBRenderer(Renderer* pRenderer, RenderTargetHandle<> target, Scene* pScene)
 		: RenderTask(pRenderer, pScene), m_target(target), m_pScene(pScene),
-		EventListener<AssetHandlerEvent::TextureLoad>(Base::getBase()->getAssetHandler()->getEventHandler())
+		EventListener<AssetHandlerEvent::TextureLoad>(Base::getBase()->getAssetHandler()->getEventHandler()),
+		EventListener<SceneEvent::UpdateMeshInstanceBuffer>(pScene->getEventHandler()),
+		EventListener<SceneEvent::UpdateLightBuffer>(pScene->getEventHandler())
 	{}
 
 	PBRenderer::PBRenderer(const PBRenderer& pbrenderer)
 		: RenderTask(pbrenderer.m_pRenderer, pbrenderer.m_pScene), m_pScene(pbrenderer.m_pScene),
-		EventListener<AssetHandlerEvent::TextureLoad>(Base::getBase()->getAssetHandler()->getEventHandler())
+		EventListener<AssetHandlerEvent::TextureLoad>(Base::getBase()->getAssetHandler()->getEventHandler()),
+		EventListener<SceneEvent::UpdateMeshInstanceBuffer>(pbrenderer.m_pScene->getEventHandler()),
+		EventListener<SceneEvent::UpdateLightBuffer>(pbrenderer.m_pScene->getEventHandler())
 	{}
 
 	PBRenderer::~PBRenderer() {}
@@ -67,7 +41,7 @@ namespace Zap {
 		m_uniformBuffer.init(); m_uniformBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		/* DescriptorSet */
-		m_descriptorSet = m_pRenderer->createDescriptorSet<GenericDescriptorSet>(3); // create the main descriptor set with room for 3 descriptor bindings
+		m_descriptorSet = m_pRenderer->createDescriptorSet<GenericDescriptorSet>(); // create the main descriptor set with room for 3 descriptor bindings
 
 		// Describe bindings for the descriptorSet layout
 		DescriptorSetBinding uniformBufferBinding( // binding #0
@@ -106,7 +80,7 @@ namespace Zap {
 		/* TextureSet */
 		m_textureSet = m_pRenderer->createDescriptorSet<GenericDescriptorSet>();
 
-		Base* base = Base::getBase();// TODO add default texture
+		Base* base = Base::getBase();
 		auto* textureMap = RenderTask::getTextureDataMap();
 		DescriptorSetBinding texturesBinding(
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -127,9 +101,6 @@ namespace Zap {
 			auto write = m_textureSet->writeImage(textureImageInfos.data(), textureImageInfos.size(), 0);
 			m_textureSet->write(1, &write);
 		}
-
-		//base->m_registery.connect(&m_pScene->m_lightBuffer, &m_descriptorSet, updateLightBufferDescriptorSetPBR); TODO update descriptorSets using the renderers event system
-		//base->m_registery.connect(&m_pScene->m_perMeshInstanceBuffer, &m_descriptorSet, updatePerMeshBufferDescriptorSetPBR);
 
 		/*Depth Image*/
 		m_depthTarget = m_pRenderer->createRenderTarget<RenderTargetImage>();
@@ -263,8 +234,8 @@ namespace Zap {
 		m_pRenderer->destroyFramebuffer(m_framebuffer);
 		m_renderPass.destroy();
 		m_pRenderer->destroyRenderTarget(m_depthTarget);
-		m_descriptorSet->destroy();
-		m_textureSet->destroy();
+		m_pRenderer->destroyDescriptorSet(m_descriptorSet);
+		m_pRenderer->destroyDescriptorSet(m_textureSet);
 		m_uniformBuffer.destroy();
 	}
 
@@ -283,7 +254,7 @@ namespace Zap {
 		poolSizes.addSets(2);
 		poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1);
 		poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2);
-		poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1);
+		poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000);
 	}
 
 	void PBRenderer::recordCommands(const vk::CommandBuffer* cmd) {
@@ -398,46 +369,53 @@ namespace Zap {
 	}
 
 	void PBRenderer::updateTextureDescriptor() {
+		m_pRenderer->destroyDescriptorSet(m_textureSet);
+		m_textureSet = m_pRenderer->createDescriptorSet<GenericDescriptorSet>();
+
 		Base* base = Base::getBase();
 		auto* textureMap = RenderTask::getTextureDataMap();
-		std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
+		DescriptorSetBinding texturesBinding(
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			textureMap->size()
+		);
+		std::vector<VkDescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {
 			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
-			vk::DescriptorImageInfo textureImageInfo{};
-			textureImageInfo.pSampler = &base->m_textureSampler;
-			textureImageInfo.pImage = &texturePair.second.image;
-			textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			textureImageInfos[i] = textureImageInfo;
+			textureImageInfos[i] = { base->m_textureSampler, texturePair.second.image.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL };
 		}
 
-		vk::Descriptor texturesDescriptor{};
-		texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		texturesDescriptor.count = textureImageInfos.size();
-		texturesDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
-		texturesDescriptor.binding = 0;
-		texturesDescriptor.imageInfos = textureImageInfos;
+		m_textureSet->addBinding(texturesBinding);
+		m_textureSet->createLayout();
+		m_textureSet->allocate();
+
+		{
+			auto write = m_textureSet->writeImage(textureImageInfos.data(), textureImageInfos.size(), 0);
+			m_textureSet->write(1, &write);
+		}
 		
 		uint32_t oldLoadedTextureCount = m_loadedTextureCount;
 		m_loadedTextureCount = textureMap->size();
-
-		//m_descriptorPool.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_loadedTextureCount - oldLoadedTextureCount);
-		//m_descriptorPool.update();
-		//
-		//m_textureSet.setDescriptor(0, texturesDescriptor);
-		//m_descriptorSet.setDescriptorPool(&m_descriptorPool);
-		//m_textureSet.update();
-		//
-		//m_descriptorSet.setDescriptorPool(&m_descriptorPool);
-		//m_descriptorSet.update();
-		//
-		//m_pipeline.setDescriptorSetLayout(0, m_descriptorSet.getVkDescriptorSetLayout());
-		//m_pipeline.setDescriptorSetLayout(1, m_textureSet.getVkDescriptorSetLayout());
-		//m_pipeline.update();
+		
+		m_pipeline.setDescriptorSetLayout(1, m_textureSet->getLayout());
+		m_pipeline.update();
 
 		m_areTexturesOutdated = false;
 	}
 
 	void PBRenderer::callback(const AssetHandlerEvent::TextureLoad& event) {
 		m_areTexturesOutdated = true;
+	}
+
+	void PBRenderer::callback(const SceneEvent::UpdateLightBuffer& event) {
+		VkDescriptorBufferInfo lightBufferInfo{ *getSceneLightBuffer(), 0, getSceneLightBuffer()->getSize() };
+		VkWriteDescriptorSet write = m_descriptorSet->writeBuffer(lightBufferInfo, 1);
+		m_descriptorSet->write(1, &write);
+	}
+
+	void PBRenderer::callback(const SceneEvent::UpdateMeshInstanceBuffer& event) {
+		VkDescriptorBufferInfo perMeshBufferInfo{ *getScenePerMeshInstanceBuffer(), 0, getScenePerMeshInstanceBuffer()->getSize() };
+		VkWriteDescriptorSet write = m_descriptorSet->writeBuffer(perMeshBufferInfo, 2);
+		m_descriptorSet->write(1, &write);
 	}
 }

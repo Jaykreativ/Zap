@@ -7,24 +7,21 @@ namespace Zap {
 		: m_type(type), m_stages(stages), m_count(count)
 	{}
 
-	DescriptorSet::DescriptorSet(Renderer* pRenderer, uint32_t size)
+	DescriptorSet::DescriptorSet(Renderer* pRenderer)
 		: RenderObject(pRenderer)
-	{
-		m_bindings.resize(size);
+	{}
+
+	DescriptorSet::~DescriptorSet() {
+		destroy();
 	}
 
 	void DescriptorSet::addBinding(const DescriptorSetBinding& binding) {
-		bool hasSpace = m_nextBinding < m_bindings.size();
-		ZP_WARN(hasSpace, "DescriptorSet cannot hold more bindings, adjust DescriptorSet size");
-		if (!hasSpace) return;
-		
-		m_bindings[m_nextBinding] = binding;
-		m_nextBinding++;
+		m_bindings.push_back(binding);
 	}
 
 	void DescriptorSet::createLayout() {
 		auto* bindings = new VkDescriptorSetLayoutBinding[m_bindings.size()];
-		for (uint32_t i = 0; i < m_nextBinding; i++) {
+		for (uint32_t i = 0; i < m_bindings.size(); i++) {
 			bindings[i].binding = i;
 			bindings[i].descriptorType = m_bindings[i].m_type;
 			bindings[i].descriptorCount = m_bindings[i].m_count;
@@ -33,7 +30,7 @@ namespace Zap {
 		}
 
 		VkDescriptorSetLayoutCreateInfo info {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0};
-		info.bindingCount = m_nextBinding;
+		info.bindingCount = m_bindings.size();
 		info.pBindings = bindings;
 		
 		VkResult result = vkCreateDescriptorSetLayout(vk::getDevice(), &info, nullptr, &m_layout); // TODO check result for errors
@@ -89,6 +86,24 @@ namespace Zap {
 		return writeBuffer(&bufferInfo, 1, binding);
 	}
 
+	VkWriteDescriptorSet DescriptorSet::writeGeneric(void* pNext, uint32_t count, uint32_t binding) {
+		bool hasSpace = m_bindings[binding].m_count <= count;
+		ZP_WARN(hasSpace, "Binding has not enough space for all images, confirm image count and the bindings descriptor count match");
+
+		VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+		write.pNext = pNext;
+		write.dstSet = m_descriptorSet;
+		write.dstBinding = binding;
+		write.dstArrayElement = 0;
+		write.descriptorCount = m_bindings[binding].m_count;
+		write.descriptorType = m_bindings[binding].m_type;
+		write.pImageInfo = nullptr;
+		write.pBufferInfo = nullptr;
+		write.pTexelBufferView = nullptr;
+
+		return write;
+	}
+
 	void DescriptorSet::destroy() {
 		VkDescriptorPool pool = m_pRenderer->getDescriptorPool();
 		vkDestroyDescriptorSetLayout(vk::getDevice(), m_layout, nullptr);
@@ -101,7 +116,60 @@ namespace Zap {
 		return m_layout;
 	}
 
-	GenericDescriptorSet::GenericDescriptorSet(Renderer* pRenderer, uint32_t size)
-		: DescriptorSet(pRenderer, size)
+	GenericDescriptorSet::GenericDescriptorSet(Renderer* pRenderer)
+		: DescriptorSet(pRenderer)
 	{}
+
+	RenderTargetDescriptorSet::RenderTargetDescriptorSet(Renderer* pRenderer, RenderTargetHandle<> target, VkShaderStageFlags stages)
+		: DescriptorSet(pRenderer), m_target(target)
+	{
+		initImageDescriptorSet(this, stages);
+
+		if (m_target->getImageCount() > 1) {
+			size_t additionCount = m_target->getImageCount() - 1;
+			for (size_t i = 0; i < additionCount; i++) {
+				auto handle = pRenderer->createDescriptorSet<GenericDescriptorSet>();
+				m_additionalSets.push_back(handle);
+				initImageDescriptorSet(handle.get(), stages);
+			}
+		}
+	}
+
+	RenderTargetDescriptorSet::~RenderTargetDescriptorSet() {
+		for (auto setHandle : m_additionalSets) {
+			m_pRenderer->destroyDescriptorSet(setHandle);
+		}
+	}
+
+	RenderTargetDescriptorSet::operator VkDescriptorSet() {
+		auto index = m_target->getImageIndex();
+		if (index == 0) {
+			return DescriptorSet::operator VkDescriptorSet();
+		}
+		else {
+			return m_additionalSets[index - 1];
+		}
+	}
+
+	void RenderTargetDescriptorSet::write() {
+		writeImageDescriptorSet(this, m_target->getImageView(0), VK_IMAGE_LAYOUT_GENERAL);
+		uint32_t i = 1;
+		for (auto setHandle : m_additionalSets) {
+			writeImageDescriptorSet(setHandle.get(), m_target->getImageView(i + 1), VK_IMAGE_LAYOUT_GENERAL);
+			i++;
+		}
+	}
+	
+	void RenderTargetDescriptorSet::initImageDescriptorSet(DescriptorSet* pDescriptorSet, VkShaderStageFlags stages) {
+		DescriptorSetBinding binding(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, stages);
+		pDescriptorSet->addBinding(binding);
+		pDescriptorSet->createLayout();
+		pDescriptorSet->allocate();
+	}
+
+	void RenderTargetDescriptorSet::writeImageDescriptorSet(DescriptorSet* pDescriptorSet, VkImageView view, VkImageLayout layout) {
+		VkDescriptorImageInfo imageInfo{ nullptr, view, layout };
+		auto write = pDescriptorSet->writeImage(imageInfo);
+		pDescriptorSet->write(1, &write);
+	}
 }

@@ -14,7 +14,7 @@ namespace Zap {
 	class EventListener {
 	public:
 		EventListener(EventHandler<T>& handler);
-		~EventListener();
+		virtual ~EventListener();
 
 		virtual void callback(const T& event) = 0;
 
@@ -39,10 +39,10 @@ namespace Zap {
 		}
 
 		void removeListener(EventListener<T>* pListener) {
-			for (auto it = m_listeners.begin(); it != m_listeners.end(); it++) {
-				if (*it == pListener) {
-					m_listeners.erase(it);
-					return;
+			for (size_t i = 0; i < m_listeners.size(); i++) {
+				if (m_listeners[i] == pListener) {
+					m_listeners.erase(m_listeners.begin()+i);
+					i--;
 				}
 			}
 		}
@@ -57,7 +57,7 @@ namespace Zap {
 		EventHandler() {
 			static_assert(std::is_base_of_v<Event, T>, "EventHandler: Type has to be child class of Event");
 		}
-		~EventHandler() {
+		virtual ~EventHandler() {
 			for (auto* pListener : m_listeners) {
 				pListener->resetHandler();
 			}
@@ -68,12 +68,14 @@ namespace Zap {
 	EventListener<T>::EventListener(EventHandler<T>& handler)
 		: m_pHandler(&handler)
 	{
+		printf("%016" PRIXPTR "\n", this);
 		static_assert(std::is_base_of_v<Event, T>, "EventListener: Type has to be child class of Event");
 		m_pHandler->addListener(this);
 	}
 
 	template<class T>
 	EventListener<T>::~EventListener() {
+		printf("%016" PRIXPTR "\n", this);
 		if (m_pHandler)
 			m_pHandler->removeListener(this);
 	}
@@ -155,6 +157,16 @@ namespace Zap {
 			{}
 			uint32_t modelCount = 0;
 		};
+
+		class UpdateMeshInstanceBuffer : public SceneEvent {
+		public:
+			UpdateMeshInstanceBuffer(){}
+		};
+
+		class UpdateLightBuffer : public SceneEvent {
+		public:
+			UpdateLightBuffer(){}
+		};
 	}
 
 	class SceneEventHandler :
@@ -164,7 +176,9 @@ namespace Zap {
 		public EventHandler<SceneEvent::AddModel>,
 		public EventHandler<SceneEvent::RemoveActor>,
 		public EventHandler<SceneEvent::RemoveLight>,
-		public EventHandler<SceneEvent::RemoveModel>
+		public EventHandler<SceneEvent::RemoveModel>,
+		public EventHandler<SceneEvent::UpdateMeshInstanceBuffer>,
+		public EventHandler<SceneEvent::UpdateLightBuffer>
 	{
 		friend class Scene;
 	};

@@ -18,7 +18,7 @@ namespace Zap {
 		// Can be used by scene dependant tasks to gain access to private storage buffers
 		RenderTask(Renderer* pRenderer, Scene* pScene);
 
-		~RenderTask();
+		virtual ~RenderTask();
 
 		void disable() { m_isEnabled = false; }
 

@@ -63,7 +63,7 @@ namespace Zap {
 
 		if (m_lightComponents.size() * sizeof(LightData) != m_lightBuffer.getSize()) {
 			m_lightBuffer.resize(m_lightComponents.size() * sizeof(LightData));
-			m_lightBuffer.update();
+			m_eventHandler.EventHandler<SceneEvent::UpdateLightBuffer>::pushEvent(SceneEvent::UpdateLightBuffer());
 		}
 
 		void* rawData;
@@ -88,6 +88,7 @@ namespace Zap {
 			m_meshInstanceIndices.clear();
 
 			m_perMeshInstanceBuffer.resize(std::max<size_t>(m_meshInstanceCount, 1) * sizeof(PerMeshInstanceData));
+			m_eventHandler.EventHandler<SceneEvent::UpdateMeshInstanceBuffer>::pushEvent(SceneEvent::UpdateMeshInstanceBuffer());
 			m_perMeshInstanceBuffer.map(&rawData);
 			{
 				PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);

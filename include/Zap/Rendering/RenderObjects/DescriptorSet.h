@@ -2,6 +2,7 @@
 
 #include "Zap/Zap.h"
 #include "Zap/Rendering/RenderObject.h"
+#include "Zap/Rendering/RenderObjects/RenderTargets.h"
 
 namespace Zap {
 // --- Vulkan DescriptorSet Logic ---
@@ -47,9 +48,10 @@ namespace Zap {
 
 	class DescriptorSet : public RenderObject {
 	public:
-		DescriptorSet(Renderer* pRenderer, uint32_t size = 1);
+		DescriptorSet(Renderer* pRenderer);
+		~DescriptorSet();
 
-		operator VkDescriptorSet() { return m_descriptorSet; }
+		virtual operator VkDescriptorSet() { return m_descriptorSet; }
 
 		void addBinding(const DescriptorSetBinding& binding);
 		
@@ -68,20 +70,21 @@ namespace Zap {
 		VkWriteDescriptorSet writeBuffer(const VkDescriptorBufferInfo* pBufferInfos, uint32_t bufferCount, uint32_t binding);
 		VkWriteDescriptorSet writeBuffer(const VkDescriptorBufferInfo& bufferInfo, uint32_t binding = 0);
 
+		VkWriteDescriptorSet writeGeneric(void* pNext, uint32_t count, uint32_t binding);
+
 		static void write(uint32_t writeCount, VkWriteDescriptorSet* pWrites) {
 			vkUpdateDescriptorSets(vk::getDevice(), writeCount, pWrites, 0, nullptr); // TODO check result for errors
 		}
 
-		void destroy();
-
 		VkDescriptorSetLayout getLayout();
 
 	private:
-		uint32_t m_nextBinding = 0;
 		std::vector<DescriptorSetBinding> m_bindings = {};
 
 		VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
 		VkDescriptorSetLayout m_layout = VK_NULL_HANDLE;
+
+		void destroy();
 
 		friend class Renderer;
 	};
@@ -135,13 +138,29 @@ namespace Zap {
 
 	class GenericDescriptorSet : public DescriptorSet {
 	public:
-		GenericDescriptorSet(Renderer* pRenderer, uint32_t size = 1);
+		GenericDescriptorSet(Renderer* pRenderer);
 
 		friend class Renderer;
 	};
 
-	class RenderTargetDescriptorSet {
+	class RenderTargetDescriptorSet : public DescriptorSet {
+	public:
+		RenderTargetDescriptorSet(Renderer* pRenderer, RenderTargetHandle<> target, VkShaderStageFlags stages);
+		~RenderTargetDescriptorSet();
 
+		operator VkDescriptorSet() override;
+
+		void write();
+
+	private:
+		RenderTargetHandle<> m_target;
+		std::vector<DescriptorSetHandle<GenericDescriptorSet>> m_additionalSets = {};
+
+		static void initImageDescriptorSet(DescriptorSet* pDescriptorSet, VkShaderStageFlags stages);
+
+		static void writeImageDescriptorSet(DescriptorSet* pDescriptorSet, VkImageView view, VkImageLayout layout);
+
+		friend class Renderer;
 	};
 
 }

@@ -218,7 +218,7 @@ namespace Zap {
 
 		// load default assets
 		TextureLoader texLoader;
-		glm::u8vec4 texCol = { 255, 255, 255, 255 };
+		glm::u8vec4 texCol = { 255, 0, 255, 255 };
 		texLoader.load(&texCol, 1, 1);
 	}
 
