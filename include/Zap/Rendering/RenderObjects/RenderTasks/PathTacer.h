@@ -3,6 +3,7 @@
 #include "Zap/Zap.h"
 #include "Zap/Rendering/RenderObjects/RenderTask.h"
 #include "Zap/Rendering/RenderObjects/RenderTargets.h"
+#include "Zap/Rendering/RenderObjects/DescriptorSet.h"
 #include "glm.hpp"
 
 namespace Zap {
@@ -15,7 +16,7 @@ namespace Zap {
 	class PathTracer : public RenderTask
 	{
 	public:
-		PathTracer(RenderTargetHandle<> target, Scene* pScene);
+		PathTracer(Renderer* pRenderer, RenderTargetHandle<> target, Scene* pScene);
 		~PathTracer();
 
 		void updateCamera(const Actor camera);
@@ -41,23 +42,25 @@ namespace Zap {
 		vk::Shader m_rmissShader;
 		vk::Shader m_rintShader;
 
-		vk::DescriptorPool m_descriptorPool;
 		/* Set: 0
 		* [0] AccelerationStructure
-		* [1] StorageImage
 		*/
-		vk::DescriptorSet m_rtDescriptorSet;
+		DescriptorSetHandle<GenericDescriptorSet> m_rtDescriptorSet;
 		/* Set: 1
 		* [0] CamUBO
 		* [1] LightBuffer
 		* [2] PerMeshInstanceBuffer
 		* [3] Textures
 		*/
-		vk::DescriptorSet m_descriptorSet;
+		DescriptorSetHandle<GenericDescriptorSet> m_descriptorSet;
 		/* Set: 2
 		* [0] Target
 		*/
-		std::vector<vk::DescriptorSet> m_targetDescriptorSets;
+		DescriptorSetHandle<RenderTargetDescriptorSet> m_targetDescriptorSet;
+		/* Set: 3
+		* [0] StorageImage
+		*/
+		DescriptorSetHandle<RenderTargetDescriptorSet> m_storageDescriptorSet;
 
 		vk::RtPipeline m_rtPipeline;
 
@@ -68,29 +71,21 @@ namespace Zap {
 
 		uint32_t m_loadedTextureCount = 0;
 
-		void init(const LayoutTransitionHelper& layoutTransitionHelper);
+		void addDescriptorPoolSizes(DescriptorPoolSizeList& poolSizes) override;
 
-		void resize();
+		TaskLayoutTransitions getLayoutTransitions() override;
 
-		void destroy();
+		void init(const LayoutTransitionHelper& layoutTransitionHelper) override;
 
-		void beforeRender();
+		void destroy() override;
 
-		void afterRender();
+		void beforeRender() override;
 
-		void recordCommands(const vk::CommandBuffer* cmd);
+		void afterRender() override;
+
+		void recordCommands(const vk::CommandBuffer* cmd) override;
 
 		void updateTextureDescriptor();
-
-		static void textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams);
-
-		static void addLightCallback(AddLightEvent& eventParams, void* customParams);
-
-		static void removeLightCallback(RemoveLightEvent& eventParams, void* customParams);
-
-		static void addModelCallback(AddModelEvent& eventParams, void* customParams);
-
-		static void removeModelCallback(RemoveModelEvent& eventParams, void* customParams);
 	};
 }
 

@@ -143,7 +143,7 @@ namespace Zap {
 
 	RenderTargetDescriptorSet::operator VkDescriptorSet() {
 		auto index = m_target->getImageIndex();
-		if (index == 0) {
+		if (index <= 0) {
 			return DescriptorSet::operator VkDescriptorSet();
 		}
 		else {

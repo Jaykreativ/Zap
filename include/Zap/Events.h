@@ -68,14 +68,12 @@ namespace Zap {
 	EventListener<T>::EventListener(EventHandler<T>& handler)
 		: m_pHandler(&handler)
 	{
-		printf("%016" PRIXPTR "\n", this);
 		static_assert(std::is_base_of_v<Event, T>, "EventListener: Type has to be child class of Event");
 		m_pHandler->addListener(this);
 	}
 
 	template<class T>
 	EventListener<T>::~EventListener() {
-		printf("%016" PRIXPTR "\n", this);
 		if (m_pHandler)
 			m_pHandler->removeListener(this);
 	}
