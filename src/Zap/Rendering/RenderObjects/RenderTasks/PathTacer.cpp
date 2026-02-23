@@ -41,24 +41,17 @@ void updatePerMeshBufferDescriptorSetPT(vk::Registerable* obj, vk::Registerable*
 	pDescriptorSet->update();
 }
 
-void updateAccelerationStructureDescriptorSetPT(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
-	if (func != vk::eUPDATE)
-		return;
-
-	vk::AccelerationStructure* pAccel = (vk::AccelerationStructure*)obj;
-	vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
-	auto descriptor = pDescriptorSet->getDescriptor(0);
-
-	VkWriteDescriptorSetAccelerationStructureKHR* accelerationStructureDescriptor = (VkWriteDescriptorSetAccelerationStructureKHR*)descriptor.pNext;
-	accelerationStructureDescriptor->pAccelerationStructures = pAccel->getVkAccelerationStructureKHRptr();
-
-	pDescriptorSet->setDescriptor(0, descriptor);
-	pDescriptorSet->update();
-}
-
 namespace Zap {
 	PathTracer::PathTracer(Renderer* pRenderer, RenderTargetHandle<> target, Scene* pScene)
-		: RenderTask(pRenderer), m_target(target), m_pScene(pScene)
+		: RenderTask(pRenderer, pScene), m_target(target), m_pScene(pScene),
+		EventListener<RenderEvent::Resize>(getEventHandler()),
+		EventListener<AssetHandlerEvent::TextureLoad>(Base::getBase()->getAssetHandler()->getEventHandler()),
+		EventListener<SceneEvent::AddModel>(pScene->getEventHandler()),
+		EventListener<SceneEvent::RemoveModel>(pScene->getEventHandler()),
+		EventListener<SceneEvent::AddLight>(pScene->getEventHandler()),
+		EventListener<SceneEvent::RemoveLight>(pScene->getEventHandler()),
+		EventListener<SceneEvent::UpdateMeshInstanceBuffer>(pScene->getEventHandler()),
+		EventListener<SceneEvent::UpdateLightBuffer>(pScene->getEventHandler())
 	{
 		auto base = Base::getBase();
 		auto settings = base->getSettings();
@@ -76,7 +69,7 @@ namespace Zap {
 		if (oldView != data->inverseView)
 			resetRender();
 		auto extent = m_target->getExtent();
-		data->inversePerspective = glm::inverse(camera.cmpCamera_getPerspective(extent.width / extent.height));
+		data->inversePerspective = glm::inverse(camera.cmpCamera_getPerspective((float)(extent.width) / extent.height));
 		data->lightCount = m_pScene->m_lightComponents.size();
 		m_UBO.unmap();
 	}
@@ -86,7 +79,7 @@ namespace Zap {
 	}
 
 	void PathTracer::addDescriptorPoolSizes(DescriptorPoolSizeList& poolSizes) {
-		poolSizes.addSets(4);
+		poolSizes.addSets(5);
 		poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1);
 		poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1);
 		poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2);
@@ -159,6 +152,8 @@ namespace Zap {
 		m_storageTarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
 		m_storageTarget->setUsage(VK_IMAGE_USAGE_STORAGE_BIT);
 		m_storageTarget->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+		m_storageTarget->setInitialLayout(VK_IMAGE_LAYOUT_GENERAL);
+		m_storageTarget->setFinalLayout(VK_IMAGE_LAYOUT_GENERAL);
 		m_storageTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		m_UBO = vk::Buffer(sizeof(UBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
@@ -268,7 +263,18 @@ namespace Zap {
 		perMeshInstanceBufferInfo.range = m_pScene->m_perMeshInstanceBuffer.getSize();
 
 		m_descriptorSet->addBinding(perMeshInstanceBufferBinding);
-		
+
+		m_descriptorSet->createLayout();
+		m_descriptorSet->allocate();
+		std::array<VkWriteDescriptorSet, 3> writes = {
+			m_descriptorSet->writeBuffer(camUBOInfo, 0),
+			m_descriptorSet->writeBuffer(lightBufferInfo, 1),
+			m_descriptorSet->writeBuffer(perMeshInstanceBufferInfo, 2)
+		};
+		m_descriptorSet->write(writes.size(), writes.data());
+
+		m_textureSet = m_pRenderer->createDescriptorSet<GenericDescriptorSet>();
+
 		auto* textureMap = RenderTask::getTextureDataMap();
 		DescriptorSetBinding texturesBinding(
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -280,61 +286,28 @@ namespace Zap {
 			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
 			textureImageInfos[i] = { base->m_textureSampler, texturePair.second.image.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL };
 		}
-		m_descriptorSet->addBinding(texturesBinding);
-		m_descriptorSet->createLayout();
-		m_descriptorSet->allocate();
-		std::array<VkWriteDescriptorSet, 4> writes = {
-			m_descriptorSet->writeBuffer(camUBOInfo, 0),
-			m_descriptorSet->writeBuffer(lightBufferInfo, 1),
-			m_descriptorSet->writeBuffer(perMeshInstanceBufferInfo, 2),
-			m_descriptorSet->writeImage(textureImageInfos.data(), textureImageInfos.size(), 3)
-		};
-		m_descriptorSet->write(writes.size(), writes.data());
+		m_textureSet->addBinding(texturesBinding);
+		m_textureSet->createLayout();
+		m_textureSet->allocate();
+		auto textureWrite = m_textureSet->writeImage(textureImageInfos.data(), textureImageInfos.size(), 0);
+		m_textureSet->write(1, &textureWrite);
 
 		m_loadedTextureCount = textureMap->size();
 
 		m_targetDescriptorSet = m_pRenderer->createDescriptorSet<RenderTargetDescriptorSet>(m_target, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
 		m_targetDescriptorSet->write();
+		m_targetFinalLayout = layoutTransitionHelper.getTransition(m_target).newLayout;
 
 		m_storageDescriptorSet = m_pRenderer->createDescriptorSet<RenderTargetDescriptorSet>(m_storageTarget, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
 		m_storageDescriptorSet->write();
 
 		m_rtPipeline.addDescriptorSetLayout(m_rtDescriptorSet->getLayout());
 		m_rtPipeline.addDescriptorSetLayout(m_descriptorSet->getLayout());
+		m_rtPipeline.addDescriptorSetLayout(m_textureSet->getLayout());
 		m_rtPipeline.addDescriptorSetLayout(m_targetDescriptorSet->getLayout());
 		m_rtPipeline.addDescriptorSetLayout(m_storageDescriptorSet->getLayout());
 		m_rtPipeline.init(); m_rtPipeline.initShaderBindingTable();
 	}
-
-	//void PathTracer::resize(uint32_t width, uint32_t height, uint32_t imageCount) {
-	//	if (width <= 0) width = 1;
-	//	if (height <= 0) height = 1;
-	//	m_extent = { width, height };
-	//
-	//	m_storageImage.resize(width, height);
-	//
-	//	auto desc = m_rtDescriptorSet.getDescriptor(1);
-	//	vk::DescriptorImageInfo storageImageInfo{};
-	//	storageImageInfo.pImage = &m_storageImage;
-	//	storageImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	//	desc.imageInfos = { storageImageInfo };
-	//	m_rtDescriptorSet.setDescriptor(1, desc);
-	//
-	//	m_rtDescriptorSet.update();
-	//
-	//	resetRender();
-	//}
-	//
-	//void PathTracer::resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
-	//	auto desc = m_targetDescriptorSets[imageIndex].getDescriptor(0);
-	//	vk::DescriptorImageInfo imageInfo{};
-	//	imageInfo.pImage = pTarget;
-	//	imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	//	desc.imageInfos = { imageInfo };
-	//	m_targetDescriptorSets[imageIndex].setDescriptor(0, desc);
-	//
-	//	m_targetDescriptorSets[imageIndex].update();
-	//}
 
 	void PathTracer::destroy() {
 		m_rtPipeline.destroy();
@@ -408,6 +381,13 @@ namespace Zap {
 
 		m_tlas.setGeometry(instanceVector);
 		m_tlas.update();
+
+		VkWriteDescriptorSetAccelerationStructureKHR writeAccel{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR, nullptr };
+		writeAccel.accelerationStructureCount = 1;
+		writeAccel.pAccelerationStructures = m_tlas.getVkAccelerationStructureKHRptr();
+
+		auto write = m_rtDescriptorSet->writeGeneric(&writeAccel, 1, 0);
+		m_rtDescriptorSet->write(1, &write);
 	}
 
 	void PathTracer::afterRender() {
@@ -416,9 +396,10 @@ namespace Zap {
 
 	void PathTracer::recordCommands(const vk::CommandBuffer* cmd) {
 		vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline);
-		std::vector<VkDescriptorSet> boundSets = {
+		std::array<VkDescriptorSet, 5> boundSets = {
 			m_rtDescriptorSet,
 			m_descriptorSet,
+			m_textureSet,
 			m_targetDescriptorSet,
 			m_storageDescriptorSet
 		};
@@ -432,92 +413,85 @@ namespace Zap {
 			m_target->getExtent().width, m_target->getExtent().height, 1
 		);
 
+		m_target->recLayoutTransition(*cmd, VK_IMAGE_LAYOUT_GENERAL, m_targetFinalLayout, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_NONE);
+	}
+
+	void PathTracer::callback(const RenderEvent::Resize& event) {
+		resetRender();
+	}
+
+	void PathTracer::callback(const AssetHandlerEvent::TextureLoad& event) {
+		m_areTexturesOutdated = true;
+	}
+
+	void PathTracer::callback(const SceneEvent::AddModel& event) {
+		resetRender();
+	}
+
+	void PathTracer::callback(const SceneEvent::RemoveModel& event) {
+		resetRender();
+	}
+
+	void PathTracer::callback(const SceneEvent::AddLight& event) {
+		auto radius = event.actor.cmpLight_getRadius();
+		float aabbMin[3] = { -radius, -radius, -radius };
+		float aabbMax[3] = { radius, radius, radius };
+		vk::AccelerationStructure& accelerationStructure = (m_lightBlasMap[event.actor] = vk::AccelerationStructure());
+		accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
+		accelerationStructure.init();
+		accelerationStructure.addGeometry(aabbMin, aabbMax);
+		accelerationStructure.update();
+
+		resetRender();
+	}
+
+	void PathTracer::callback(const SceneEvent::RemoveLight& event) {
+		vk::AccelerationStructure& accelerationStructure = m_lightBlasMap.at(event.actor);
+		accelerationStructure.destroy();
+		m_lightBlasMap.erase(event.actor);
+
+		resetRender();
+	}
+
+	void PathTracer::callback(const SceneEvent::UpdateLightBuffer& event) {
+		VkDescriptorBufferInfo lightBufferInfo{ *getSceneLightBuffer(), 0, getSceneLightBuffer()->getSize() };
+		VkWriteDescriptorSet write = m_descriptorSet->writeBuffer(lightBufferInfo, 1);
+		m_descriptorSet->write(1, &write);
+	}
+
+	void PathTracer::callback(const SceneEvent::UpdateMeshInstanceBuffer& event) {
+		VkDescriptorBufferInfo perMeshBufferInfo{ *getScenePerMeshInstanceBuffer(), 0, getScenePerMeshInstanceBuffer()->getSize() };
+		VkWriteDescriptorSet write = m_descriptorSet->writeBuffer(perMeshBufferInfo, 2);
+		m_descriptorSet->write(1, &write);
 	}
 
 	void PathTracer::updateTextureDescriptor() {
-		Base* base = Base::getBase();// TODO add default texture
+		m_pRenderer->destroyDescriptorSet(m_textureSet);
+		m_textureSet = m_pRenderer->createDescriptorSet<GenericDescriptorSet>();
+
+		Base* base = Base::getBase();
 		auto* textureMap = RenderTask::getTextureDataMap();
-		std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
+		DescriptorSetBinding texturesBinding(
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+			textureMap->size()
+		);
+		std::vector<VkDescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {
 			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
-			vk::DescriptorImageInfo textureImageInfo{};
-			textureImageInfo.pSampler = &base->m_textureSampler;
-			textureImageInfo.pImage = &texturePair.second.image;
-			textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			textureImageInfos[i] = textureImageInfo;
+			textureImageInfos[i] = { base->m_textureSampler, texturePair.second.image.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL };
 		}
 
-		vk::Descriptor texturesDescriptor{};
-		texturesDescriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		texturesDescriptor.count = textureImageInfos.size();
-		texturesDescriptor.stages = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-		texturesDescriptor.binding = 3;
-		texturesDescriptor.imageInfos = textureImageInfos;
+		m_textureSet->addBinding(texturesBinding);
+		m_textureSet->createLayout();
+		m_textureSet->allocate();
 
-		uint32_t oldLoadedTextureCount = m_loadedTextureCount;
-		m_loadedTextureCount = textureMap->size();
+		auto textureWrite = m_textureSet->writeImage(textureImageInfos.data(), textureImageInfos.size(), 0);
+		m_textureSet->write(1, &textureWrite);
 
-		//m_descriptorPool.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_loadedTextureCount - oldLoadedTextureCount);
-		//m_descriptorPool.update();
-		//
-		//m_descriptorSet.setDescriptor(3, texturesDescriptor);
-		//m_descriptorSet.setDescriptorPool(&m_descriptorPool);
-		//m_descriptorSet.update();
-		//
-		//m_rtDescriptorSet.setDescriptorPool(&m_descriptorPool);
-		//m_rtDescriptorSet.update();
-		//
-		//for (auto& targetSet : m_targetDescriptorSets) {
-		//	targetSet.setDescriptorPool(&m_descriptorPool);
-		//	targetSet.update();
-		//}
-		//
-		//m_rtPipeline.setDescriptorSetLayout(0, m_rtDescriptorSet.getVkDescriptorSetLayout());
-		//m_rtPipeline.setDescriptorSetLayout(1, m_descriptorSet.getVkDescriptorSetLayout());
-		//m_rtPipeline.setDescriptorSetLayout(2, m_targetDescriptorSets[0].getVkDescriptorSetLayout());
-		//m_rtPipeline.update();
+		m_rtPipeline.setDescriptorSetLayout(2, m_textureSet->getLayout());
+		m_rtPipeline.update();
 
 		m_areTexturesOutdated = false;
 	}
-
-	//void PathTracer::textureLoadCallback(Zap::TextureLoadEvent& eventParams, void* customParams) {
-	//	Zap::PathTracer* pObj = reinterpret_cast<Zap::PathTracer*>(customParams);
-	//	pObj->m_areTexturesOutdated = true;
-	//}
-
-
-	//void PathTracer::addLightCallback(AddLightEvent& eventParams, void* customParams) {
-	//	PathTracer* pPathTracer = (PathTracer*)customParams;
-	//	auto radius = eventParams.actor.cmpLight_getRadius();
-	//	float aabbMin[3] = { -radius, -radius, -radius };
-	//	float aabbMax[3] = { radius, radius, radius };
-	//	vk::AccelerationStructure& accelerationStructure = (pPathTracer->m_lightBlasMap[eventParams.actor] = vk::AccelerationStructure());
-	//	accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
-	//	accelerationStructure.init();
-	//	accelerationStructure.addGeometry(aabbMin, aabbMax);
-	//	accelerationStructure.update();
-	//
-	//	pPathTracer->resetRender();
-	//}
-	//
-	//void PathTracer::removeLightCallback(RemoveLightEvent& eventParams, void* customParams) {
-	//	PathTracer* pPathTracer = (PathTracer*)customParams;
-	//	vk::AccelerationStructure& accelerationStructure = pPathTracer->m_lightBlasMap.at(eventParams.actor);
-	//	accelerationStructure.destroy();
-	//	pPathTracer->m_lightBlasMap.erase(eventParams.actor);
-	//
-	//	pPathTracer->resetRender();
-	//}
-
-	//void PathTracer::addModelCallback(AddModelEvent& eventParams, void* customParams){
-	//	PathTracer* pPathTracer = (PathTracer*)customParams;
-	//
-	//	pPathTracer->resetRender();
-	//}
-	//
-	//void PathTracer::removeModelCallback(RemoveModelEvent& eventParams, void* customParams) {
-	//	PathTracer* pPathTracer = (PathTracer*)customParams;
-	//
-	//	pPathTracer->resetRender();
-	//}
 }

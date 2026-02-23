@@ -12,7 +12,7 @@ namespace Zap {
 
 		void resize(glm::vec2 size);
 
-		virtual void recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) = 0;
+		virtual void recLayoutTransition(const vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) = 0;
 
 		bool isValid();
 
@@ -94,7 +94,7 @@ namespace Zap {
 		RenderTargetImage(Renderer* pRenderer);
 		~RenderTargetImage();
 
-		virtual void recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override;
+		virtual void recLayoutTransition(const vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override;
 
 		void setAspect(VkImageAspectFlags aspect);
 
@@ -145,7 +145,7 @@ namespace Zap {
 		RenderTargetWindow(Renderer* pRenderer, Window& window);
 		~RenderTargetWindow();
 
-		virtual void recLayoutTransition(vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override;
+		virtual void recLayoutTransition(const vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override;
 
 		virtual VkExtent3D getExtent() override;
 

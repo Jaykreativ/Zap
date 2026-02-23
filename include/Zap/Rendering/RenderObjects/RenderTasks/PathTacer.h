@@ -13,7 +13,15 @@ namespace Zap {
 	class AddModelEvent;
 	class RemoveModelEvent;
 
-	class PathTracer : public RenderTask
+	class PathTracer : public RenderTask,
+		public EventListener<RenderEvent::Resize>,
+		public EventListener<AssetHandlerEvent::TextureLoad>,
+		public EventListener<SceneEvent::AddModel>,
+		public EventListener<SceneEvent::RemoveModel>,
+		public EventListener<SceneEvent::AddLight>,
+		public EventListener<SceneEvent::RemoveLight>,
+		public EventListener<SceneEvent::UpdateLightBuffer>,
+		public EventListener<SceneEvent::UpdateMeshInstanceBuffer>
 	{
 	public:
 		PathTracer(Renderer* pRenderer, RenderTargetHandle<> target, Scene* pScene);
@@ -31,6 +39,7 @@ namespace Zap {
 		vk::AccelerationStructure m_tlas;
 
 		RenderTargetHandle<> m_target;
+		VkImageLayout m_targetFinalLayout;
 
 		RenderTargetHandle<RenderTargetImage> m_storageTarget;
 
@@ -50,14 +59,17 @@ namespace Zap {
 		* [0] CamUBO
 		* [1] LightBuffer
 		* [2] PerMeshInstanceBuffer
-		* [3] Textures
 		*/
 		DescriptorSetHandle<GenericDescriptorSet> m_descriptorSet;
 		/* Set: 2
+		* [0] Textures
+		*/
+		DescriptorSetHandle<GenericDescriptorSet> m_textureSet;
+		/* Set: 3
 		* [0] Target
 		*/
 		DescriptorSetHandle<RenderTargetDescriptorSet> m_targetDescriptorSet;
-		/* Set: 3
+		/* Set: 4
 		* [0] StorageImage
 		*/
 		DescriptorSetHandle<RenderTargetDescriptorSet> m_storageDescriptorSet;
@@ -85,7 +97,22 @@ namespace Zap {
 
 		void recordCommands(const vk::CommandBuffer* cmd) override;
 
-		void updateTextureDescriptor();
-	};
+		void callback(const RenderEvent::Resize& event) override;
+
+		void callback(const AssetHandlerEvent::TextureLoad& event) override;
+
+		void callback(const SceneEvent::AddModel& event) override;
+
+		void callback(const SceneEvent::RemoveModel& event) override;
+
+		void callback(const SceneEvent::AddLight& event) override;
+
+		void callback(const SceneEvent::RemoveLight& event) override;
+
+		void callback(const SceneEvent::UpdateLightBuffer& event) override;
+
+		void callback(const SceneEvent::UpdateMeshInstanceBuffer& event) override;
+
+		void updateTextureDescriptor();	};
 }
 

@@ -121,7 +121,8 @@ namespace Zap {
 	{}
 
 	RenderTargetDescriptorSet::RenderTargetDescriptorSet(Renderer* pRenderer, RenderTargetHandle<> target, VkShaderStageFlags stages)
-		: DescriptorSet(pRenderer), m_target(target)
+		: DescriptorSet(pRenderer), m_target(target),
+		EventListener<RenderEvent::Resize>(getEventHandler())
 	{
 		initImageDescriptorSet(this, stages);
 
@@ -158,6 +159,10 @@ namespace Zap {
 			writeImageDescriptorSet(setHandle.get(), m_target->getImageView(i + 1), VK_IMAGE_LAYOUT_GENERAL);
 			i++;
 		}
+	}
+
+	void RenderTargetDescriptorSet::callback(const RenderEvent::Resize& event) {
+		write();
 	}
 	
 	void RenderTargetDescriptorSet::initImageDescriptorSet(DescriptorSet* pDescriptorSet, VkShaderStageFlags stages) {

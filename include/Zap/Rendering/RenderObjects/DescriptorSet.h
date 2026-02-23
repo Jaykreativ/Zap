@@ -143,7 +143,9 @@ namespace Zap {
 		friend class Renderer;
 	};
 
-	class RenderTargetDescriptorSet : public DescriptorSet {
+	class RenderTargetDescriptorSet : public DescriptorSet,
+		public EventListener<RenderEvent::Resize>
+	{
 	public:
 		RenderTargetDescriptorSet(Renderer* pRenderer, RenderTargetHandle<> target, VkShaderStageFlags stages);
 		~RenderTargetDescriptorSet();
@@ -155,6 +157,8 @@ namespace Zap {
 	private:
 		RenderTargetHandle<> m_target;
 		std::vector<DescriptorSetHandle<GenericDescriptorSet>> m_additionalSets = {};
+
+		void callback(const RenderEvent::Resize& event) override;
 
 		static void initImageDescriptorSet(DescriptorSet* pDescriptorSet, VkShaderStageFlags stages);
 
