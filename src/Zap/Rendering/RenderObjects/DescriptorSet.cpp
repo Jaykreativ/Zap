@@ -7,6 +7,65 @@ namespace Zap {
 		: m_type(type), m_stages(stages), m_count(count)
 	{}
 
+	/* DescriptorPool */
+	DescriptorPool::DescriptorPool() {}
+	DescriptorPool::DescriptorPool(const DescriptorPool& other)
+		: m_poolSizes(other.m_poolSizes), m_maxSets(other.m_maxSets)
+	{}
+	DescriptorPool::~DescriptorPool() {
+		if (!m_isInit) return;
+		m_isInit = false;
+
+		vkDestroyDescriptorPool(vk::getDevice(), m_descriptorPool, nullptr);
+	}
+
+	void DescriptorPool::init() {
+		if (m_isInit) return;
+		m_isInit = true;
+
+		VkDescriptorPoolCreateInfo createInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+		createInfo.pNext = nullptr;
+		createInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+		createInfo.maxSets = m_maxSets;
+		createInfo.poolSizeCount = m_poolSizes.size();
+		createInfo.pPoolSizes = m_poolSizes.data();
+
+		VkResult result = vkCreateDescriptorPool(vk::getDevice(), &createInfo, nullptr, &m_descriptorPool);
+		//VK_ASSERT(result)
+	}
+
+	void DescriptorPool::setMaxSets(uint32_t maxSets) {
+		m_maxSets = maxSets;
+	}
+
+	size_t DescriptorPool::getMaxSets() {
+		return m_maxSets;
+	}
+
+	void DescriptorPool::addPoolSize(VkDescriptorType type, uint32_t count) {
+		if (count <= 0) return;
+		bool typeExists = false;
+		for (VkDescriptorPoolSize& poolSize : m_poolSizes) {
+			if (type == poolSize.type) {
+				poolSize.descriptorCount += count;
+				typeExists = true;
+				break;
+			}
+		}
+		if (!typeExists) {
+			m_poolSizes.push_back({ type, count });
+		}
+	}
+	void DescriptorPool::addPoolSize(VkDescriptorPoolSize poolSize) {
+		addPoolSize(poolSize.type, poolSize.descriptorCount);
+	}
+	void DescriptorPool::addPoolSizes(VkDescriptorPoolSize* poolSizes, uint32_t poolSizeCount) {
+		if (!poolSizes || poolSizeCount <= 0) return;
+		for (uint32_t i = 0; i < poolSizeCount; i++)
+			addPoolSize(poolSizes[i]);
+	}
+
+
 	DescriptorSet::DescriptorSet(Renderer* pRenderer)
 		: RenderObject(pRenderer)
 	{}

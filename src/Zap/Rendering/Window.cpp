@@ -60,7 +60,22 @@ namespace Zap {
 	void Window::present() {
 		if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED)) return;
 
-		m_swapchain.getImage(m_currentSwapchainImageIndex)->changeLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
+		vk::CommandBuffer cmdBuffer = vk::CommandBuffer(true);
+		cmdBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		VkImageMemoryBarrier imageMemoryBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, nullptr };
+		imageMemoryBarrier.srcAccessMask = VK_ACCESS_NONE;
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // TODO get the layout from a windowRenderTarget
+		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.image = m_swapchain.getImage(m_currentSwapchainImageIndex)->getVkImage();
+		imageMemoryBarrier.subresourceRange = *m_swapchain.getImage(m_currentSwapchainImageIndex)->getSubresourceRange();
+		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+
+		cmdBuffer.end();
+		cmdBuffer.submit(); cmdBuffer.free();
 
 		vk::queuePresent(vkUtils::queueHandler::getQueue(), m_swapchain, m_currentSwapchainImageIndex);
 

@@ -169,17 +169,17 @@ namespace Zap {
 
 		RenderEventHandler m_eventHandler;
 
+		//DescriptorPool
+		bool m_isDescriptorPoolInit = false;
+		DescriptorPool m_descriptorPool;
+
+		//CommandBuffer
+		vk::CommandBuffer m_commandBuffer;
+
 		std::unordered_map<UUID, std::unique_ptr<RenderTask>> m_renderTaskMap = {};
 		std::unordered_map<UUID, std::unique_ptr<RenderTarget>> m_renderTargetMap = {};
 		std::unordered_map<UUID, std::unique_ptr<Framebuffer>> m_framebufferMap = {};
 		std::unordered_map<UUID, std::unique_ptr<DescriptorSet>> m_descriptorSetMap = {};
-
-		//DescriptorPool
-		bool m_isDescriptorPoolInit = false;
-		vk::DescriptorPool m_descriptorPool;
-
-		//CommandBuffer
-		vk::CommandBuffer m_commandBuffer;
 
 		//Fences
 		VkFence m_imageAvailable = VK_NULL_HANDLE;

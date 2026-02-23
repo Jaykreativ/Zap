@@ -12,8 +12,8 @@ layout(location = 0) rayPayloadEXT Payload{
 } prd;
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT accelerationStructure;
-layout(set = 2, binding = 0, rgba32f) uniform image2D image;
-layout(set = 3, binding = 0, rgba32f) uniform image2D storageImage;
+layout(set = 3, binding = 0, rgba32f) uniform image2D image;
+layout(set = 4, binding = 0, rgba32f) uniform image2D storageImage;
 
 layout(set=1, binding = 0) uniform UBO{
 	mat4 inverseView;

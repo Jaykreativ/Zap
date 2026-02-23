@@ -71,7 +71,7 @@ layout(set = 1, binding = 2) readonly buffer PerMeshInstanceBuffer {
 	PerMeshInstanceData data[];
 } perMeshInstanceBuffer;
 
-layout(set = 1, binding = 3) uniform sampler2D textures[];
+layout(set = 2, binding = 0) uniform sampler2D textures[];
 
 // Generate a random unsigned int in [0, 2^24) given the previous RNG state
 // using the Numerical Recipes linear congruential generator

@@ -46,10 +46,40 @@ namespace Zap {
 		friend class DescriptorSet;
 	};
 
+	class DescriptorPool {
+	public:
+		DescriptorPool();
+		DescriptorPool(const DescriptorPool& other);
+		~DescriptorPool();
+
+		operator VkDescriptorPool() const { return m_descriptorPool; }
+
+		void init();
+
+		// sets the max amount of sets for this pool
+		void setMaxSets(uint32_t maxSets);
+
+		// gets the max amount of sets for this pool
+		size_t getMaxSets();
+
+		// a poolSize describes the type and the amount of descriptors to allocate in the pool
+		void addPoolSize(VkDescriptorType type, uint32_t count);
+		void addPoolSize(VkDescriptorPoolSize poolSize);
+		void addPoolSizes(VkDescriptorPoolSize* poolSize, uint32_t poolSizeCount);
+
+	private:
+		bool m_isInit = false;
+
+		VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+
+		uint32_t m_maxSets = 0;
+		std::vector<VkDescriptorPoolSize> m_poolSizes = {};
+	};
+
 	class DescriptorSet : public RenderObject {
 	public:
 		DescriptorSet(Renderer* pRenderer);
-		~DescriptorSet();
+		virtual ~DescriptorSet();
 
 		virtual operator VkDescriptorSet() { return m_descriptorSet; }
 
@@ -148,7 +178,7 @@ namespace Zap {
 	{
 	public:
 		RenderTargetDescriptorSet(Renderer* pRenderer, RenderTargetHandle<> target, VkShaderStageFlags stages);
-		~RenderTargetDescriptorSet();
+		virtual ~RenderTargetDescriptorSet();
 
 		operator VkDescriptorSet() override;
 

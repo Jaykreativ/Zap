@@ -53,8 +53,6 @@ namespace Zap {
 		for (auto& taskPair : m_renderTaskMap) {
 			taskPair.second->destroy();
 		}
-		if(m_isDescriptorPoolInit)
-			m_descriptorPool.destroy();
 		m_commandBuffer.free();
 		m_isInit = false;
 	}
