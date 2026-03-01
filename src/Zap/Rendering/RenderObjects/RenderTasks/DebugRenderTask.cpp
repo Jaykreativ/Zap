@@ -2,7 +2,6 @@
 
 namespace Zap {
 	/* DebugRenderVertex */
-
 	DebugRenderVertex::DebugRenderVertex() {}
 	DebugRenderVertex::DebugRenderVertex(glm::vec3 pos, glm::u8vec3 color)
 		: pos(pos), color(color)

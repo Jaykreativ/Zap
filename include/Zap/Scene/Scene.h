@@ -16,7 +16,7 @@
 
 namespace Zap {
 	class Actor; // forward declaration
-	class DebugRenderVertex;
+	class LineVertex;
 	struct SceneDesc {
 		glm::vec3 gravity = {0, -9.81, 0};
 	};
@@ -57,7 +57,7 @@ namespace Zap {
 		/*
 		* Writes all Lines from the PhysX RenderBuffer to the back of the given vector
 		*/
-		bool getPxDebugVertices(std::vector<DebugRenderVertex>& debugVertices);
+		bool getPxDebugVertices(std::vector<LineVertex>& debugVertices);
 
 		SceneEventHandler& getEventHandler();
 

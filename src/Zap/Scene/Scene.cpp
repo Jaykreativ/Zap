@@ -3,7 +3,7 @@
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Material.h"
 #include "Zap/Physics/PhysicsComponent.h"
-#include "Zap/Rendering/RenderObjects/RenderTasks/DebugRenderTask.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/LineRenderTask.h"
 
 namespace Zap {
 	Scene::Scene()
@@ -223,7 +223,7 @@ namespace Zap {
 		return &m_pxScene->getRenderBuffer();
 	}
 
-	bool Scene::getPxDebugVertices(std::vector<DebugRenderVertex>& debugVertices) {
+	bool Scene::getPxDebugVertices(std::vector<LineVertex>& debugVertices) {
 		if (!m_pxScene)
 			return false;
 
@@ -240,8 +240,8 @@ namespace Zap {
 			uint8_t r1 = lines[i].color1;
 			uint8_t g1 = lines[i].color1 >> 8;
 			uint8_t b1 = lines[i].color1 >> 16;
-			debugVertices[i * 2 + offset]     = Zap::DebugRenderVertex({ lines[i].pos0.x, lines[i].pos0.y, lines[i].pos0.z }, { r0, g0, b0 });
-			debugVertices[i * 2 + 1 + offset] = Zap::DebugRenderVertex({ lines[i].pos1.x, lines[i].pos1.y, lines[i].pos1.z }, { r1, g1, b1 });
+			debugVertices[i * 2 + offset]     = Zap::LineVertex({ lines[i].pos0.x, lines[i].pos0.y, lines[i].pos0.z }, { r0, g0, b0 });
+			debugVertices[i * 2 + 1 + offset] = Zap::LineVertex({ lines[i].pos1.x, lines[i].pos1.y, lines[i].pos1.z }, { r1, g1, b1 });
 		}
 		return true;
 	}
