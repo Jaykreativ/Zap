@@ -89,6 +89,11 @@ namespace Zap {
 	};
 
 	// wrapper for a standart Zap image used by rendering
+	// has to be initialized before use
+	// most important settings:
+	// - setAspect()
+	// - setFormat()
+	// - setUsage()
 	class RenderTargetImage : public RenderTarget {
 	public:
 		RenderTargetImage(Renderer* pRenderer);

@@ -143,7 +143,7 @@ namespace Zap {
 
 			m_descriptorPool.addDescriptorSet(m_descriptorSet);
 
-			Base* base = Base::getBase();// TODO add default texture
+			Base* base = Base::getBase();
 			auto* textureMap = RenderTask::getTextureDataMap();
 			std::vector<vk::DescriptorImageInfo> textureImageInfos(textureMap->size());
 			for (auto& texturePair : *textureMap) {

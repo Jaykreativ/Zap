@@ -131,6 +131,10 @@ namespace Zap {
 		{}
 		~DescriptorSetHandle() = default;
 
+		operator bool() const {
+			return m_renderer != nullptr && get() != nullptr;
+		}
+
 		operator VkDescriptorSet() { return *get(); }
 
 		operator DescriptorSetHandle<DescriptorSet>() {
@@ -146,10 +150,6 @@ namespace Zap {
 
 		T* operator->() {
 			return get();
-		}
-
-		operator bool() const {
-			return m_renderer != nullptr && get() != nullptr;
 		}
 
 		void reset() {
@@ -177,7 +177,7 @@ namespace Zap {
 		public EventListener<RenderEvent::Resize>
 	{
 	public:
-		RenderTargetDescriptorSet(Renderer* pRenderer, RenderTargetHandle<> target, VkShaderStageFlags stages);
+		RenderTargetDescriptorSet(Renderer* pRenderer, RenderTargetHandle<> target, VkShaderStageFlags stages, VkDescriptorType type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 		virtual ~RenderTargetDescriptorSet();
 
 		operator VkDescriptorSet() override;
@@ -190,7 +190,7 @@ namespace Zap {
 
 		void callback(const RenderEvent::Resize& event) override;
 
-		static void initImageDescriptorSet(DescriptorSet* pDescriptorSet, VkShaderStageFlags stages);
+		static void initImageDescriptorSet(DescriptorSet* pDescriptorSet, VkShaderStageFlags stages, VkDescriptorType type);
 
 		static void writeImageDescriptorSet(DescriptorSet* pDescriptorSet, VkImageView view, VkImageLayout layout);
 

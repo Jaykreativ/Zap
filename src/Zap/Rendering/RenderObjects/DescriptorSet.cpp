@@ -179,18 +179,25 @@ namespace Zap {
 		: DescriptorSet(pRenderer)
 	{}
 
-	RenderTargetDescriptorSet::RenderTargetDescriptorSet(Renderer* pRenderer, RenderTargetHandle<> target, VkShaderStageFlags stages)
+	RenderTargetDescriptorSet::RenderTargetDescriptorSet(Renderer* pRenderer, RenderTargetHandle<> target, VkShaderStageFlags stages, VkDescriptorType type)
 		: DescriptorSet(pRenderer), m_target(target),
 		EventListener<RenderEvent::Resize>(getEventHandler())
 	{
-		initImageDescriptorSet(this, stages);
+		if(!( // check if descriptor type is supported
+			type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE || // TODO expand supported list
+			type == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+		))
+			ZP_ASSERT(false, "DescriptorType not supported by RenderTargetDescriptorSet");
+		ZP_ASSERT((bool)m_target, "Target invalid, create RenderTarget before the DescriptorSet")
+
+		initImageDescriptorSet(this, stages, type);
 
 		if (m_target->getImageCount() > 1) {
 			size_t additionCount = m_target->getImageCount() - 1;
 			for (size_t i = 0; i < additionCount; i++) {
 				auto handle = pRenderer->createDescriptorSet<GenericDescriptorSet>();
 				m_additionalSets.push_back(handle);
-				initImageDescriptorSet(handle.get(), stages);
+				initImageDescriptorSet(handle.get(), stages, type);
 			}
 		}
 	}
@@ -215,7 +222,7 @@ namespace Zap {
 		writeImageDescriptorSet(this, m_target->getImageView(0), VK_IMAGE_LAYOUT_GENERAL);
 		uint32_t i = 1;
 		for (auto setHandle : m_additionalSets) {
-			writeImageDescriptorSet(setHandle.get(), m_target->getImageView(i + 1), VK_IMAGE_LAYOUT_GENERAL);
+			writeImageDescriptorSet(setHandle.get(), m_target->getImageView(i + 1), VK_IMAGE_LAYOUT_GENERAL); // TODO allow other image layouts for optimization
 			i++;
 		}
 	}
@@ -224,8 +231,8 @@ namespace Zap {
 		write();
 	}
 	
-	void RenderTargetDescriptorSet::initImageDescriptorSet(DescriptorSet* pDescriptorSet, VkShaderStageFlags stages) {
-		DescriptorSetBinding binding(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, stages);
+	void RenderTargetDescriptorSet::initImageDescriptorSet(DescriptorSet* pDescriptorSet, VkShaderStageFlags stages, VkDescriptorType type) {
+		DescriptorSetBinding binding(type, stages);
 		pDescriptorSet->addBinding(binding);
 		pDescriptorSet->createLayout();
 		pDescriptorSet->allocate();
