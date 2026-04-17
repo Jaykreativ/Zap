@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Rendering/Image.h"
 #include "Zap/Rendering/RenderObject.h"
 #include "Zap/Rendering/RenderObjects/RenderTask.h"
 #include "Zap/Rendering/RenderObjects/RenderTargets.h"
@@ -9,23 +10,21 @@
 namespace Zap {
 	typedef VkDescriptorSet GuiTexture;
 
-	class GuiImage : public Image {
+	// Enables usage of a Zap image in the Gui by passing this reference to the ImGui::Image() function
+	// Does not work for renderTargetImage which are handled by the Renderer, use renderTargetGuiImage instead
+	class GuiImageRef {
 	public:
-		GuiImage();
-		GuiImage(VkImage image);
-		~GuiImage();
+		GuiImageRef(std::weak_ptr<Image2D> imageRef);
+		~GuiImageRef();
 
-		void initView();
+		operator bool() { return !m_imageRef.expired(); }
 
-		void destroyView();
-
-		void update();
-
-		operator VkDescriptorSet() { return m_guiTexture; }
+		operator GuiTexture() { return m_guiTexture; }
 
 	private:
+		std::weak_ptr<Image> m_imageRef;
 		vk::Sampler m_texSampler;
-		VkDescriptorSet m_guiTexture;
+		GuiTexture m_guiTexture;
 	};
 
 	class Gui : public RenderTask {
@@ -33,10 +32,10 @@ namespace Zap {
 		Gui(Renderer* pRenderer, RenderTargetHandle<> target);
 		~Gui();
 
-		GuiTexture loadTexture(Zap::Image* pImage);
-		GuiTexture loadTexture(const char* texturePath);
-
-		void unloadTexture(GuiTexture texture);
+		//GuiTexture loadTexture(Zap::Image* pImage);
+		//GuiTexture loadTexture(const char* texturePath);
+		//
+		//void unloadTexture(GuiTexture texture);
 
 		void enableClear() { m_shouldClear = true; }
 

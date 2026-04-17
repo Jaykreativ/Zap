@@ -3,11 +3,15 @@
 #include "VulkanUtils.h"
 
 namespace Zap {
-	Renderer::Renderer() {}
+	Renderer::Renderer(VkExtent2D commonTargetExtent)
+		: m_commonTargetExtent(commonTargetExtent)
+	{}
 
 	Renderer::~Renderer() {}
 
 	void Renderer::init() {
+		ZP_ASSERT(m_renderTaskMap.size(), "Renderer requires at least one RenderTask");
+
 		m_commandBuffer.allocate();
 
 		// Init DescriptorPool
@@ -58,8 +62,13 @@ namespace Zap {
 	}
 
 	void Renderer::resize(glm::vec2 size) {
+		if (glm::vec2(m_commonTargetExtent.width, m_commonTargetExtent.height) == size)
+			return;
+
+		m_commonTargetExtent = { static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y) };
+
 		for (auto& targetPair : m_renderTargetMap) {
-			targetPair.second->resizeInternal(size); // call the internal resize function of all targets
+			targetPair.second->resizeInternal(m_commonTargetExtent); // call the internal resize function of all targets
 		}
 
 		RenderEvent::Resize resizeEvent;
@@ -125,6 +134,10 @@ namespace Zap {
 
 	void Renderer::recChangeImageLayout(Image* pImage, VkImageLayout layout, VkAccessFlags accessMask) {
 
+	}
+
+	VkExtent2D Renderer::getCommonTargetExtent() {
+		return m_commonTargetExtent;
 	}
 
 	void Renderer::recordCommandBuffer() {

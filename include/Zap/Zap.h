@@ -38,8 +38,6 @@ namespace Zap {
 	class Scene;
 	class Mesh;
 
-	typedef vk::Image Image;
-
 	enum Extension {
 		eNONE = 0x0,
 		eRAYTRACING = 0x1

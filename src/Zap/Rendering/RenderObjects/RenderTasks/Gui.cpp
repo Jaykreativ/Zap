@@ -12,38 +12,28 @@ namespace Zap {
 	vk::RenderPass Gui::renderPass = vk::RenderPass();
 	Window* Gui::pImGuiWindow = nullptr;
 
-	GuiImage::GuiImage()
-		: Image()
+	GuiImageRef::GuiImageRef(std::weak_ptr<Image2D> imageRef)
+		: m_imageRef(imageRef)
 	{
-		m_texSampler = vk::Sampler();
-		m_texSampler.init();
+		if (auto spImage = m_imageRef.lock()) {
+			m_texSampler = vk::Sampler();
+			m_texSampler.init();
+			m_guiTexture = ImGui_ImplVulkan_AddTexture(m_texSampler, spImage->getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
+		}
 	}
 
-	GuiImage::GuiImage(VkImage image)
-		: Image(image)
-	{
-		m_texSampler = vk::Sampler();
-		m_texSampler.init();
-	}
-
-	GuiImage::~GuiImage(){
+	GuiImageRef::~GuiImageRef(){
+		ImGui_ImplVulkan_RemoveTexture(m_guiTexture);
 		m_texSampler.destroy();
 	}
 
-	void GuiImage::initView() {
-		Image::initView();
-		m_guiTexture = ImGui_ImplVulkan_AddTexture(m_texSampler, m_imageView, VK_IMAGE_LAYOUT_GENERAL);
-	}
+	GuiImageRef::operator bool() { return !m_imageRef.expired(); }
 
-	void GuiImage::destroyView() {
-		ImGui_ImplVulkan_RemoveTexture(m_guiTexture);
-		Image::destroyView();
-	}
-
-	void GuiImage::update() {
-		ImGui_ImplVulkan_RemoveTexture(m_guiTexture);
-		Image::update();
-		m_guiTexture = ImGui_ImplVulkan_AddTexture(m_texSampler, m_imageView, VK_IMAGE_LAYOUT_GENERAL);
+	GuiImageRef::operator GuiTexture() {
+		if (*this)
+			return m_guiTexture;
+		else
+			return VK_NULL_HANDLE;
 	}
 
 	Gui::Gui(Renderer* pRenderer, RenderTargetHandle<> target)
@@ -106,40 +96,40 @@ namespace Zap {
 		vkCmdEndRenderPass(*cmd);
 	}
 
-	GuiTexture Gui::loadTexture(Zap::Image* pImage) {
-		return ImGui_ImplVulkan_AddTexture(m_textureSampler, pImage->getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
-	}
+	//GuiTexture Gui::loadTexture(Zap::Image* pImage) {
+	//	return ImGui_ImplVulkan_AddTexture(m_textureSampler, pImage->getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
+	//}
 
-	GuiTexture Gui::loadTexture(const char* texturePath) {
-		int width, height, channels;
-		stbi_set_flip_vertically_on_load(false);
-		auto data = stbi_load(texturePath, &width, &height, &channels, 4);
-		ZP_ASSERT(data, "Image not loaded correctly");
-		m_textures.push_back(vk::Image());
-		vk::Image* image = &m_textures.back();
-		image->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-		image->setExtent(VkExtent3D{ (uint32_t)width, (uint32_t)height, 1 });
-
-		image->setFormat(VK_FORMAT_R8G8B8A8_UNORM); // TODO look for 1cmp formats
-		image->setUsage(VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-		image->setType(VK_IMAGE_TYPE_2D);
-
-		image->init();
-		image->allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		image->initView();
-
-		image->changeLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT);
-
-		image->uploadData(width * height * 4, data);
-
-		image->changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
-
-		return loadTexture(image);
-	}
-
-	void Gui::unloadTexture(GuiTexture texture) {
-		ImGui_ImplVulkan_RemoveTexture(texture);
-	}
+	//GuiTexture Gui::loadTexture(const char* texturePath) {
+	//	int width, height, channels;
+	//	stbi_set_flip_vertically_on_load(false);
+	//	auto data = stbi_load(texturePath, &width, &height, &channels, 4);
+	//	ZP_ASSERT(data, "Image not loaded correctly");
+	//	m_textures.push_back(vk::Image());
+	//	vk::Image* image = &m_textures.back();
+	//	image->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+	//	image->setExtent(VkExtent3D{ (uint32_t)width, (uint32_t)height, 1 });
+	//
+	//	image->setFormat(VK_FORMAT_R8G8B8A8_UNORM); // TODO look for 1cmp formats
+	//	image->setUsage(VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+	//	image->setType(VK_IMAGE_TYPE_2D);
+	//
+	//	image->init();
+	//	image->allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	//	image->initView();
+	//
+	//	image->changeLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT);
+	//
+	//	image->uploadData(width * height * 4, data);
+	//
+	//	image->changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
+	//
+	//	return loadTexture(image);
+	//}
+	//
+	//void Gui::unloadTexture(GuiTexture texture) {
+	//	ImGui_ImplVulkan_RemoveTexture(texture);
+	//}
 
 	void Gui::initImGui(Window* pWindow) { 
 		if (isImGuiInit) return;

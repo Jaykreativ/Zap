@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Rendering/Image.h"
 #include "Zap/Rendering/RenderObject.h"
 
 namespace Zap {
@@ -32,7 +33,7 @@ namespace Zap {
 
 		virtual VkImageView getImageView(uint32_t index) = 0;
 
-		virtual void resizeInternal(glm::vec2 size) = 0;
+		virtual void resizeInternal(VkExtent2D extent) = 0;
 	private:
 		bool m_isValid = false;
 
@@ -88,45 +89,31 @@ namespace Zap {
 		{}
 	};
 
-	// wrapper for a standart Zap image used by rendering
-	// has to be initialized before use
-	// most important settings:
-	// - setAspect()
-	// - setFormat()
-	// - setUsage()
+	// wrapper for a standart Zap image written to during rendering
+	// completely owns the underlying image resource which can be accessed through the renderer using extractRenderTargetImage() which destroyes the RenderTarget
 	class RenderTargetImage : public RenderTarget {
 	public:
-		RenderTargetImage(Renderer* pRenderer);
+		RenderTargetImage(Renderer* pRenderer, VkFormat format, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryProperties);
 		~RenderTargetImage();
 
 		virtual void recLayoutTransition(const vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override;
-
-		void setAspect(VkImageAspectFlags aspect);
-
-		void setFormat(VkFormat format);
-
-		void setUsage(VkImageUsageFlags usage);
-
-		void init(VkMemoryPropertyFlags memoryProperty);
-		
-		Image& getImage();
 
 		virtual VkExtent3D getExtent() override;
 
 		virtual VkImageView getImageView(uint32_t index = 0) override;
 
 	protected:
-		void resizeInternal(glm::vec2 size) override;
+		virtual void resizeInternal(VkExtent2D size) override;
 	private:
-		Image m_image;
+		Image2D m_image;
+
+		friend class Renderer;
 	};
 
 	class RenderTargetGuiImage : public RenderTargetImage {
 	public:
-		RenderTargetGuiImage(Renderer* pRenderer);
+		RenderTargetGuiImage(Renderer* pRenderer, VkFormat format, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryProperties);
 		~RenderTargetGuiImage();
-
-		void init(VkMemoryPropertyFlags memoryProperty);
 
 		operator VkDescriptorSet() { return m_imageDescriptorSet; }
 
@@ -135,7 +122,7 @@ namespace Zap {
 		VkDescriptorSet getDescriptorSet() { return m_imageDescriptorSet; }
 
 	protected:
-		virtual void resizeInternal(glm::vec2 size) override;
+		virtual void resizeInternal(VkExtent2D size) override;
 
 	private:
 		vk::Sampler m_sampler;
@@ -161,7 +148,7 @@ namespace Zap {
 		virtual VkImageView getImageView(uint32_t index) override;
 
 	protected:
-		void resizeInternal(glm::vec2 size) override;
+		void resizeInternal(VkExtent2D extent) override;
 	private:
 		Window& m_window;
 	

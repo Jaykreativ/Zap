@@ -4,8 +4,6 @@
 #include "VulkanFramework.h"
 
 namespace Zap {
-	typedef vk::Image Image;
-
 	struct TextureData {
 		Image image;
 	};

@@ -84,7 +84,7 @@ namespace Zap {
 	class Renderer
 	{
 	public:
-		Renderer();
+		Renderer(VkExtent2D commonTargetExtent = {1, 1});
 		~Renderer();
 	
 		void init();
@@ -101,7 +101,6 @@ namespace Zap {
 			static_assert(std::is_base_of_v<RenderTask, T>, "Type has to be child class of RenderTask");
 			auto handle = UUID();
 			m_renderTaskMap[handle] = std::move(std::make_unique<T>(this, std::forward<Types>(args)...));
-			m_renderTaskMap.at(handle)->m_pRenderer = this;
 			return RenderTaskHandle<T>(handle, this);
 		}
 
@@ -116,7 +115,6 @@ namespace Zap {
 			static_assert(std::is_base_of_v<RenderTarget, T>, "Type has to be child class of RenderTarget");
 			auto handle = UUID();
 			m_renderTargetMap[handle] = std::move(std::make_unique<T>(this, std::forward<Types>(args)...));
-			m_renderTargetMap.at(handle)->m_pRenderer = this;
 			return RenderTargetHandle<T>(handle, this);
 		}
 
@@ -124,6 +122,15 @@ namespace Zap {
 		void destroyRenderTarget(RenderTargetHandle<T> handle) {
 			if (handle)
 				m_renderTargetMap.erase(handle.m_handle);
+		}
+
+		std::shared_ptr<Image2D> extractRenderTargetImage(RenderTargetHandle<RenderTargetImage> handle) {
+			if (handle) {
+				auto spImage2D = std::make_shared<Image2D>(handle->m_image);
+				destroyRenderTarget(handle);
+				return spImage2D;
+			}
+			return nullptr;
 		}
 
 		FramebufferHandle createFramebuffer(VkRenderPass renderPass, std::initializer_list<RenderTargetHandle<>> targets) {
@@ -162,6 +169,8 @@ namespace Zap {
 
 		void recChangeImageLayout(Image* pImage, VkImageLayout layout, VkAccessFlags accessMask);
 
+		VkExtent2D getCommonTargetExtent();
+
 #ifndef ZP_ALL_PUBLIC
 	private:
 #endif
@@ -177,6 +186,7 @@ namespace Zap {
 		vk::CommandBuffer m_commandBuffer;
 
 		std::unordered_map<UUID, std::unique_ptr<RenderTask>> m_renderTaskMap = {};
+		VkExtent2D m_commonTargetExtent;
 		std::unordered_map<UUID, std::unique_ptr<RenderTarget>> m_renderTargetMap = {};
 		std::unordered_map<UUID, std::unique_ptr<Framebuffer>> m_framebufferMap = {};
 		std::unordered_map<UUID, std::unique_ptr<DescriptorSet>> m_descriptorSetMap = {};
