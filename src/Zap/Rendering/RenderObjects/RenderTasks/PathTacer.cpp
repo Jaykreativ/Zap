@@ -148,13 +148,11 @@ namespace Zap {
 		m_tlas.setGeometry(instanceVector);
 
 		// create storage image for samples over time
-		m_storageTarget = m_pRenderer->createRenderTarget<RenderTargetImage>();
-		m_storageTarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-		m_storageTarget->setUsage(VK_IMAGE_USAGE_STORAGE_BIT);
-		m_storageTarget->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
-		m_storageTarget->setInitialLayout(VK_IMAGE_LAYOUT_GENERAL);
-		m_storageTarget->setFinalLayout(VK_IMAGE_LAYOUT_GENERAL);
-		m_storageTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_storageTarget = m_pRenderer->createRenderTarget<RenderTargetImage>(
+			VK_FORMAT_R32G32B32A32_SFLOAT,
+			VK_IMAGE_USAGE_STORAGE_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
 
 		m_UBO = vk::Buffer(sizeof(UBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		m_UBO.init(); m_UBO.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);

@@ -103,13 +103,12 @@ namespace Zap {
 		}
 
 		/*Depth Image*/
-		m_depthTarget = m_pRenderer->createRenderTarget<RenderTargetImage>();
-		m_depthTarget->setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-		m_depthTarget->setFormat(Zap::GlobalSettings::getDepthStencilFormat());
-		m_depthTarget->setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-		m_depthTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		m_depthTarget->getImage().changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+		m_depthTarget = m_pRenderer->createRenderTarget<RenderTargetImage>(
+			Zap::GlobalSettings::getDepthStencilFormat(),
+			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+		);
 
 		/*RenderPass*/
 		{

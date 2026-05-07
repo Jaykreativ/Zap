@@ -64,7 +64,8 @@ namespace Zap {
 			const uint32_t*         pQueueFamilyIndices,
 			VkMemoryPropertyFlags   memoryProperties,
 			VkImageViewType         viewType,
-			VkComponentMapping      components
+			VkComponentMapping      components,
+			VkImageLayout           layout = VK_IMAGE_LAYOUT_GENERAL
 		);
 		virtual ~Image();
 		Image(const Image& other);
@@ -79,7 +80,8 @@ namespace Zap {
 
 		void copy(const Image& src, VkImageLayout srcLayout, VkImageLayout dstLayout, uint32_t regionCount, const VkImageCopy2* pRegions);
 
-	private:
+		void cmdChangeLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAcccessMask);
+
 		// meta data
 		VkImageType             m_imageType;
 		VkFormat                m_format;
@@ -95,7 +97,8 @@ namespace Zap {
 		VkMemoryPropertyFlags   m_memoryProperties;
 		VkImageViewType         m_viewType;
 		VkComponentMapping      m_components;
-
+		VkImageLayout           m_layout; // accurate only for static layout images
+	private:
 		// core resources
 		VkImage m_image;
 		VkDeviceMemory m_deviceMemory;
@@ -116,7 +119,8 @@ namespace Zap {
 			uint32_t                queueFamilyIndexCount,
 			const uint32_t*         pQueueFamilyIndices,
 			VkMemoryPropertyFlags   memoryProperties,
-			VkComponentMapping      components
+			VkComponentMapping      components,
+			VkImageLayout           layout = VK_IMAGE_LAYOUT_GENERAL
 		);
 		virtual ~Image2DBase();
 		Image2DBase(const Image2DBase& other);
@@ -135,7 +139,8 @@ namespace Zap {
 			VkFormat                format,
 			VkExtent2D              extent,
 			VkImageUsageFlags       usage,
-			VkMemoryPropertyFlags   memoryProperties
+			VkMemoryPropertyFlags   memoryProperties,
+			VkImageLayout           layout = VK_IMAGE_LAYOUT_GENERAL // allow RenderTasks to change initial layout
 		);
 		virtual ~Image2D();
 		Image2D(const Image2D& other);
@@ -146,6 +151,13 @@ namespace Zap {
 
 		Image2D();
 		friend void swap(Image2D& first, Image2D& second);
+
+	protected:
+		void uploadData(size_t size, void* data);
+
+		void cmdCopyFromBuffer(VkCommandBuffer cmd, vk::Buffer& src, VkImageLayout layout);
+
+		friend class Image2DLoader;
 	};
 
 	// RenderTargetImage : Image2D (in RenderTargets.h)

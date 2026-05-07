@@ -1,11 +1,13 @@
 #pragma once
 
 #include "Zap/UUID.h"
+#include "Zap/Rendering/Image.h"
+
 #include "VulkanFramework.h"
 
 namespace Zap {
 	struct TextureData {
-		Image image;
+		Image2D image;
 	};
 
 	class Texture

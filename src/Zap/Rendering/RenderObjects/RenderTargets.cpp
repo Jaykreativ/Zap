@@ -19,20 +19,12 @@ namespace Zap {
 		return true;
 	}
 
-	void RenderTarget::setInitialLayout(VkImageLayout initialLayout) {
-		m_initialLayout = initialLayout;
-	}
-
-	void RenderTarget::setFinalLayout(VkImageLayout finalLayout) {
-		m_finalLayout = finalLayout;
-	}
-
 	VkImageLayout RenderTarget::getInitialLayout() {
-		return m_initialLayout;
+		return VK_IMAGE_LAYOUT_GENERAL;
 	}
 
 	VkImageLayout RenderTarget::getFinalLayout() {
-		return m_finalLayout;
+		return VK_IMAGE_LAYOUT_GENERAL;
 	}
 
 	uint32_t RenderTarget::getImageCount() {
@@ -44,8 +36,8 @@ namespace Zap {
 	}
 
 	// Image
-	RenderTargetImage::RenderTargetImage(Renderer* pRenderer, VkFormat format, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryProperties)
-		: RenderTarget(pRenderer), m_image(format, pRenderer->getCommonTargetExtent(), usage, memoryProperties)
+	RenderTargetImage::RenderTargetImage(Renderer* pRenderer, VkFormat format, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryProperties, VkImageLayout layout)
+		: RenderTarget(pRenderer), m_image(format, pRenderer->getCommonTargetExtent(), usage, memoryProperties, layout)
 	{}
 
 	RenderTargetImage::~RenderTargetImage() {}

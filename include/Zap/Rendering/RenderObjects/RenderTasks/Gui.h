@@ -17,9 +17,9 @@ namespace Zap {
 		GuiImageRef(std::weak_ptr<Image2D> imageRef);
 		~GuiImageRef();
 
-		operator bool() { return !m_imageRef.expired(); }
+		operator bool();
 
-		operator GuiTexture() { return m_guiTexture; }
+		operator GuiTexture();
 
 	private:
 		std::weak_ptr<Image> m_imageRef;

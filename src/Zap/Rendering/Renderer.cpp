@@ -85,7 +85,6 @@ namespace Zap {
 		}
 
 		// Render
-
 		recordCommandBuffer();
 		m_commandBuffer.submit(m_renderComplete);
 		vk::waitForFence(m_renderComplete); // TODO use semaphores for parallelization

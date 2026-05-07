@@ -20,7 +20,7 @@ namespace Zap {
 		: m_baseArrayLayer(baseArrayLayer), m_layerCount(layerCount)
 	{}
 
-	ImageSubresourceRange::ImageSubresourceRange(VkImageAspectFlags aspectMask, ImageMipRange mipRange = { 0, 1 }, ImageArrayRange arrayRange = { 0, 1 })
+	ImageSubresourceRange::ImageSubresourceRange(VkImageAspectFlags aspectMask, ImageMipRange mipRange, ImageArrayRange arrayRange)
 		: m_aspectMask(aspectMask), m_mipRange(mipRange), m_arrayRange(arrayRange)
 	{}
 
@@ -44,9 +44,10 @@ namespace Zap {
 	}
 
 	// layout transitions:
-	// Inital layout                               |: Default to Layout_General
+	// Inital layout                               |: Default to Layout_General (RenderTasks are allowed to change this, copying will revert back to Layout_General)
 	// Renderer(Outside -> RenderTask -> Outside)  |: Use Layout_General for Outside
 	// DescriptorSet( Texture, GuiImage )          |: Default to Layout_General
+	// TODO find more optimal way to organize layout transitions, outside and inside RenderTasks
 
 	Image::Image(
 		VkImageType             imageType,
@@ -62,7 +63,8 @@ namespace Zap {
 		const uint32_t*         pQueueFamilyIndices,
 		VkMemoryPropertyFlags   memoryProperties,
 		VkImageViewType         viewType,
-		VkComponentMapping      components
+		VkComponentMapping      components,
+		VkImageLayout           layout
 	) :
 		m_imageType(imageType),
 		m_format(format),
@@ -77,7 +79,8 @@ namespace Zap {
 		m_pQueueFamilyIndices(pQueueFamilyIndices),
 		m_memoryProperties(memoryProperties),
 		m_viewType(viewType),
-		m_components(components)
+		m_components(components),
+		m_layout(layout)
 	{
 		VkImageCreateInfo createInfo{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, nullptr, 0};
 		createInfo.imageType = imageType;
@@ -91,7 +94,7 @@ namespace Zap {
 		createInfo.sharingMode = sharingMode;
 		createInfo.queueFamilyIndexCount = queueFamilyIndexCount;
 		createInfo.pQueueFamilyIndices = pQueueFamilyIndices;
-		createInfo.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+		createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 		vkCreateImage(vk::getDevice(), &createInfo, nullptr, &m_image);
 		VkMemoryRequirements memoryRequirements;
@@ -113,6 +116,13 @@ namespace Zap {
 		viewCreateInfo.subresourceRange = getSubresourceRange();
 
 		vkCreateImageView(vk::getDevice(), &viewCreateInfo, nullptr, &m_imageView);
+		
+		vk::CommandBuffer cmd(true);
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+		cmdChangeLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED, layout, 0, 0);
+		cmd.end();
+		cmd.submit();
+		cmd.free();
 	}
 
 	Image::~Image() {
@@ -182,7 +192,8 @@ namespace Zap {
 			other.m_pQueueFamilyIndices,
 			other.m_memoryProperties,
 			other.m_viewType,
-			other.m_components
+			other.m_components,
+			other.m_layout
 		)
 	{}
 
@@ -234,6 +245,19 @@ namespace Zap {
 		vkCopyImageToImage(vk::getDevice(), &copyInfo);
 	}
 
+	void Image::cmdChangeLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) {
+		VkImageMemoryBarrier imageMemoryBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, nullptr };
+		imageMemoryBarrier.srcAccessMask = srcAccessMask;
+		imageMemoryBarrier.dstAccessMask = dstAccessMask;
+		imageMemoryBarrier.oldLayout = oldLayout;
+		imageMemoryBarrier.newLayout = newLayout;
+		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.image = m_image;
+		imageMemoryBarrier.subresourceRange = getSubresourceRange();
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+	}
+
 	VkExtent3D Image::getExtent() {
 		return m_extent;
 	}
@@ -276,7 +300,8 @@ namespace Zap {
 		uint32_t                queueFamilyIndexCount,
 		const uint32_t*         pQueueFamilyIndices,
 		VkMemoryPropertyFlags   memoryProperties,
-		VkComponentMapping      components
+		VkComponentMapping      components,
+		VkImageLayout           layout
 	)
 		: Image(
 			VK_IMAGE_TYPE_2D,
@@ -292,7 +317,8 @@ namespace Zap {
 			pQueueFamilyIndices,
 			memoryProperties,
 			VK_IMAGE_VIEW_TYPE_2D,
-			components
+			components,
+			layout
 		)
 	{}
 
@@ -331,7 +357,8 @@ namespace Zap {
 		VkFormat                format,
 		VkExtent2D              extent,
 		VkImageUsageFlags       usage,
-		VkMemoryPropertyFlags   memoryProperties
+		VkMemoryPropertyFlags   memoryProperties,
+		VkImageLayout layout
 	) : Image2DBase(
 		format,
 		extent,
@@ -349,7 +376,8 @@ namespace Zap {
 			VK_COMPONENT_SWIZZLE_IDENTITY, // g
 			VK_COMPONENT_SWIZZLE_IDENTITY, // b
 			VK_COMPONENT_SWIZZLE_IDENTITY, // a
-		}
+		},
+		layout
 	) {}
 
 	Image2D::~Image2D() {}
@@ -381,5 +409,52 @@ namespace Zap {
 
 	void swap(Image2D& first, Image2D& second) {
 		swap((Image2DBase&)first, (Image2DBase&)second);
+	}
+
+	void Image2D::uploadData(size_t size, void* data) {
+		vk::CommandBuffer cmd = vk::CommandBuffer(true);
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		cmdChangeLayout(cmd, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, VK_ACCESS_TRANSFER_WRITE_BIT);
+
+		if (!VK_IS_FLAG_ENABLED(m_usage, VK_IMAGE_USAGE_TRANSFER_DST_BIT))
+		{
+			std::cerr << "Image cant be destination of upload transfer: enable VK_IMAGE_USAGE_TRANSFER_DST_BIT\n";
+			throw std::runtime_error("Image cant be destination of upload transfer");
+		}
+		vk::Buffer stagingBuffer = vk::Buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+		stagingBuffer.init();
+		stagingBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+		void* rawData;
+		stagingBuffer.map(&rawData);
+		memcpy(rawData, data, size);
+		stagingBuffer.unmap();
+
+		cmdCopyFromBuffer(cmd, stagingBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+		cmdChangeLayout(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_TRANSFER_WRITE_BIT, 0);
+
+		cmd.end();
+		cmd.submit();
+		cmd.free();
+		stagingBuffer.destroy(); // can only be destroyed after commands using the buffer have been submitted and finished
+	}
+
+	void Image2D::cmdCopyFromBuffer(VkCommandBuffer cmd, vk::Buffer& src, VkImageLayout layout) {
+		VkBufferImageCopy bufferImageCopy;
+		bufferImageCopy.bufferOffset = 0;
+		bufferImageCopy.bufferRowLength = 0;
+		bufferImageCopy.bufferImageHeight = 0;
+		VkImageSubresourceLayers subresourceLayers;
+		subresourceLayers.aspectMask = getAspectFromUsage(m_usage);
+		subresourceLayers.mipLevel = 0;
+		subresourceLayers.baseArrayLayer = 0;
+		subresourceLayers.layerCount = 1;
+		bufferImageCopy.imageSubresource = subresourceLayers;
+		bufferImageCopy.imageOffset = { 0, 0, 0 };
+		bufferImageCopy.imageExtent = m_extent;
+
+		vkCmdCopyBufferToImage(cmd, src, *this, layout, 1, &bufferImageCopy);
 	}
 }

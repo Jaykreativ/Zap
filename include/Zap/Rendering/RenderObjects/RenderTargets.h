@@ -17,9 +17,6 @@ namespace Zap {
 
 		bool isValid();
 
-		void setInitialLayout(VkImageLayout initialLayout);
-		void setFinalLayout(VkImageLayout finalLayout);
-
 		VkImageLayout getInitialLayout();
 		VkImageLayout getFinalLayout();
 
@@ -36,9 +33,6 @@ namespace Zap {
 		virtual void resizeInternal(VkExtent2D extent) = 0;
 	private:
 		bool m_isValid = false;
-
-		VkImageLayout m_initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		VkImageLayout m_finalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	};
 
 	// handle to a RenderTarget stored in a Renderer
@@ -93,7 +87,7 @@ namespace Zap {
 	// completely owns the underlying image resource which can be accessed through the renderer using extractRenderTargetImage() which destroyes the RenderTarget
 	class RenderTargetImage : public RenderTarget {
 	public:
-		RenderTargetImage(Renderer* pRenderer, VkFormat format, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryProperties);
+		RenderTargetImage(Renderer* pRenderer, VkFormat format, VkImageUsageFlags usage, VkMemoryPropertyFlags memoryProperties, VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL);
 		~RenderTargetImage();
 
 		virtual void recLayoutTransition(const vk::CommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override;

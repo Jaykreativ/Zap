@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Zap/UUID.h"
+#include "Zap/Rendering/Image.h"
+
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
@@ -17,11 +19,7 @@ class aiMesh;
 class aiMaterial;
 class aiTexture;
 
-namespace vk {
-	class Image;
-}
 namespace Zap {
-	typedef vk::Image Image;
 	class Texture;
 	class Material;
 	class Mesh;
@@ -48,15 +46,15 @@ namespace Zap {
 		friend class AssetHandler;
 	};
 
-	class ImageLoader : public virtual Loader
+	class Image2DLoader : public virtual Loader
 	{
 	public:
-		Image load(void* data, uint32_t width, uint32_t height);
+		Image2D load(void* data, uint32_t width, uint32_t height);
 
 		friend class AssetHandler;
 	};
 	
-	class TextureLoader : public ImageLoader, public FileLoader
+	class TextureLoader : public Image2DLoader, public FileLoader
 	{
 	public:
 		Texture load(std::filesystem::path filepath);
