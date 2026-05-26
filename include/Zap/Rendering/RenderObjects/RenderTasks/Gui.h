@@ -1,11 +1,15 @@
 #pragma once
 
+#include "imgui.h"
+
 #include "Zap/Zap.h"
 #include "Zap/Rendering/Image.h"
 #include "Zap/Rendering/RenderObject.h"
 #include "Zap/Rendering/RenderObjects/RenderTask.h"
 #include "Zap/Rendering/RenderObjects/RenderTargets.h"
 #include "Zap/Rendering/RenderObjects/Framebuffer.h"
+
+#include <vector>
 
 namespace Zap {
 	typedef VkDescriptorSet GuiTexture;
@@ -29,7 +33,7 @@ namespace Zap {
 
 	class Gui : public RenderTask {
 	public:
-		Gui(Renderer* pRenderer, RenderTargetHandle<> target);
+		Gui(Renderer* pRenderer, RenderTargetHandle<> target, Window* pWindow);
 		~Gui();
 
 		//GuiTexture loadTexture(Zap::Image* pImage);
@@ -37,18 +41,26 @@ namespace Zap {
 		//
 		//void unloadTexture(GuiTexture texture);
 
+		static void pushContext(RenderTaskHandle<Gui> handle);
+
+		static void popContext();
+
 		void enableClear() { m_shouldClear = true; }
 
 		void disableClear(){ m_shouldClear = false; }
 
-		static void initImGui(Window* pWindow);
-
-		static void destroyImGui();
-
 	private:
-		bool m_shouldClear = false;// TODO make Gui a singleton
+		bool m_shouldClear = false;
+
+		ImGuiContext* m_context = nullptr;
+		static std::vector<RenderTaskHandle<Gui>> m_contextStack;
+
+		Window* m_pWindow;
 
 		RenderTargetHandle<> m_target;
+
+		VkDescriptorPool m_descriptorPool;
+		vk::RenderPass m_renderPass;
 
 		FramebufferHandle m_framebuffer;
 
@@ -68,10 +80,5 @@ namespace Zap {
 		TaskLayoutTransitions getLayoutTransitions() override;
 
 		void recordCommands(const vk::CommandBuffer* cmd) override;
-
-		static bool isImGuiInit;
-		static VkDescriptorPool descriptorPool;
-		static vk::RenderPass renderPass;
-		static Window* pImGuiWindow;
 	};
 }

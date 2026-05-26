@@ -150,7 +150,7 @@ namespace Zap {
 				uint32_t i = RenderTask::getTextureIndex(texturePair.first);
 				vk::DescriptorImageInfo textureImageInfo{};
 				textureImageInfo.pSampler = getTextureSampler();
-				textureImageInfo.pImage = &texturePair.second.image;
+				//textureImageInfo.pImage = &texturePair.second.image;
 				textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 				textureImageInfos[i] = textureImageInfo;
 			}
@@ -470,7 +470,7 @@ namespace Zap {
 			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
 			vk::DescriptorImageInfo textureImageInfo{};
 			textureImageInfo.pSampler = getTextureSampler();
-			textureImageInfo.pImage = &texturePair.second.image;
+			//textureImageInfo.pImage = &texturePair.second.image;
 			textureImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 			textureImageInfos[i] = textureImageInfo;
 		}

@@ -19,24 +19,16 @@
 #include <fstream>
 
 namespace Zap {
-	Image ImageLoader::load(void* data, uint32_t width, uint32_t height) {
+	Image2D Image2DLoader::load(void* data, uint32_t width, uint32_t height) {
 		auto base = Base::getBase();
-		Image image;
-		image.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-		image.setExtent({ width, height, 1 });
-		image.setFormat(VK_FORMAT_R8G8B8A8_UNORM); // TODO look for 1cmp formats
-		image.setUsage(VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-		image.setType(VK_IMAGE_TYPE_2D);
-
-		image.init();
-		image.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		image.initView();
-
-		image.changeLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT);
+		Image2D image(
+			VK_FORMAT_R8G8B8A8_UNORM,
+			{ width, height },
+			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
 
 		image.uploadData(width * height * 4, data);
-
-		image.changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
 
 		return image;
 	}
@@ -49,7 +41,7 @@ namespace Zap {
 		auto& assetHandler = Base::getBase()->m_assetHandler;
 		Texture texture = Texture(handle);
 		texture.create();
-		assetHandler.getTextureDataPtr(texture.getHandle())->image = ImageLoader::load(data, width, height);
+		assetHandler.getTextureDataPtr(texture.getHandle())->image = Image2DLoader::load(data, width, height);
 		assetHandler.addLoadedTexture(texture);
 		return texture;
 	}
