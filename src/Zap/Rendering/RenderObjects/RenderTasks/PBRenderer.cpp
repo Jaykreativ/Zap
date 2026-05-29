@@ -61,6 +61,7 @@ namespace Zap {
 			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
 		);
 		VkDescriptorBufferInfo perMeshBufferInfo{ *getScenePerMeshInstanceBuffer(), 0, getScenePerMeshInstanceBuffer()->getSize()};
+		ZP_WARN(perMeshBufferInfo.range!=0, "invalid scene, no geometry present")
 
 		m_descriptorSet->addBinding(uniformBufferBinding);
 		m_descriptorSet->addBinding(lightBufferBinding);
