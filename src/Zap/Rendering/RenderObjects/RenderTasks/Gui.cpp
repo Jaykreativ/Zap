@@ -37,7 +37,23 @@ namespace Zap {
 		: RenderTask(pRenderer), m_target(target), m_pWindow(pWindow)
 	{}
 
-	Gui::~Gui(){}
+	Gui::~Gui(){
+		ImGui::EndFrame();
+
+		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+
+		for (auto image : m_textures)
+			image.destroy();
+		m_textureSampler.destroy();
+
+		m_pRenderer->destroyFramebuffer(m_framebuffer);
+
+		m_renderPass.destroy();
+		vkDestroyDescriptorPool(vk::getDevice(), m_descriptorPool, nullptr);
+
+		m_pWindow = nullptr;
+	}
 
 	void Gui::init(const LayoutTransitionHelper& layoutTransitionHelper) {
 		VkDescriptorPoolSize poolSizes[] =
@@ -157,23 +173,7 @@ namespace Zap {
 		ImGui::NewFrame();
 	}
 
-	void Gui::destroy() {
-		ImGui::EndFrame();
-
-		ImGui_ImplVulkan_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-
-		for (auto image : m_textures)
-			image.destroy();
-		m_textureSampler.destroy();
-
-		m_pRenderer->destroyFramebuffer(m_framebuffer);
-
-		m_renderPass.destroy();
-		vkDestroyDescriptorPool(vk::getDevice(), m_descriptorPool, nullptr);
-
-		m_pWindow = nullptr;
-	}
+	void Gui::destroy() {}
 
 	void Gui::beforeRender() {
 		ImGui::Render();

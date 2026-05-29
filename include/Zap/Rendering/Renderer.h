@@ -185,11 +185,11 @@ namespace Zap {
 		//CommandBuffer
 		vk::CommandBuffer m_commandBuffer;
 
-		std::unordered_map<UUID, std::unique_ptr<RenderTask>> m_renderTaskMap = {};
 		VkExtent2D m_commonTargetExtent;
 		std::unordered_map<UUID, std::unique_ptr<RenderTarget>> m_renderTargetMap = {};
 		std::unordered_map<UUID, std::unique_ptr<Framebuffer>> m_framebufferMap = {};
 		std::unordered_map<UUID, std::unique_ptr<DescriptorSet>> m_descriptorSetMap = {};
+		std::unordered_map<UUID, std::unique_ptr<RenderTask>> m_renderTaskMap = {};
 
 		//Fences
 		VkFence m_imageAvailable = VK_NULL_HANDLE;
