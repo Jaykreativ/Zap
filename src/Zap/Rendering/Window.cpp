@@ -165,6 +165,9 @@ namespace Zap {
 		m_swapchain.setHeight(height);
 		m_swapchain.update();
 
+		for (size_t i = 0; i < m_swapchain.getImageCount(); i++)
+			m_swapchain.getImage(i)->changeLayout(VK_IMAGE_LAYOUT_GENERAL, 0);
+
 		vk::acquireNextImage(m_swapchain, VK_NULL_HANDLE, m_imageAvailable, &m_currentSwapchainImageIndex);
 		vk::waitForFence(m_imageAvailable);
 	}
