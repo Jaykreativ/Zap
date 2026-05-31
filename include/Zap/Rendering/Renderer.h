@@ -124,10 +124,14 @@ namespace Zap {
 				m_renderTargetMap.erase(handle.m_handle);
 		}
 
-		std::shared_ptr<Image2D> extractRenderTargetImage(RenderTargetHandle<RenderTargetImage> handle) {
+		// extracts the underlying Image2D from the RenderTargetImage
+		// this can be used to avoid destruction of the image at the end of the renderers lifetime
+		// the RenderTarget will be destroyed and the handle invalidated
+		std::shared_ptr<Image2D> extractRenderTargetImage(RenderTargetHandle<RenderTargetImage>& handle) {
 			if (handle) {
-				auto spImage2D = std::make_shared<Image2D>(handle->m_image);
+				auto spImage2D = std::make_shared<Image2D>(std::move(handle->m_image));
 				destroyRenderTarget(handle);
+				handle.reset();
 				return spImage2D;
 			}
 			return nullptr;
