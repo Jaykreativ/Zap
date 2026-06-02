@@ -78,7 +78,7 @@ namespace Zap {
 		Image();
 		friend void swap(Image& first, Image& second);
 
-		void copy(const Image& src, VkImageLayout srcLayout, VkImageLayout dstLayout, uint32_t regionCount, const VkImageCopy2* pRegions);
+		void cmdCopy(VkCommandBuffer cmd, const Image& src, VkImageLayout srcLayout, VkImageLayout dstLayout, uint32_t regionCount, const VkImageCopy2* pRegions);
 
 		void cmdChangeLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAcccessMask);
 

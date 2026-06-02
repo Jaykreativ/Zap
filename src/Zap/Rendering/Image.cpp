@@ -90,7 +90,7 @@ namespace Zap {
 		createInfo.arrayLayers = arrayLayers;
 		createInfo.samples = samples;
 		createInfo.tiling = tiling;
-		createInfo.usage = usage;
+		createInfo.usage = usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		createInfo.sharingMode = sharingMode;
 		createInfo.queueFamilyIndexCount = queueFamilyIndexCount;
 		createInfo.pQueueFamilyIndices = pQueueFamilyIndices;
@@ -159,7 +159,7 @@ namespace Zap {
 	{
 		std::vector<VkImageCopy2> copyInfos(m_mipLevels);
 		size_t i = 0;
-		for (VkImageCopy2 copyInfo : copyInfos) { // copy the entire image with all mip levels and array layers
+		for (VkImageCopy2& copyInfo : copyInfos) { // copy the entire image with all mip levels and array layers
 			copyInfo.sType = VK_STRUCTURE_TYPE_IMAGE_COPY_2;
 			copyInfo.pNext = nullptr;
 			VkImageSubresourceLayers subresourceLayers;
@@ -174,7 +174,11 @@ namespace Zap {
 			copyInfo.extent = m_extent;
 			i++;
 		}
-		copy(other, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, copyInfos.size(), copyInfos.data());
+		vk::CommandBuffer cmd(true);
+		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+		cmdCopy(cmd, other, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, copyInfos.size(), copyInfos.data());
+		cmd.end();
+		cmd.submit(); cmd.free();
 	}
 
 	Image::Image(const Image& other, VkExtent3D extent)
@@ -234,15 +238,15 @@ namespace Zap {
 		swap(first.m_imageView,             second.m_imageView);
 	}
 
-	void Image::copy(const Image& src, VkImageLayout srcLayout, VkImageLayout dstLayout, uint32_t regionCount, const VkImageCopy2* pRegions) {
-		VkCopyImageToImageInfo copyInfo{VK_STRUCTURE_TYPE_COPY_IMAGE_TO_IMAGE_INFO, nullptr, 0};
+	void Image::cmdCopy(VkCommandBuffer cmd, const Image& src, VkImageLayout srcLayout, VkImageLayout dstLayout, uint32_t regionCount, const VkImageCopy2* pRegions) {
+		VkCopyImageInfo2 copyInfo{ VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2, nullptr };
 		copyInfo.srcImage = src.m_image;
 		copyInfo.srcImageLayout = srcLayout;
 		copyInfo.dstImage = m_image;
 		copyInfo.dstImageLayout = dstLayout;
 		copyInfo.regionCount = regionCount;
 		copyInfo.pRegions = pRegions;
-		vkCopyImageToImage(vk::getDevice(), &copyInfo);
+		vkCmdCopyImage2(cmd, &copyInfo);
 	}
 
 	void Image::cmdChangeLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) {
