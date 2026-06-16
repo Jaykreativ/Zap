@@ -25,6 +25,14 @@ file(GLOB Zap_Physics_SRC
 	"src/Zap/Physics/*.cpp"
 	"include/Zap/Physics/*.h"
 )
+file(GLOB Zap_AssetHandling_SRC
+	"src/Zap/AssetHandling/*.cpp"
+	"include/Zap/AssetHandling/*.h"
+)
+file(GLOB Zap_AssetHandling_AssetTypes_SRC
+	"src/Zap/AssetHandling/AssetTypes/*.cpp"
+	"include/Zap/AssetHandling/AssetTypes/*.h"
+)
 file(GLOB_RECURSE Zap_Shader_SRC
 	"Shader/src/*"
 )
@@ -50,6 +58,8 @@ source_group("Source/Rendering/RenderObjects" FILES ${Zap_Rendering_RenderObject
 source_group("Source/Rendering/RenderObjects/RenderTasks" FILES ${Zap_Rendering_RenderObjects_RenderTasks_SRC})
 source_group("Source/Rendering" FILES ${Zap_Rendering_SRC})
 source_group("Source/Physics" FILES ${Zap_Physics_SRC})
+source_group("Source/AssetHandling" FILES ${Zap_AssetHandling_SRC})
+source_group("Source/AssetHandling/AssetTypes" FILES ${Zap_AssetHandling_AssetTypes_SRC})
 source_group("Shader" FILES ${Zap_Shader_SRC})
 source_group("Imgui" FILES ${Imgui_SRC})
 

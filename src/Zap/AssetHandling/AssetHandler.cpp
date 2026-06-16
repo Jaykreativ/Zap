@@ -1,7 +1,7 @@
-#include "Zap/AssetHandler.h"
+#include "Zap/AssetHandling/AssetHandler.h"
 
 #include "Zap/Serializer.h"
-#include "Zap/FileLoader.h"
+#include "Zap/AssetHandling/FileLoader.h"
 
 #include <fstream>
 #include <filesystem>
@@ -22,124 +22,61 @@ namespace Zap {
 
 	AssetHandler::~AssetHandler() {}
 
-	/* Mesh */
-
-	std::unordered_map<UUID, MeshData>::const_iterator AssetHandler::beginMeshes() const {
-		return m_meshes.begin();
+	bool AssetHandler::isMesh(UUID handle) const {
+		return m_meshMap.count(handle);
+	}
+	bool AssetHandler::isMaterial(UUID handle) const {
+		return m_materialMap.count(handle);
+	}
+	bool AssetHandler::isTexture(UUID handle) const {
+		return m_textureMap.count(handle);
+	}
+	bool AssetHandler::isHitmesh(UUID handle) const {
+		return m_hitmeshMap.count(handle);
 	}
 
-	std::unordered_map<UUID, MeshData>::iterator AssetHandler::beginMeshes() {
-		return m_meshes.begin();
+	bool AssetHandler::isAsset(UUID handle) const {
+		if (isMesh(handle)) return true;
+		if (isMaterial(handle)) return true;
+		if (isTexture(handle)) return true;
+		if (isHitmesh(handle)) return true;
+		return false;
 	}
 
-	std::unordered_map<UUID, MeshData>::const_iterator AssetHandler::endMeshes() const {
-		return m_meshes.end();
+	// begin type specialization
+	template<>
+	AssetIterator<Mesh> AssetHandler::begin() {
+		AssetIterator<Mesh>(this, m_meshMap.begin());
+	}
+	template<>
+	AssetIterator<Material> AssetHandler::begin() {
+		AssetIterator<Material>(this, m_materialMap.begin());
+	}
+	template<>
+	AssetIterator<Texture> AssetHandler::begin() {
+		AssetIterator<Texture>(this, m_textureMap.begin());
+	}
+	template<>
+	AssetIterator<HitMesh> AssetHandler::begin() {
+		AssetIterator<HitMesh>(this, m_hitmeshMap.begin());
 	}
 
-	std::unordered_map<UUID, MeshData>::iterator AssetHandler::endMeshes() {
-		return m_meshes.end();
+	// end type specialization
+	template<>
+	AssetIterator<Mesh> AssetHandler::end() {
+		AssetIterator<Mesh>(this, m_meshMap.end());
 	}
-
-	bool AssetHandler::existsMeshData(UUID handle) const {
-		return m_meshes.count(handle);
+	template<>
+	AssetIterator<Material> AssetHandler::end() {
+		AssetIterator<Material>(this, m_materialMap.end());
 	}
-
-	const MeshData& AssetHandler::getMeshData(UUID handle) const {
-		return m_meshes.at(handle);
+	template<>
+	AssetIterator<Texture> AssetHandler::end() {
+		AssetIterator<Texture>(this, m_textureMap.end());
 	}
-
-	MeshData* AssetHandler::getMeshDataPtr(UUID handle) {
-		return &m_meshes.at(handle);
-	}
-
-	/* Material */
-
-	std::unordered_map<UUID, MaterialData>::const_iterator AssetHandler::beginMaterials() const {
-		return m_materials.begin();
-	}
-
-	std::unordered_map<UUID, MaterialData>::iterator AssetHandler::beginMaterials() {
-		return m_materials.begin();
-	}
-
-	std::unordered_map<UUID, MaterialData>::const_iterator AssetHandler::endMaterials() const {
-		return m_materials.end();
-	}
-
-	std::unordered_map<UUID, MaterialData>::iterator AssetHandler::endMaterials() {
-		return m_materials.end();
-	}
-
-	bool AssetHandler::existsMaterialData(UUID handle) const {
-		return m_materials.count(handle);
-	}
-
-	const MaterialData& AssetHandler::getMaterialData(UUID handle) const {
-		return m_materials.at(handle);
-	}
-
-	MaterialData* AssetHandler::getMaterialDataPtr(UUID handle) {
-		return &m_materials.at(handle);
-	}
-
-	/* Texture */
-
-	std::unordered_map<UUID, TextureData>::const_iterator AssetHandler::beginTextures() const {
-		return m_textures.begin();
-	}
-
-	std::unordered_map<UUID, TextureData>::iterator AssetHandler::beginTextures() {
-		return m_textures.begin();
-	}
-
-	std::unordered_map<UUID, TextureData>::const_iterator AssetHandler::endTextures() const {
-		return m_textures.end();
-	}
-
-	std::unordered_map<UUID, TextureData>::iterator AssetHandler::endTextures() {
-		return m_textures.end();
-	}
-
-	bool AssetHandler::existsTextureData(UUID handle) const {
-		return m_textures.count(handle);
-	}
-
-	const TextureData& AssetHandler::getTextureData(UUID handle) const {
-		return m_textures.at(handle);
-	}
-
-	TextureData* AssetHandler::getTextureDataPtr(UUID handle) {
-		return &m_textures.at(handle);
-	}
-
-	/* HitMesh */
-
-	std::unordered_map<UUID, HitMeshData>::const_iterator AssetHandler::beginHitMeshes() const {
-		return m_hitMeshes.begin();
-	}
-
-	std::unordered_map<UUID, HitMeshData>::iterator AssetHandler::beginHitMeshes() {
-		return m_hitMeshes.begin();
-	}
-
-	std::unordered_map<UUID, HitMeshData>::const_iterator AssetHandler::endHitMeshes() const {
-		return m_hitMeshes.end();
-	}
-
-	std::unordered_map<UUID, HitMeshData>::iterator AssetHandler::endHitMeshes() {
-		return m_hitMeshes.end();
-	}
-
-	bool AssetHandler::existsHitMeshData(UUID handle) const {
-		return m_hitMeshes.count(handle);
-	}
-
-	const HitMeshData& AssetHandler::getHitMeshData(UUID handle) const {
-		return m_hitMeshes.at(handle);
-	}
-
-	HitMeshData* AssetHandler::getHitMeshDataPtr(UUID handle) {
-		return &m_hitMeshes.at(handle);
+	template<>
+	AssetIterator<HitMesh> AssetHandler::end() {
+		AssetIterator<HitMesh>(this, m_hitmeshMap.end());
 	}
 
 	/* Load / Save */
@@ -359,6 +296,12 @@ namespace Zap {
 
 	AssetHandlerEventHandler& AssetHandler::getEventHandler() {
 		return m_eventHandler;
+	}
+
+	Asset* AssetHandler::getAsset(UUID handle) {
+		if(m_assetMap.count(handle))
+			return m_assetMap.at(handle).get();
+		return nullptr;
 	}
 
 	void AssetHandler::registerTexture(Texture texture, std::filesystem::path filepath) {
