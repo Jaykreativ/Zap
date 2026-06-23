@@ -6,6 +6,7 @@
 #include "Zap/AssetHandling/AssetTypes/Mesh.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
 #include "Zap/AssetHandling/AssetTypes/Texture.h"
+#include "Zap/AssetHandling/AssetTypes/HitMesh.h"
 
 #include <set>
 #include <filesystem>
@@ -39,12 +40,12 @@ namespace Zap {
 
 	class TextureLoadEvent {
 	public:
-		TextureLoadEvent(Texture texture)
+		TextureLoadEvent(AssetHandle<Texture> texture)
 			: texture(texture)
 		{}
 		~TextureLoadEvent() = default;
 
-		Texture texture;
+		AssetHandle<Texture> texture;
 	};
 
 	template<class T>
@@ -53,23 +54,26 @@ namespace Zap {
 	public:
 		~AssetIterator(){}
 
-		void operator++() {
+		void operator++(int) {
 			m_iterator++;
 		}
 
 		AssetHandle<T> operator*() {
-			return AssetHandle<T>(m_iterator*, m_pAssetHandler);
+			return AssetHandle<T>((*m_iterator).first, m_pAssetHandler);
 		}
 
-		void operator==(AssetIterator<T> other) {
+		bool operator==(AssetIterator<T> other) {
 			return m_iterator == other.m_iterator;
+		}
+		bool operator!=(AssetIterator<T> other) {
+			return m_iterator != other.m_iterator;
 		}
 
 	private:
 		AssetHandler* m_pAssetHandler = nullptr;
-		std::unordered_map<UUID, T>::iterator m_iterator;
+		typename std::unordered_map<UUID, std::unique_ptr<T>>::iterator m_iterator;
 
-		AssetIterator(AssetHandler* pAssetHandler, std::unordered_map<UUID, T>::iterator iterator)
+		AssetIterator(AssetHandler* pAssetHandler, typename std::unordered_map<UUID, std::unique_ptr<T>>::iterator iterator)
 			: m_pAssetHandler(pAssetHandler), m_iterator(iterator)
 		{}
 	};
@@ -81,6 +85,8 @@ namespace Zap {
 		// associates the asset handler with a zal asset library file
 		AssetHandler(std::filesystem::path path);
 		~AssetHandler();
+		AssetHandler& operator=(const AssetHandler&) = delete;
+		AssetHandler& operator=(AssetHandler&&) = default;
 
 		bool isAsset(UUID handle) const;
 
@@ -126,15 +132,19 @@ namespace Zap {
 		std::filesystem::path m_alpath;
 		std::filesystem::path m_aldir;
 
-		std::unordered_map<UUID, Mesh> m_meshMap = {};
-		std::unordered_map<UUID, Material> m_materialMap = {};
-		std::unordered_map<UUID, Texture> m_textureMap = {};
-		std::unordered_map<UUID, HitMesh> m_hitmeshMap = {};
+		std::unordered_map<UUID, std::unique_ptr<Mesh>> m_meshMap;
+		std::unordered_map<UUID, std::unique_ptr<Material>> m_materialMap;
+		std::unordered_map<UUID, std::unique_ptr<Texture>> m_textureMap;
+		std::unordered_map<UUID, std::unique_ptr<HitMesh>> m_hitmeshMap;
 
 		// Events
 		AssetHandlerEventHandler m_eventHandler;
 
-		Asset* getAsset(UUID handle);
+		template<class T>
+		AssetHandle<T> createAsset(UUID handle = UUID());
+
+		template<class T>
+		T* getAsset(UUID handle);
 
 		// register assets for Asset Library
 
@@ -150,6 +160,8 @@ namespace Zap {
 
 		void addLoadedTexture(Texture texture);
 
+		template<class T>
+		friend class AssetHandle;
 		friend class Base;
 		friend class Mesh;
 		friend class Material;

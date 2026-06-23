@@ -1,144 +1,83 @@
-#include "Zap/Scene/Material.h"
+#include "Zap/AssetHandling/AssetTypes/Material.h"
 #include "Zap/Zap.h"
-#include "Zap/AssetHandler.h"
 
 namespace Zap {
-	Material::Material()
-		: m_handle()
-	{
-		Base::getBase()->m_assetHandler.m_materials[m_handle] = MaterialData{};
-	}
-
-	Material::Material(UUID handle)
-		: m_handle(handle)
-	{}
-
+	Material::Material() {}
 	Material::~Material() {}
-
-	void Material::destroy() {}
-	void Material::destroy(MaterialData* data) {}
-
-	void Material::remove() {
-		destroy();
-		auto* base = Base::getBase();
-		base->m_assetHandler.m_materials.erase(m_handle);
-	}
-
-	bool Material::exists() const {
-		return Base::getBase()->m_assetHandler.m_materials.count(m_handle);
-	}
-
-	UUID Material::getHandle() {
-		return m_handle;
-	}
 
 	void Material::setAlbedo(glm::vec3 albedo) {
 		setAlbedo(glm::vec4(albedo, 1.0));
 	}
 
 	void Material::setAlbedo(glm::vec4 albedo) {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		data->albedoColor = albedo;
+		m_albedoColor = albedo;
 	}
 
 	void Material::setMetallic(float metallic) {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		data->metallic = metallic;
+		m_metallic = metallic;
 	}
 
 	void Material::setRoughness(float roughness) {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		data->roughness = roughness;
+		m_roughness = roughness;
 	}
 
 	void Material::setEmissive(glm::vec4 emissive) {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		data->emissive = emissive;
+		m_emissive = emissive;
 	}
 
 	glm::vec4 Material::getAlbedo() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		return data->albedoColor;
+		return m_albedoColor;
 	}
 
 	bool Material::hasAlbedoMap() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		return data->albedoMap.isValid();
+		return m_albedoMap;
 	}
 
-	Texture Material::getAlbedoMap() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		ZP_WARN(data->albedoMap.isValid(), "Invalid albedoMap requested");
-		return data->albedoMap;
+	AssetHandle<Texture> Material::getAlbedoMap() {
+		ZP_WARN(m_albedoMap, "Invalid albedoMap requested");
+		return m_albedoMap;
 	}
 
 	float Material::getMetallic() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		return data->metallic;
+		return m_metallic;
 	}
 
 	bool Material::hasMetallicMap() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		return data->metallicMap.isValid();
+		return m_metallicMap;
 	}
 
-	Texture Material::getMetallicMap() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		ZP_WARN(data->metallicMap.isValid(), "Invalid metallicMap requested");
-		return data->metallicMap;
+	AssetHandle<Texture> Material::getMetallicMap() {
+		ZP_WARN(m_metallicMap, "Invalid metallicMap requested");
+		return m_metallicMap;
 	}
 
 	float Material::getRoughness() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		return data->roughness;
+		return m_roughness;
 	}
 
 	bool Material::hasRoughnessMap() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		return data->roughnessMap.isValid();
+		return m_roughnessMap;
 	}
 
-	Texture Material::getRoughnessMap() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		ZP_WARN(data->roughnessMap.isValid(), "Invalid roughnessMap requested");
-		return data->roughnessMap;
+	AssetHandle<Texture> Material::getRoughnessMap() {
+		ZP_WARN(m_roughnessMap, "Invalid roughnessMap requested");
+		return m_roughnessMap;
 	}
 
 	glm::vec3 Material::getEmissive() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		return data->emissive;
+		return m_emissive;
 	}
 
 	float Material::getEmissiveValue() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		return data->emissive.w;
+		return m_emissive.w;
 	}
 
 	bool Material::hasEmissiveMap() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		return data->emissiveMap.isValid();
+		return m_emissiveMap;
 	}
 
-	Texture Material::getEmissiveMap() {
-		auto* base = Base::getBase();
-		auto* data = base->m_assetHandler.getMaterialDataPtr(m_handle);
-		ZP_WARN(data->emissiveMap.isValid(), "Invalid emissiveMap requested");
-		return data->emissiveMap;
+	AssetHandle<Texture> Material::getEmissiveMap() {
+		ZP_WARN(m_emissiveMap, "Invalid emissiveMap requested");
+		return m_emissiveMap;
 	}
 }

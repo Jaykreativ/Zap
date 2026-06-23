@@ -4,7 +4,7 @@
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Model.h"
-#include "Zap/Scene/Mesh.h"
+#include "Zap/AssetHandling/AssetTypes/Mesh.h"
 
 namespace Zap {
 	RenderTask::RenderTask(Renderer* pRenderer)
@@ -47,18 +47,15 @@ namespace Zap {
 		return &m_pScene->m_modelComponents.at(actor);
 	}
 
-	uint32_t RenderTask::getMeshInstanceIndex(UUID actor, Mesh mesh) {
-		if (m_pScene->m_meshInstanceIndices.count(mesh.getHandle() + (UUID)actor)) {
-			return m_pScene->m_meshInstanceIndices.at(mesh.getHandle() + (UUID)actor);
+	uint32_t RenderTask::getMeshInstanceIndex(UUID actor, UUID mesh) {
+		if (m_pScene->m_meshInstanceIndices.count(mesh + actor)) {
+			return m_pScene->m_meshInstanceIndices.at(mesh + actor);
 		}
 		return 0;
 	}
-	uint32_t RenderTask::getMeshInstanceIndex(Actor actor, Mesh mesh) {
-		return getMeshInstanceIndex((UUID)actor, mesh);
-	}
 
-	std::unordered_map<UUID, TextureData>* RenderTask::getTextureDataMap() {
-		return &Base::getBase()->m_assetHandler.m_textures;
+	std::unordered_map<UUID, std::unique_ptr<Texture>>* RenderTask::getTextureDataMap() {
+		return &Base::getBase()->m_assetHandler->m_textureMap;
 	}
 
 	uint32_t RenderTask::getTextureIndex(UUID texture) {

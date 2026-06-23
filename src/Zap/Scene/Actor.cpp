@@ -7,7 +7,7 @@
 #include "Zap/Scene/Light.h"
 #include "Zap/Scene/Camera.h"
 #include "Zap/Scene/Transform.h"
-#include "Zap/Scene/Material.h"
+#include "Zap/AssetHandling/AssetTypes/Material.h"
 
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
@@ -175,21 +175,21 @@ namespace Zap {
 		return m_pScene->m_modelComponents.count(m_handle);
 	}
 
-	void Actor::cmpModel_setMaterial(Material material) {
+	void Actor::cmpModel_setMaterial(AssetHandle<Material> material) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
-		for (Material& mat : cmp->materials) {
+		for (AssetHandle<Material>& mat : cmp->materials) {
 			mat = material;
 		}
 	}
 
-	void Actor::cmpModel_setMaterial(uint32_t meshIndex, Material material) {
+	void Actor::cmpModel_setMaterial(uint32_t meshIndex, AssetHandle<Material> material) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
 		cmp->materials[meshIndex] = material;
 	}
 
-	void Actor::cmpModel_addMesh(Mesh mesh, Material material) {
+	void Actor::cmpModel_addMesh(AssetHandle<Mesh> mesh, AssetHandle<Material> material) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
 		cmp->meshes.push_back(mesh);

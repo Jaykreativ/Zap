@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/UUID.h"
+#include "Zap/AssetHandling/Asset.h"
 #include "Zap/Rendering/Image.h"
 
 #include "assimp/Importer.hpp"
@@ -57,16 +58,16 @@ namespace Zap {
 	class TextureLoader : public Image2DLoader, public FileLoader
 	{
 	public:
-		Texture load(std::filesystem::path filepath);
+		AssetHandle<Texture> load(std::filesystem::path filepath);
 
 	protected:
-		Texture load(void* data, uint32_t width, uint32_t height, UUID handle = UUID());
+		AssetHandle<Texture> load(void* data, uint32_t width, uint32_t height, UUID handle = UUID());
 
-		Texture load(std::filesystem::path filepath, UUID handle);
+		AssetHandle<Texture> load(std::filesystem::path filepath, UUID handle);
 
-		Texture load(const aiTexture* texture, UUID handle = UUID());
+		AssetHandle<Texture> load(const aiTexture* texture, UUID handle = UUID());
 
-		Texture load(std::filesystem::path modelpath, std::filesystem::path textureID, UUID handle = UUID());
+		AssetHandle<Texture> load(std::filesystem::path modelpath, std::filesystem::path textureID, UUID handle = UUID());
 
 		friend class AssetHandler;
 		friend class Base;
@@ -75,7 +76,7 @@ namespace Zap {
 	class MaterialLoader : protected TextureLoader
 	{
 	protected:
-		Material load(const aiScene* aScene, const aiMaterial* aMaterial, std::filesystem::path modelpath, UUID handle = UUID());
+		AssetHandle<Material> load(const aiScene* aScene, const aiMaterial* aMaterial, std::filesystem::path modelpath, UUID handle = UUID());
 
 		friend class AssetHandler;
 	};
@@ -83,9 +84,9 @@ namespace Zap {
 	class MeshLoader : public virtual Loader
 	{
 	protected:
-		Mesh load(aiMesh* aMesh, glm::mat4& transform, glm::vec3& modelBoundMin, glm::vec3& modelBoundMax, UUID handle = UUID());
+		AssetHandle<Mesh> load(aiMesh* aMesh, glm::mat4& transform, glm::vec3& modelBoundMin, glm::vec3& modelBoundMax, UUID handle = UUID());
 
-		Mesh loadFromFile(std::filesystem::path filepath, uint32_t index, glm::mat4& transform, UUID handle = UUID());
+		AssetHandle<Mesh> loadFromFile(std::filesystem::path filepath, uint32_t index, glm::mat4& transform, UUID handle = UUID());
 
 		friend class AssetHandler;
 	};
@@ -93,11 +94,11 @@ namespace Zap {
 	class HitMeshLoader : public virtual Loader
 	{
 	public:
-		HitMesh load(std::filesystem::path filepath, uint32_t index = 0);
+		AssetHandle<HitMesh> load(std::filesystem::path filepath, uint32_t index = 0);
 
 	protected:
-		HitMesh load(std::filesystem::path filepath, uint32_t index, UUID handle);
-		HitMesh load(aiMesh* aMesh, UUID handle = UUID());
+		AssetHandle<HitMesh> load(std::filesystem::path filepath, uint32_t index, UUID handle);
+		AssetHandle<HitMesh> load(aiMesh* aMesh, UUID handle = UUID());
 
 		friend class AssetHandler;
 	};

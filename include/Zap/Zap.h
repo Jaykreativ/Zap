@@ -17,7 +17,7 @@
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_QUAT_DATA_XYZW
 #include "Zap/UUID.h"
-#include "Zap/AssetHandler.h"
+#include "Zap/AssetHandling/AssetHandler.h"
 #include "VulkanFramework.h"
 
 #include "glm.hpp"
@@ -88,19 +88,17 @@ namespace Zap {
 		physx::PxPvd* m_pxPvd;
 		physx::PxPhysics* m_pxPhysics;
 		
-		AssetHandler m_assetHandler;
+		std::unique_ptr<AssetHandler> m_assetHandler;
 		vk::Sampler m_textureSampler;
 		std::unordered_map<UUID, uint32_t> m_textureIndices = {};
 
 		static Base* m_engineBase;
 		static bool m_exists;
 
+		void registerTextureIndex(UUID handle);
+
 		friend class Scene;
 		friend class Actor;
-		friend class Mesh;
-		friend class Material;
-		friend class Texture;
-		friend class HitMesh;
 		friend class RenderTask;
 		friend class PBRenderer;
 		friend class RaytracingRenderer;
@@ -117,6 +115,7 @@ namespace Zap {
 		friend class Shape;
 		friend class ConvexMesh;
 		friend class PhysicsMaterial;
+		friend class AssetHandler;
 	};
 
 	namespace GlobalSettings {

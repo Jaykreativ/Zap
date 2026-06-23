@@ -2,7 +2,7 @@
 
 #include "Zap/Zap.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Material.h"
+#include "Zap/AssetHandling/AssetTypes/Material.h"
 #include "Zap/Rendering/RenderObjects/Framebuffer.h"
 #include "Zap/Rendering/RenderObjects/RenderTargets.h"
 #include "Zap/Rendering/RenderObjects/RenderTask.h"

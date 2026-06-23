@@ -1,6 +1,6 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
-#include "Zap/FileLoader.h"
+#include "Zap/AssetHandling/FileLoader.h"
 #include "Zap/Physics/PhysicsComponent.h"
 
 #include "glm/gtc/quaternion.hpp"
@@ -53,7 +53,9 @@ namespace Zap {
 		: m_applicationName(applicationName)
 	{
 		if (assetLibraryPath != "")
-			m_assetHandler = AssetHandler(assetLibraryPath);
+			m_assetHandler = std::make_unique<AssetHandler>(assetLibraryPath);
+		else
+			m_assetHandler = std::make_unique<AssetHandler>();
 	}
 
 	Base::~Base() {}
@@ -212,9 +214,9 @@ namespace Zap {
 			throw std::runtime_error("ERROR: PxCreatePhysics failed");
 		}
 
-		if (!m_assetHandler.getAssetLibrary().empty()) {
-			m_assetHandler.loadFromFile();
-		}
+		//if (!m_assetHandler.getAssetLibrary().empty()) {
+		//	m_assetHandler.loadFromFile();
+		//}
 
 		// load default assets
 		TextureLoader texLoader;
@@ -227,7 +229,7 @@ namespace Zap {
 	}
 
 	void Base::terminate() {
-		m_assetHandler.destroyAssets();
+		m_assetHandler.reset();
 
 		m_pxPhysics->release();
 		m_pxFoundation->release();
@@ -243,7 +245,7 @@ namespace Zap {
 	}
 
 	AssetHandler* Base::getAssetHandler() {
-		return &m_assetHandler;
+		return m_assetHandler.get();
 	}
 
 	std::string Base::getApplicationName() {
@@ -267,6 +269,10 @@ namespace Zap {
 
 	Base* Base::m_engineBase;
 	bool Base::m_exists;
+
+	void Base::registerTextureIndex(UUID handle) {
+		m_textureIndices[handle] = m_assetHandler->m_textureMap.size()-1;
+	}
 
 	namespace PxUtils {
 		physx::PxTransform glmMat4ToTransform(glm::mat4 glmt) {

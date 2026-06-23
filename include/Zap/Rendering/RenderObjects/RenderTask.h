@@ -2,6 +2,8 @@
 
 #include "Zap/Zap.h"
 #include "Zap/Rendering/RenderObject.h"
+#include "Zap/AssetHandling/Asset.h"
+#include "Zap/AssetHandling/AssetTypes/Texture.h"
 
 namespace Zap {
 	class Model;
@@ -48,10 +50,9 @@ namespace Zap {
 
 		// Only works when a scene ptr was supplied in the constructor
 		// Returns 0 when failing
-		uint32_t getMeshInstanceIndex(UUID actor, Mesh mesh);
-		uint32_t getMeshInstanceIndex(Actor actor, Mesh mesh);
+		uint32_t getMeshInstanceIndex(UUID actor, UUID mesh);
 
-		std::unordered_map<UUID, TextureData>* getTextureDataMap();
+		std::unordered_map<UUID, std::unique_ptr<Texture>>* getTextureDataMap();
 
 		uint32_t getTextureIndex(UUID texture);
 

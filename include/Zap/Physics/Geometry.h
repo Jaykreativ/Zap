@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
-#include "Zap/Physics/HitMesh.h"
+#include "Zap/AssetHandling/AssetTypes/HitMesh.h"
 
 #include "glm.hpp"
 
@@ -117,7 +117,7 @@ namespace Zap {
 	// wrapper class for PxConvexMesh*
 	class ConvexMesh {
 	public:
-		ConvexMesh(HitMesh hitMesh);
+		ConvexMesh(AssetHandle<HitMesh> hitMesh);
 		ConvexMesh(physx::PxConvexMeshDesc convexDesc);
 		~ConvexMesh();
 
@@ -126,7 +126,7 @@ namespace Zap {
 		physx::PxConvexMesh* getPxConvexMesh();
 
 	private:
-		HitMesh m_hitMesh;
+		AssetHandle<HitMesh> m_hitMesh;
 		physx::PxConvexMesh* m_convexMesh;
 
 		friend class ConvexMeshGeometry;
@@ -141,13 +141,13 @@ namespace Zap {
 		PhysicsGeometryType getType() const override;
 		physx::PxGeometryType::Enum getTypePx() const override;
 
-		HitMesh getHitMesh();
+		AssetHandle<HitMesh> getHitMesh();
 
 		physx::PxGeometry* getPxGeometry() override;
 		const physx::PxGeometry* getPxGeometry() const override;
 
 	private:
-		HitMesh m_hitMesh;
+		AssetHandle<HitMesh> m_hitMesh;
 		physx::PxConvexMeshGeometry m_geometry;
 	};
 }

@@ -1,25 +1,10 @@
-#include "Zap/Scene/Texture.h"
+#include "Zap/AssetHandling/AssetTypes/Texture.h"
 
 #include "Zap/Zap.h"
 
 namespace Zap {
-	Texture::Texture()
-		: m_handle()
-	{
-		auto* base = Base::getBase();
-		create();
-	}
-
-	Texture::Texture(UUID handle)
-		: m_handle(handle)
-	{}
-
+	Texture::Texture() {}
 	Texture::~Texture() {}
-
-	bool Texture::isValid() {
-		if(m_handle == 0) return false;
-		return true;
-	}
 
 	//void Texture::load(void* data, uint32_t width, uint32_t height) {
 	//	auto base = Base::getBase();
@@ -41,37 +26,7 @@ namespace Zap {
 	//	image->changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
 	//}
 
-	void Texture::destroy() {
-		auto& assetHandler = Base::getBase()->m_assetHandler;
-		auto* pData = assetHandler.getTextureDataPtr(m_handle);
-		destroy(pData);
-	}
-	void Texture::destroy(TextureData* data) {}
-
-	void Texture::remove() {
-		destroy();
-		auto* base = Base::getBase();
-		base->m_assetHandler.m_materials.erase(m_handle);
-	}
-
-	bool Texture::exists() const {
-		return Base::getBase()->m_assetHandler.m_textures.count(m_handle);
-	}
-
-	UUID Texture::getHandle() {
-		return m_handle;
-	}
-
-	//Image* Texture::getImage() {
-	//	return &Base::getBase()->m_assetHandler.getTextureDataPtr(m_handle)->image;
-	//}
-	//const Image* Texture::getImage() const {
-	//	return &Base::getBase()->m_assetHandler.getTextureData(m_handle).image;
-	//}
-
-	void Texture::create() {
-		auto base = Base::getBase();
-		base->m_textureIndices[m_handle] = base->m_assetHandler.m_textures.size();
-		base->m_assetHandler.addTexture(*this);
+	Image2D& Texture::getImage() {
+		return m_image;
 	}
 }

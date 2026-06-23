@@ -1,7 +1,7 @@
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Mesh.h"
-#include "Zap/Scene/Material.h"
+#include "Zap/AssetHandling/AssetTypes/Mesh.h"
+#include "Zap/AssetHandling/AssetTypes/Material.h"
 #include "Zap/Physics/PhysicsComponent.h"
 #include "Zap/Rendering/RenderObjects/RenderTasks/LineRenderTask.h"
 
@@ -94,11 +94,11 @@ namespace Zap {
 				PerMeshInstanceData* perMeshInstance = (PerMeshInstanceData*)(rawData);
 				uint32_t i = 0;
 				for (auto const& modelPair : m_modelComponents) {
-					for (Mesh mesh : modelPair.second.meshes) {
-						perMeshInstance[i].vertexBufferAddress = mesh.getVertexBuffer()->getVkDeviceAddress();
-						perMeshInstance[i].indexBufferAddress = mesh.getIndexBuffer()->getVkDeviceAddress();
+					for (auto mesh : modelPair.second.meshes) {
+						perMeshInstance[i].vertexBufferAddress = mesh->getVertexBuffer().getVkDeviceAddress();
+						perMeshInstance[i].indexBufferAddress = mesh->getIndexBuffer().getVkDeviceAddress();
 
-						m_meshInstanceIndices[mesh.getHandle()+modelPair.first] = i;
+						m_meshInstanceIndices[mesh+modelPair.first] = i;
 						i++;
 					}
 				}
@@ -113,29 +113,29 @@ namespace Zap {
 				uint32_t i = 0;
 				for (auto& modelPair : m_modelComponents) {
 					uint32_t j = 0;
-					for (Mesh mesh : modelPair.second.meshes) {
+					for (auto mesh : modelPair.second.meshes) {
 						auto* base = Base::getBase();
-						perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * *mesh.getTransform();
+						perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * mesh->getTransform();
 						perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
-						auto& material = *base->m_assetHandler.getMaterialDataPtr(modelPair.second.materials[j].getHandle());
+						auto material = modelPair.second.materials[j];
 						MaterialGpuData gpuMaterial = {
-							material.albedoColor,
+							material->getAlbedo(),
 							0xFFFFFFFF,
-							material.metallic,
+							material->getMetallic(),
 							0xFFFFFFFF,
-							material.roughness,
+							material->getRoughness(),
 							0xFFFFFFFF,
-							material.emissive,
+							glm::vec4(material->getEmissive(), material->getEmissiveValue()),
 							0xFFFFFFFF,
 						};
-						if (base->m_textureIndices.count(material.albedoMap.getHandle()))
-							gpuMaterial.albedoMap = base->m_textureIndices.at(material.albedoMap.getHandle());
-						if (base->m_textureIndices.count(material.metallicMap.getHandle()))
-							gpuMaterial.metallicMap = base->m_textureIndices.at(material.metallicMap.getHandle());
-						if (base->m_textureIndices.count(material.roughnessMap.getHandle()))
-							gpuMaterial.roughnessMap = base->m_textureIndices.at(material.roughnessMap.getHandle());
-						if (base->m_textureIndices.count(material.emissiveMap.getHandle()))
-							gpuMaterial.emissiveMap = base->m_textureIndices.at(material.emissiveMap.getHandle());
+						if (material->hasAlbedoMap() && base->m_textureIndices.count(material->getAlbedoMap()))
+							gpuMaterial.albedoMap = base->m_textureIndices.at(material->getAlbedoMap());
+						if (material->hasMetallicMap() && base->m_textureIndices.count(material->getMetallicMap()))
+							gpuMaterial.metallicMap = base->m_textureIndices.at(material->getMetallicMap());
+						if (material->hasRoughnessMap() && base->m_textureIndices.count(material->getRoughnessMap()))
+							gpuMaterial.roughnessMap = base->m_textureIndices.at(material->getRoughnessMap());
+						if (material->hasEmissiveMap() && base->m_textureIndices.count(material->getEmissiveMap()))
+							gpuMaterial.emissiveMap = base->m_textureIndices.at(material->getEmissiveMap());
 						perMeshInstance[i].material = gpuMaterial;
 						j++; i++;
 

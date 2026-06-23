@@ -112,17 +112,17 @@ namespace Zap {
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
 			glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform);
-			for (Mesh mesh : modelPair.second.meshes) {
+			for (auto mesh : modelPair.second.meshes) {
 				// if mesh has no blas add new one
-				if (!m_blasMap.count(mesh.getHandle())) {
-					vk::AccelerationStructure& accelerationStructure = m_blasMap[mesh.getHandle()] = vk::AccelerationStructure();
+				if (!m_blasMap.count(mesh)) {
+					vk::AccelerationStructure& accelerationStructure = m_blasMap[mesh] = vk::AccelerationStructure();
 					accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
 					accelerationStructure.init();
-					accelerationStructure.addGeometry(*mesh.getVertexBuffer(), sizeof(Vertex), *mesh.getIndexBuffer());
+					accelerationStructure.addGeometry(mesh->getVertexBuffer(), sizeof(Vertex), mesh->getIndexBuffer());
 					accelerationStructure.update();
 				}
 
-				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(mesh.getHandle())));
+				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(mesh)));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
 				i++;
@@ -282,7 +282,7 @@ namespace Zap {
 		std::vector<VkDescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {
 			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
-			textureImageInfos[i] = { base->m_textureSampler, texturePair.second.image.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL };
+			textureImageInfos[i] = { base->m_textureSampler, texturePair.second->getImage(), VK_IMAGE_LAYOUT_GENERAL};
 		}
 		m_textureSet->addBinding(texturesBinding);
 		m_textureSet->createLayout();
@@ -342,20 +342,20 @@ namespace Zap {
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
-			for (Mesh mesh : modelPair.second.meshes) {
+			for (auto mesh : modelPair.second.meshes) {
 				auto* base = Base::getBase();
-				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * *mesh.getTransform());
+				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * mesh->getTransform());
 
 				// if mesh has no blas add new one
-				if (!m_blasMap.count(mesh.getHandle())) {
-					vk::AccelerationStructure& accelerationStructure = m_blasMap[mesh.getHandle()] = vk::AccelerationStructure();
+				if (!m_blasMap.count(mesh)) {
+					vk::AccelerationStructure& accelerationStructure = m_blasMap[mesh] = vk::AccelerationStructure();
 					accelerationStructure.setType(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
 					accelerationStructure.init();
-					accelerationStructure.addGeometry(*mesh.getVertexBuffer(), sizeof(Vertex), *mesh.getIndexBuffer());
+					accelerationStructure.addGeometry(mesh->getVertexBuffer(), sizeof(Vertex), mesh->getIndexBuffer());
 					accelerationStructure.update();
 				}
 
-				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(mesh.getHandle())));
+				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(mesh)));
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
 				instanceVector.back().setMask(0xFF);
@@ -477,7 +477,7 @@ namespace Zap {
 		std::vector<VkDescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {
 			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
-			textureImageInfos[i] = { base->m_textureSampler, texturePair.second.image.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL };
+			textureImageInfos[i] = { base->m_textureSampler, texturePair.second->getImage(), VK_IMAGE_LAYOUT_GENERAL};
 		}
 
 		m_textureSet->addBinding(texturesBinding);

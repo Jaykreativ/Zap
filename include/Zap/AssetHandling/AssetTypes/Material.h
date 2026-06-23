@@ -2,7 +2,8 @@
 
 #include "glm.hpp"
 #include "Zap/UUID.h"
-#include "Zap/Scene/Texture.h"
+#include "Zap/AssetHandling/Asset.h"
+#include "Zap/AssetHandling/AssetTypes/Texture.h"
 
 namespace Zap {
 	struct MaterialGpuData {
@@ -15,34 +16,12 @@ namespace Zap {
 		alignas(16) glm::vec4 emissive = { 0, 0, 0, 0 };
 		alignas(4) uint32_t emissiveMap = 0xFFFFFFFF;
 	};
-
-	struct MaterialData {
-		glm::vec4 albedoColor = { 1, 1, 1, 1 };
-		Texture albedoMap = (UUID)0;
-		float metallic = 0;
-		Texture metallicMap = (UUID)0;
-		float roughness = 0.5;
-		Texture roughnessMap = (UUID)0;
-		glm::vec4 emissive = { 0, 0, 0, 0 };
-		Texture emissiveMap = (UUID)0;
-	};
 	
 	class Material {
+		friend class MaterialLoader;
 	public:
 		Material();
-		Material(UUID handle);
 		~Material();
-
-		void destroy();
-		static void destroy(MaterialData* data);
-
-		// removes asset from assetLibrary and destroys it
-		// only works correctly with runtime generated assets
-		void remove();
-
-		bool exists() const;
-
-		UUID getHandle();
 
 		void setAlbedo(glm::vec3 albedo);
 		void setAlbedo(glm::vec4 albedo);
@@ -57,19 +36,19 @@ namespace Zap {
 
 		bool hasAlbedoMap();
 
-		Texture getAlbedoMap();
+		AssetHandle<Texture> getAlbedoMap();
 
 		float getMetallic();
 
 		bool hasMetallicMap();
 
-		Texture getMetallicMap();
+		AssetHandle<Texture> getMetallicMap();
 
 		float getRoughness();
 		
 		bool hasRoughnessMap();
 
-		Texture getRoughnessMap();
+		AssetHandle<Texture> getRoughnessMap();
 
 		glm::vec3 getEmissive();
 
@@ -77,9 +56,16 @@ namespace Zap {
 
 		bool hasEmissiveMap();
 
-		Texture getEmissiveMap();
+		AssetHandle<Texture> getEmissiveMap();
 
 	private:
-		UUID m_handle;
+		glm::vec4            m_albedoColor = { 1, 1, 1, 1 };
+		AssetHandle<Texture> m_albedoMap;
+		float                m_metallic = 0;
+		AssetHandle<Texture> m_metallicMap;
+		float                m_roughness = 0.5;
+		AssetHandle<Texture> m_roughnessMap;
+		glm::vec4            m_emissive = { 0, 0, 0, 0 };
+		AssetHandle<Texture> m_emissiveMap;
 	};
 }

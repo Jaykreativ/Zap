@@ -26,6 +26,7 @@ namespace Zap {
 	class AssetHandle {
 		template<class U>
 		friend class AssetIterator;
+		friend class AssetHandler;
 	public:
 		AssetHandle() {}
 		AssetHandle(const AssetHandle<T>& other)
@@ -37,8 +38,13 @@ namespace Zap {
 			return AssetHandle<Asset>(m_handle, m_pAssetHandler);
 		}
 
+		operator UUID() { return m_handle; }
+
 		T* get() {
-			return reinterpret_cast<T*>(m_pAssetHandler->getAsset(m_handle));
+			return m_pAssetHandler->getAsset<T>(m_handle);
+		}
+		const T* get() const {
+			return m_pAssetHandler->getAsset<T>(m_handle);
 		}
 
 		T* operator->() {

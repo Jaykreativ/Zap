@@ -91,7 +91,7 @@ namespace Zap {
 		std::vector<VkDescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {
 			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
-			textureImageInfos[i] = { base->m_textureSampler, texturePair.second.image.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL };
+			textureImageInfos[i] = { base->m_textureSampler, texturePair.second->getImage(), VK_IMAGE_LAYOUT_GENERAL};
 		}
 
 		m_textureSet->addBinding(texturesBinding);
@@ -308,20 +308,20 @@ namespace Zap {
 
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
-			for (Mesh mesh : modelPair.second.meshes) {
+			for (auto mesh : modelPair.second.meshes) {
 				auto* base = Base::getBase();
 
 				VkDeviceSize offsets[] = { 0 };
-				const VkBuffer vertexBuffer = *mesh.getVertexBuffer();
+				const VkBuffer vertexBuffer = mesh->getVertexBuffer();
 				vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
-				vkCmdBindIndexBuffer(*cmd, *mesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindIndexBuffer(*cmd, mesh->getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 				std::array<VkDescriptorSet, 2> boundSets = { m_descriptorSet, m_textureSet };
 				vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, boundSets.size(), boundSets.data(), 0, nullptr);
 
 				vkCmdPushConstants(*cmd, m_pipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &i);
 
-				vkCmdDrawIndexed(*cmd, mesh.getIndexBuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
+				vkCmdDrawIndexed(*cmd, mesh->getIndexBuffer().getSize() / sizeof(uint32_t), 1, 0, 0, 0);
 				i++;
 			}
 		}
@@ -382,7 +382,7 @@ namespace Zap {
 		std::vector<VkDescriptorImageInfo> textureImageInfos(textureMap->size());
 		for (auto& texturePair : *textureMap) {
 			uint32_t i = RenderTask::getTextureIndex(texturePair.first);
-			textureImageInfos[i] = { base->m_textureSampler, texturePair.second.image.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL };
+			textureImageInfos[i] = { base->m_textureSampler, texturePair.second->getImage(), VK_IMAGE_LAYOUT_GENERAL};
 		}
 
 		m_textureSet->addBinding(texturesBinding);
