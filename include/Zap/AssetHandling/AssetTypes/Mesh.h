@@ -5,10 +5,15 @@
 #include "VulkanFramework.h"
 
 namespace Zap {
-	class Mesh {
-		friend class MeshLoader;
+	class Mesh : public Asset {
 	public:
-		Mesh();
+		Mesh(
+			glm::mat4  transform,
+			vk::Buffer vertexBuffer,
+			vk::Buffer indexBuffer,
+			glm::vec3  boundMax,
+			glm::vec3  boundMin
+		);
 		~Mesh();
 
 		const glm::vec3& getBoundMin() const;

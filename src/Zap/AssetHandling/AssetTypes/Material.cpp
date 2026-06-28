@@ -2,7 +2,27 @@
 #include "Zap/Zap.h"
 
 namespace Zap {
-	Material::Material() {}
+	Material::Material(
+		glm::vec4            albedoColor,
+		float                metallic,
+		float                roughness,
+		glm::vec4            emissive,
+		AssetHandle<Texture> albedoMap,
+		AssetHandle<Texture> metallicMap,
+		AssetHandle<Texture> roughnessMap,
+		AssetHandle<Texture> emissiveMap
+	)
+		:
+		m_albedoColor(albedoColor),
+		m_metallic(metallic),
+		m_roughness(roughness),
+		m_emissive(emissive),
+		m_albedoMap(albedoMap),
+		m_metallicMap(metallicMap),
+		m_roughnessMap(roughnessMap),
+		m_emissiveMap(emissiveMap)
+	{}
+
 	Material::~Material() {}
 
 	void Material::setAlbedo(glm::vec3 albedo) {

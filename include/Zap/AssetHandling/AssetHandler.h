@@ -95,26 +95,42 @@ namespace Zap {
 		bool isTexture(UUID handle) const;
 		bool isHitmesh(UUID handle) const;
 
+	private:
+		template<class T, class... Types>
+		AssetHandle<T> generateAssetUsingID(UUID handle, Types&&... args);
+		template<class... Types>
+		AssetHandle<Mesh> generateAssetUsingID(UUID handle, Types&&... args) {
+			m_meshMap[handle] = std::make_unique<Mesh>(std::forward<Types>(args)...);
+			return AssetHandle<Mesh>(handle, this);
+		}
+		template<class... Types>
+		AssetHandle<Material> generateAssetUsingID(UUID handle, Types&&... args) {
+			m_materialMap[handle] = std::make_unique<Material>(std::forward<Types>(args)...);
+			return AssetHandle<Material>(handle, this);
+		}
+		template<class... Types>
+		AssetHandle<Texture> generateAssetUsingID(UUID handle, Types&&... args) {
+			m_textureMap[handle] = std::make_unique<Texture>(std::forward<Types>(args)...);
+			return AssetHandle<Texture>(handle, this);
+		}
+		template<class... Types>
+		AssetHandle<HitMesh> generateAssetUsingID(UUID handle, Types&&... args) {
+			m_hitmeshMap[handle] = std::make_unique<HitMesh>(std::forward<Types>(args)...);
+			return AssetHandle<HitMesh>(handle, this);
+		}
+	public:
+		template<class T, class... Types>
+		AssetHandle<T> generateAsset(Types&&... args) {
+			generateAssetUsingID<T, Types>(UUID(), args);
+		}
+
 		template<class T>
 		AssetIterator<T> begin();
 
 		template<class T>
 		AssetIterator<T> end();
 
-		void setAssetLibrary(std::filesystem::path filepath);
-
 		std::filesystem::path getAssetLibrary();
-
-		// loads/reloads all assets from the given .zal file
-		// will invalidate all actors using any assets
-		void loadFromFile();
-
-		// stores all assets to a .zal file
-		void saveToFile();
-
-		// destroys all assets
-		// will invalidate all actors using any assets
-		void destroyAssets();
 
 		// events
 		AssetHandlerEventHandler& getEventHandler();
@@ -163,15 +179,6 @@ namespace Zap {
 		template<class T>
 		friend class AssetHandle;
 		friend class Base;
-		friend class Mesh;
-		friend class Material;
-		friend class Texture;
-		friend class HitMesh;
-		friend class TextureLoader;
-		friend class MaterialLoader;
-		friend class MeshLoader;
-		friend class HitMeshLoader;
-		friend class ModelLoader;
 		friend class RenderTask;
 	};
 }

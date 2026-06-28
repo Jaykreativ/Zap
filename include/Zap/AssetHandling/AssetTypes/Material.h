@@ -17,10 +17,18 @@ namespace Zap {
 		alignas(4) uint32_t emissiveMap = 0xFFFFFFFF;
 	};
 	
-	class Material {
-		friend class MaterialLoader;
+	class Material : public Asset {
 	public:
-		Material();
+		Material(
+			glm::vec4            albedoColor,
+			float                metallic = 0,
+			float                roughness = 0.5,
+			glm::vec4            emissive = { 0, 0, 0, 0 },
+			AssetHandle<Texture> albedoMap = AssetHandle<Texture>(),
+			AssetHandle<Texture> metallicMap = AssetHandle<Texture>(),
+			AssetHandle<Texture> roughnessMap = AssetHandle<Texture>(),
+			AssetHandle<Texture> emissiveMap = AssetHandle<Texture>()
+		);
 		~Material();
 
 		void setAlbedo(glm::vec3 albedo);
@@ -59,13 +67,13 @@ namespace Zap {
 		AssetHandle<Texture> getEmissiveMap();
 
 	private:
-		glm::vec4            m_albedoColor = { 1, 1, 1, 1 };
+		glm::vec4            m_albedoColor;
 		AssetHandle<Texture> m_albedoMap;
-		float                m_metallic = 0;
+		float                m_metallic;
 		AssetHandle<Texture> m_metallicMap;
-		float                m_roughness = 0.5;
+		float                m_roughness;
 		AssetHandle<Texture> m_roughnessMap;
-		glm::vec4            m_emissive = { 0, 0, 0, 0 };
+		glm::vec4            m_emissive;
 		AssetHandle<Texture> m_emissiveMap;
 	};
 }

@@ -3,7 +3,21 @@
 #include "Zap/Zap.h"
 
 namespace Zap {
-	Mesh::Mesh() {}
+	Mesh::Mesh(
+		glm::mat4  transform,
+		vk::Buffer vertexBuffer,
+		vk::Buffer indexBuffer,
+		glm::vec3  boundMax,
+		glm::vec3  boundMin
+	)
+		:
+		m_transform(transform),
+		m_vertexBuffer(vertexBuffer),
+		m_indexBuffer(indexBuffer),
+		m_boundMax(boundMax),
+		m_boundMin(boundMin)
+	{}
+
 	Mesh::~Mesh() {
 		m_indexBuffer.destroy();
 		m_vertexBuffer.destroy();

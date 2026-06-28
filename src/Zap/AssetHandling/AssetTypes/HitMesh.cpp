@@ -3,7 +3,19 @@
 #include "Zap/Zap.h"
 
 namespace Zap {
-	HitMesh::HitMesh() {}
+	HitMesh::HitMesh(
+		size_t     vertexCount,
+		glm::vec3* vertices,
+		size_t     indexCount,
+		uint32_t*  indices
+	) 
+		:
+		m_vertexCount(vertexCount),
+		m_vertices(vertices),
+		m_indexCount(indexCount),
+		m_indices(indices)
+	{}
+
 	HitMesh::~HitMesh() {
 		delete[] m_vertices;
 		delete[] m_indices;

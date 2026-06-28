@@ -3,7 +3,9 @@
 #include "Zap/Zap.h"
 
 namespace Zap {
-	Texture::Texture() {}
+	Texture::Texture(Image2D image)
+		: m_image(image)
+	{}
 	Texture::~Texture() {}
 
 	//void Texture::load(void* data, uint32_t width, uint32_t height) {

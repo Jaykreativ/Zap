@@ -8,10 +8,14 @@
 #include "glm.hpp"
 
 namespace Zap {
-	class HitMesh {
-		friend class HitMeshLoader;
+	class HitMesh : public Asset {
 	public:
-		HitMesh();
+		HitMesh(
+			size_t     vertexCount,
+			glm::vec3* vertices,
+			size_t     indexCount,
+			uint32_t*  indices
+		);
 		~HitMesh();
 
 		physx::PxConvexMeshDesc getConvexDesc();

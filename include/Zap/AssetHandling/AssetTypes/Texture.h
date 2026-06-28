@@ -6,15 +6,14 @@
 #include "VulkanFramework.h"
 
 namespace Zap {
-	class Texture {
-		friend class TextureLoader;
+	class Texture : public Asset {
 	public:
-		Texture();
+		Texture(
+			Image2D image
+		);
 		~Texture();
 
 		Image2D& getImage();
-
-		void setIndex();
 
 	private:
 		Image2D m_image;
