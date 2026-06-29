@@ -19,8 +19,8 @@
 #include <fstream>
 
 namespace Zap {
-	void Loader::load() {
-		internalLoad();
+	void Loader::load(std::filesystem::path path) {
+		
 	}
 
 	Image2D Image2DLoader::load(void* data, uint32_t width, uint32_t height) {

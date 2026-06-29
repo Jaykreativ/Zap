@@ -27,5 +27,13 @@ namespace Zap {
 		void assimpLoad(std::filesystem::path path);
 		void stbImageLoad(std::filesystem::path path);
 	};
+
+	class ModelLoader : public Loader {
+
+	};
+
+	class TextureLoader : public Loader {
+
+	};
 }
 

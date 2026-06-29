@@ -136,15 +136,6 @@ namespace Zap {
 		AssetHandlerEventHandler& getEventHandler();
 
 	private:
-		class pairhash {
-		public:
-			template <typename T, typename U>
-			std::size_t operator()(const std::pair<T, U>& x) const
-			{
-				return std::hash<T>()(x.first) ^ std::hash<U>()(x.second);
-			}
-		};
-
 		std::filesystem::path m_alpath;
 		std::filesystem::path m_aldir;
 
