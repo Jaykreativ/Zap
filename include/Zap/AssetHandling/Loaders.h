@@ -1,5 +1,10 @@
 #pragma once
 
+#include "Zap/Zap.h"
+#include "Zap/Scene/Model.h"
+#include "Zap/AssetHandling/Asset.h"
+#include "Zap/AssetHandling/AssetHandler.h"
+
 #include <string>
 #include <filesystem>
 
@@ -17,23 +22,55 @@ namespace Zap {
 
 		void load(std::filesystem::path path);
 
+		bool isFileSupported(std::filesystem::path path);
+
 	protected:
-		virtual bool isFileCompatible(std::string filetype) = 0;
+		virtual std::vector<std::string> supportedFileExtensions();
 
 		// assembly methods
+		virtual void submitModel(Model model){}
+
+		virtual void submitTexture(AssetHandle<Texture> texture){}
 
 	private:
+		AssetHandler& m_assetHandler;
+
 		// subloads
+		class AssimpReconstructionData : public ReconstructionData {
+		public:
+			Model model;
+		};
+		AssetHandle<Mesh> extractMesh(const aiMesh* aMesh, glm::mat4 transform, Model& model);
+		AssetHandle<Material> extractMaterial(const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path);
+		void processNode(FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiNode* node, const aiScene* aScene, std::filesystem::path path, glm::mat4& transform, Model& model);
 		void assimpLoad(std::filesystem::path path);
+		class StbImageReconstructionData : public ReconstructionData {
+		public:
+			AssetHandle<Texture> texture;
+		};
 		void stbImageLoad(std::filesystem::path path);
 	};
 
 	class ModelLoader : public Loader {
+	public:
+		Model result() { return m_model; } // TODO move result to make room for next load
 
+		virtual void submitModel(Model model) override { m_model = model; }
+	protected:
+		virtual std::vector<std::string> supportedFileExtensions() override;
+	private:
+		Model m_model;
 	};
 
 	class TextureLoader : public Loader {
+	public:
+		AssetHandle<Texture> result() { return m_texture; }
 
+		virtual void submitTexture(AssetHandle<Texture> texture) override { m_texture = texture; }
+	protected:
+		virtual std::vector<std::string> supportedFileExtensions() override;
+	private:
+		AssetHandle<Texture> m_texture;
 	};
 }
 

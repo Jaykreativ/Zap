@@ -1,137 +1,84 @@
 #include "Zap/AssetHandling/Loaders.h"
 
-#include "Zap/Scene/Model.h"
+#include "Zap/AssetHandling/FileLinker.h"
 #include "Zap/AssetHandling/AssetTypes/Mesh.h"
-#include "Zap/AssetHandling/AssetTypes/HitMesh.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
-#include "Zap/Scene/Camera.h"
-#include "Zap/Scene/Light.h"
-#include "Zap/Physics/PhysicsComponent.h"
-#include "Zap/Scene/Transform.h"
 #include "Zap/AssetHandling/AssetTypes/Texture.h"
-#include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Scene.h"
-#include "Zap/Serializer.h"
-#include "Zap/Vertex.h"
+#include "Zap/AssetHandling/AssetTypes/HitMesh.h"
 #include "Zap/Rendering/stb_image.h"
+
+#include "assimp/Importer.hpp"
+#include "assimp/scene.h"
+#include "assimp/postprocess.h"
 
 #include <sstream>
 #include <fstream>
 
 namespace Zap {
+	// filetype support
+	std::vector<std::string> Loader::supportedFileExtensions() {
+		return {
+			// means not tested TODO test formats
+			".obj",
+			".glb",
+			//".gltf",
+			".png",
+			".jpeg",
+			".jpg"
+			//".tga"
+			//".bmp"
+			//".psd"
+			//".gif"
+			//".hdr"
+			//".pic"
+			//".pnm"
+		};
+	}
+	std::vector<std::string> ModelLoader::supportedFileExtensions() {
+		return {
+			".obj",
+			".glb",
+		};
+	}
+	std::vector<std::string> TextureLoader::supportedFileExtensions() {
+		return {
+			".png",
+			".jpeg",
+			".jpg"
+		};
+	}
+
+	Loader::Loader() 
+		: m_assetHandler(*Base::getBase()->getAssetHandler())
+	{}
+	
+	Loader::~Loader(){}
+
 	void Loader::load(std::filesystem::path path) {
-		
+		std::string extension = path.extension().string();
+		ZP_WARN(isFileSupported(path), "Filetype not supported | " << extension << " | Loader::load");
+		// choose subload
+		if (
+			extension == ".obj" ||
+			extension == ".glb")
+			assimpLoad(path);
+		if (
+			extension == ".png" ||
+			extension == ".jpeg" ||
+			extension == ".jpg")
+			stbImageLoad(path);
 	}
 
-	Image2D Image2DLoader::load(void* data, uint32_t width, uint32_t height) {
-		auto base = Base::getBase();
-		Image2D image(
-			VK_FORMAT_R8G8B8A8_UNORM,
-			{ width, height },
-			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-		);
-
-		image.uploadData(width * height * 4, data);
-
-		return image;
+	bool Loader::isFileSupported(std::filesystem::path path) {
+		std::string extension = path.extension().string();
+		auto list = supportedFileExtensions();
+		for (std::string str : list)
+			if (str == extension)
+				return true;
+		return false;
 	}
 
-	AssetHandle<Texture> TextureLoader::load(std::filesystem::path filepath) {
-		return load(filepath, UUID());
-	}
-
-	AssetHandle<Texture> TextureLoader::load(void* data, uint32_t width, uint32_t height, UUID handle) {
-		auto& assetHandler = Base::getBase()->m_assetHandler;
-		auto texture = assetHandler->createAsset<Texture>(handle);
-		texture->m_image = Image2DLoader::load(data, width, height);
-		return texture;
-	}
-
-	AssetHandle<Texture> TextureLoader::load(std::filesystem::path filepath, UUID handle) {
-		auto& assetHandler = Base::getBase()->m_assetHandler;
-		int width, height, channels;
-		stbi_set_flip_vertically_on_load(true);
-		auto data = stbi_load(filepath.string().c_str(), &width, &height, &channels, 4);
-		ZP_ASSERT(data, ("Image not loaded correctly: " + filepath.string()).c_str());
-		auto texture = load(data, width, height, handle);
-		return texture;
-	}
-
-	AssetHandle<Texture> TextureLoader::load(const aiTexture* aiTexture, UUID handle) {
-		ZP_ASSERT(!aiTexture->mHeight, "Raw texture loading not implemented Yet");// TODO implement raw texture loading
-		auto& assetHandler = Base::getBase()->m_assetHandler;
-		int width, height, channels;
-		stbi_set_flip_vertically_on_load(true);
-		auto data = stbi_load_from_memory((stbi_uc*)aiTexture->pcData, aiTexture->mWidth, &width, &height, &channels, 4);
-		ZP_ASSERT(data, "Image not loaded correctly");
-		return load(data, width, height, handle);
-	}
-
-	AssetHandle<Texture> TextureLoader::load(std::filesystem::path modelpath, std::filesystem::path textureID, UUID handle) {
-		auto& assetHandler = Base::getBase()->m_assetHandler;
-		Assimp::Importer importer;
-		const aiScene* aScene = importer.ReadFile(modelpath.string().c_str(), 0);
-		ZP_ASSERT(aScene, "Failed to load the modelfile for embedded texture");
-
-		auto texture = load(aScene->GetEmbeddedTexture(textureID.string().c_str()), handle);
-		return texture;
-	}
-
-	AssetHandle<Material> MaterialLoader::load(const aiScene* aScene, const aiMaterial* aMaterial, std::filesystem::path modelpath, UUID handle) {
-		auto& assetHandler = Base::getBase()->m_assetHandler;
-		auto material = assetHandler->createAsset<Material>(handle);
-
-		aiColor4D aDiffuse; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_DIFFUSE, &aDiffuse);
-		material->m_albedoColor = glm::vec4(aDiffuse.r, aDiffuse.g, aDiffuse.b, 1);
-		aiGetMaterialFloat(aMaterial, AI_MATKEY_METALLIC_FACTOR, &material->m_metallic);
-		aiGetMaterialFloat(aMaterial, AI_MATKEY_ROUGHNESS_FACTOR, &material->m_roughness);
-		aiColor4D aEmissive; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_EMISSIVE, &aEmissive);
-		material->m_emissive = glm::vec4(aEmissive.r, aEmissive.g, aEmissive.b, 0);
-		aiGetMaterialFloat(aMaterial, AI_MATKEY_EMISSIVE_INTENSITY, &material->m_emissive.w);
-		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE) > 0) {
-			aiString diffuseTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
-			auto embeddedTexture = aScene->GetEmbeddedTexture(diffuseTexturePath.C_Str());
-			if (embeddedTexture) {
-				material->m_albedoMap = TextureLoader::load(embeddedTexture);
-			}
-			else {
-				material->m_albedoMap = TextureLoader::load(modelpath.remove_filename() / diffuseTexturePath.C_Str());
-			}
-			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
-				material->m_albedoColor = glm::vec4(1, 1, 1, 1);
-		}
-		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_METALNESS) > 0) {
-			aiString metallicTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_METALNESS, 0, &metallicTexturePath);
-			auto embeddedTexture = aScene->GetEmbeddedTexture(metallicTexturePath.C_Str());
-			if (embeddedTexture) {
-				material->m_metallicMap = TextureLoader::load(embeddedTexture);
-			}
-			else {
-				material->m_metallicMap = TextureLoader::load(modelpath.remove_filename() / metallicTexturePath.C_Str());
-			}
-			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
-				material->m_metallic = 1;
-		}
-		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
-			aiString roughnessTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS, 0, &roughnessTexturePath);
-			auto embeddedTexture = aScene->GetEmbeddedTexture(roughnessTexturePath.C_Str());
-			if (embeddedTexture) {
-				material->m_roughnessMap = TextureLoader::load(embeddedTexture);
-			}
-			else {
-				material->m_roughnessMap = TextureLoader::load(modelpath.remove_filename() / roughnessTexturePath.C_Str());
-			}
-			if (!ZP_IS_FLAG_ENABLED(flags, eTintTextures))
-				material->m_roughness = 1;
-		}
-		return material;
-	}
-
-	AssetHandle<Mesh> MeshLoader::load(aiMesh* aMesh, glm::mat4& transform, glm::vec3& modelBoundMin, glm::vec3& modelBoundMax, UUID handle) {
-		Base* base = Base::getBase();
-		auto& assetHandler = base->m_assetHandler;
-
+	AssetHandle<Mesh> Loader::extractMesh(const aiMesh* aMesh, glm::mat4 transform, Model& model) {
 		vk::Buffer vertexStgBuffer = vk::Buffer(aMesh->mNumVertices * sizeof(Vertex), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 		vk::Buffer indexStgBuffer = vk::Buffer(aMesh->mNumFaces * 3 * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
@@ -163,163 +110,208 @@ namespace Zap {
 			indexStgBuffer.unmap();
 		}
 
-		auto mesh = assetHandler->createAsset<Mesh>(handle);
 
-		mesh->m_transform = transform;
-
-		mesh->m_vertexBuffer = vk::Buffer(vertexStgBuffer.getSize(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+		auto vertexBuffer = vk::Buffer(vertexStgBuffer.getSize(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
 			| VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
 		);
-		mesh->m_vertexBuffer.init(); mesh->m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		mesh->m_vertexBuffer.uploadData(&vertexStgBuffer);
+		vertexBuffer.init(); vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		vertexBuffer.uploadData(&vertexStgBuffer);
 
-		mesh->m_indexBuffer = vk::Buffer(indexStgBuffer.getSize(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+		auto indexBuffer = vk::Buffer(indexStgBuffer.getSize(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
 			| VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
 		);
-		mesh->m_indexBuffer.init(); mesh->m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		mesh->m_indexBuffer.uploadData(&indexStgBuffer);
+		indexBuffer.init(); indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		indexBuffer.uploadData(&indexStgBuffer);
+
 
 		vertexStgBuffer.destroy();
 		indexStgBuffer.destroy();
 
 		// Bounding box
-		mesh->m_boundMin = transform * glm::vec4(*((glm::vec3*)&aMesh->mAABB.mMin), 1);
-		mesh->m_boundMax = transform * glm::vec4(*((glm::vec3*)&aMesh->mAABB.mMax), 1);
-		
+		glm::vec3 boundMin = transform * glm::vec4(*((glm::vec3*)&aMesh->mAABB.mMin), 1);
+		glm::vec3 boundMax = transform * glm::vec4(*((glm::vec3*)&aMesh->mAABB.mMax), 1);
 
-		modelBoundMin = glm::min(modelBoundMin, mesh->m_boundMin);
-		modelBoundMax = glm::max(modelBoundMax, mesh->m_boundMax);
+		model.boundMin = glm::min(model.boundMin, boundMin);
+		model.boundMax = glm::max(model.boundMax, boundMax);
 
-		return mesh;
+		auto mesh = m_assetHandler.generateAsset<Mesh>(transform, vertexBuffer, indexBuffer, boundMax, boundMin);
 	}
 
-	AssetHandle<Mesh> MeshLoader::loadFromFile(std::filesystem::path filepath, uint32_t index, glm::mat4& transform, UUID handle) {
-		Assimp::Importer importer;
-		const aiScene* aScene = importer.ReadFile(filepath.string().c_str(), aiProcess_Triangulate | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes);
+	AssetHandle<Material> Loader::extractMaterial(const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path) {
+		// base material
+		aiColor4D aDiffuse; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_DIFFUSE, &aDiffuse);
+		auto albedoColor = glm::vec4(aDiffuse.r, aDiffuse.g, aDiffuse.b, 1);
+		float metallic; aiGetMaterialFloat(aMaterial, AI_MATKEY_METALLIC_FACTOR, &metallic);
+		float roughness; aiGetMaterialFloat(aMaterial, AI_MATKEY_ROUGHNESS_FACTOR, &roughness);
+		aiColor4D aEmissive; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_EMISSIVE, &aEmissive);
+		auto emissive = glm::vec4(aEmissive.r, aEmissive.g, aEmissive.b, 0);
+		aiGetMaterialFloat(aMaterial, AI_MATKEY_EMISSIVE_INTENSITY, &emissive.w);
 
-		ZP_WARN(aScene, (std::string("Scene can't be loaded, check the filepath: ") + filepath.string()).c_str());
-		if (!aScene)
-			return AssetHandle<Mesh>();
-
-		glm::vec3 boundMin, boundMax;
-		auto mesh = load(aScene->mMeshes[index], transform, boundMin, boundMax, handle);
-		return mesh;
-	}
-
-	AssetHandle<HitMesh> HitMeshLoader::load(std::filesystem::path filepath, uint32_t index) {
-		return load(filepath, index, UUID());
-	}
-	AssetHandle<HitMesh> HitMeshLoader::load(std::filesystem::path filepath, uint32_t index, UUID handle) {
-		auto* base = Base::getBase();
-		Assimp::Importer importer;
-		const aiScene* aScene = importer.ReadFile(filepath.string().c_str(), aiProcess_Triangulate);
-
-		ZP_WARN(aScene, ("Scene can't be loaded, check the filepath: " + filepath.string()).c_str());
-		if (!aScene)
-			return AssetHandle<HitMesh>(); // return null handle
-
-		auto hitMesh = load(aScene->mMeshes[index], handle);
-		return hitMesh;
-	}
-
-	AssetHandle<HitMesh> HitMeshLoader::load(aiMesh* aMesh, UUID handle) {
-		auto& assetHandler = Base::getBase()->m_assetHandler;
-
-		auto hitMesh = assetHandler->createAsset<HitMesh>(handle);
-
-		hitMesh->m_vertexCount = aMesh->mNumVertices;
-		hitMesh->m_vertices = new glm::vec3[hitMesh->m_vertexCount];
-		for (size_t i = 0; i < aMesh->mNumVertices; i++) {
-			hitMesh->m_vertices[i] = *reinterpret_cast<glm::vec3*>(&aMesh->mVertices[i]);
+		// material maps / textures
+		AssetHandle<Texture> albedoMap;
+		AssetHandle<Texture> metallicMap;
+		AssetHandle<Texture> roughnessMap;
+		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE) > 0) {
+			aiString diffuseTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
+			auto embeddedTexture = aScene->GetEmbeddedTexture(diffuseTexturePath.C_Str());
+			if (embeddedTexture) {
+				ZP_WARN(false, "embedded textures are WIP");
+			}
+			else {
+				TextureLoader loader;
+				loader.load(path.remove_filename() / diffuseTexturePath.C_Str());
+				albedoMap = loader.result();
+			}
+			albedoColor = glm::vec4(1, 1, 1, 1);
+		}
+		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_METALNESS) > 0) {
+			aiString metallicTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_METALNESS, 0, &metallicTexturePath);
+			auto embeddedTexture = aScene->GetEmbeddedTexture(metallicTexturePath.C_Str());
+			if (embeddedTexture) {
+				ZP_WARN(false, "embedded textures are WIP");
+			}
+			else {
+				TextureLoader loader;
+				loader.load(path.remove_filename() / metallicTexturePath.C_Str());
+				metallicMap = loader.result();
+			}
+			metallic = 1;
+		}
+		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
+			aiString roughnessTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS, 0, &roughnessTexturePath);
+			auto embeddedTexture = aScene->GetEmbeddedTexture(roughnessTexturePath.C_Str());
+			if (embeddedTexture) {
+				ZP_WARN(false, "embedded textures are WIP");
+			}
+			else {
+				TextureLoader loader;
+				loader.load(path.remove_filename() / roughnessTexturePath.C_Str());
+				roughnessMap = loader.result();
+			}
+			roughness = 1;
 		}
 
-		hitMesh->m_indexCount = aMesh->mNumFaces * 3;
-		hitMesh->m_indices = new uint32_t[hitMesh->m_indexCount];
-		for (size_t i = 0; i < aMesh->mNumFaces; i++) {
-			hitMesh->m_indices[i*3+0] = aMesh->mFaces[i].mIndices[0];
-			hitMesh->m_indices[i*3+1] = aMesh->mFaces[i].mIndices[1];
-			hitMesh->m_indices[i*3+2] = aMesh->mFaces[i].mIndices[2];
-		}
-
-		return hitMesh;
+		auto material = m_assetHandler.generateAsset<Material>(albedoColor, metallic, roughness, emissive, albedoMap, metallicMap, roughnessMap);
+		return material;
 	}
 
-	Model ModelLoader::load(std::filesystem::path filepath) {
-		Model model = {};
-		model.filepath = filepath.string();
-
-#ifdef _DEBUG
-		auto timeStartLoad = std::chrono::high_resolution_clock::now();
-#endif
-		Assimp::Importer importer;
-		const aiScene* aScene = importer.ReadFile(filepath.string().c_str(), aiProcess_Triangulate | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes);
-
-		ZP_ASSERT(aScene, (std::string("Scene can't be loaded, check the filepath: ") + filepath.string()).c_str());
-
-#ifdef _DEBUG
-		std::cout << filepath << " -> NumMeshes: " << aScene->mNumMeshes << "\n";
-#endif
-		processNode(aScene->mRootNode, aScene, filepath, glm::mat4(1), model);
-
-#ifdef _DEBUG
-		auto timeLoad = std::chrono::high_resolution_clock::now() - timeStartLoad;
-		std::cout << filepath << " -> Duration: " <<
-			std::chrono::duration_cast<std::chrono::duration<float>>(timeLoad).count() << "s\n";
-#endif
-		return model;
-	}
-
-	void ModelLoader::processNode(const aiNode* node, const aiScene* aScene, std::filesystem::path path, glm::mat4& transform, Model& model) {
-		auto& assetHandler = Base::getBase()->m_assetHandler;
-		path = assetHandler->processPath(path);
-
-#ifdef _DEBUG
-		std::cout << "Loading node " << node->mName.C_Str() << " with " << node->mNumChildren << " children\n";
-#endif
+	void Loader::processNode(FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiNode* node, const aiScene* aScene, std::filesystem::path path, glm::mat4& transform, Model& model) {
 		glm::mat4 newTransform = transform * AssimpUtils::mat4ToGlmMat4(node->mTransformation);
 		for (uint32_t i = 0; i < node->mNumMeshes; i++) {
-#ifdef _DEBUG
-			auto timeStartLoad = std::chrono::high_resolution_clock::now();
-			auto timeStartMeshLoad = std::chrono::high_resolution_clock::now();
-#endif
-			// Check if mesh is already loaded
-			//if (Base::getBase()->m_assetHandler.m_pathMeshMap.count({ path, node->mMeshes[i] })) {
-			//	model.meshes.push_back(Base::getBase()->m_assetHandler.m_pathMeshMap.at({ path.string(), node->mMeshes[i]}));
-			//}
-			//else {
-				// Load mesh
-				model.meshes.push_back(MeshLoader::load(aScene->mMeshes[node->mMeshes[i]], newTransform, model.boundMin, model.boundMax));
-			//}
+			// Mesh
+			auto mesh = extractMesh(aScene->mMeshes[node->mMeshes[i]], transform, model);
+			fileLink.registerAsset(mesh);
+			model.meshes.push_back(mesh);
 
-#ifdef _DEBUG
-			auto timeMeshLoad = std::chrono::high_resolution_clock::now() - timeStartMeshLoad;
-			auto timeStartMaterialLoad = std::chrono::high_resolution_clock::now();
-#endif
-
-			// Check if material already exists
-			//if (Base::getBase()->m_assetHandler.m_pathMaterialMap.count({ path.string(), aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex})) {
-			//	model.materials.push_back(Base::getBase()->m_assetHandler.m_pathMaterialMap.at({ path.string(), aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex }));
-			//}
-			//else {
-				// Load material
-				aiMaterial* aMaterial = aScene->mMaterials[aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex];
-				model.materials.push_back(MaterialLoader::load(aScene, aMaterial, path));
-			//}
-
-#ifdef _DEBUG
-			auto timeMaterialLoad = std::chrono::high_resolution_clock::now() - timeStartMaterialLoad;
-			auto timeLoad = std::chrono::high_resolution_clock::now() - timeStartLoad;
-			std::cout <<
-				std::chrono::duration_cast<std::chrono::duration<float>>(timeLoad).count() * 1000 << "ms - " <<
-				std::chrono::duration_cast<std::chrono::duration<float>>(timeMeshLoad).count() * 1000 << "ms(Mesh only) - " <<
-				std::chrono::duration_cast<std::chrono::duration<float>>(timeMaterialLoad).count() * 1000 << "ms(Material only)\n";
-#endif
+			// Material
+			auto material = extractMaterial(aScene->mMaterials[aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex], aScene, path);
+			fileLink.registerAsset(material);
+			model.materials.push_back(material);
 		}
 
 		for (uint32_t i = 0; i < node->mNumChildren; i++) {
-			processNode(node->mChildren[i], aScene, path, newTransform, model);
+			processNode(fileLink, node->mChildren[i], aScene, path, newTransform, model);
 		}
 	}
+
+
+	void Loader::assimpLoad(std::filesystem::path path) {
+		auto fileLinker = m_assetHandler.getFileLinker();
+		if (fileLinker.isRegistered(path)) {
+			auto rec = fileLinker.getReconstructionData<AssimpReconstructionData>(path);
+			submitModel(rec->model);
+		}
+		else {
+			auto fileLink = fileLinker.beginFileLinking<AssimpReconstructionData>(path);
+
+			Assimp::Importer importer;
+			const aiScene* aScene = importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes);
+
+			ZP_ASSERT(aScene, (std::string("Scene can't be loaded, check the filepath: ") + path.string()).c_str());
+
+			Model model;
+			processNode(fileLink, aScene->mRootNode, aScene, path, glm::mat4(1), model);
+			submitModel(model);
+			fileLink->model = model;
+
+			fileLinker.endFileLinking(fileLink);
+		}
+	}
+
+	void Loader::stbImageLoad(std::filesystem::path path) {
+		auto fileLinker = m_assetHandler.getFileLinker();
+
+		// check if file has already been loaded
+		if (fileLinker.isRegistered(path)) {
+			auto rec = fileLinker.getReconstructionData<StbImageReconstructionData>(path);
+			submitTexture(rec->texture);
+		}
+		else {
+			auto fileLink = fileLinker.beginFileLinking<StbImageReconstructionData>(path);
+
+			// fileload
+			int width, height, channels;
+			stbi_set_flip_vertically_on_load(true);
+			auto data = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
+			ZP_ASSERT(data, ("Image not loaded correctly: " + path.string()).c_str());
+
+			// upload
+			auto base = Base::getBase();
+			Image2D image(
+				VK_FORMAT_R8G8B8A8_UNORM,
+				VkExtent2D{ (unsigned int)width, (unsigned int)height },
+				VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			);
+			image.uploadData(width * height * 4, data);
+
+			auto texture = m_assetHandler.generateAsset<Texture>(std::move(image));
+			fileLink.registerAsset(texture);
+			fileLink->texture = texture; // save texture handle in case this file is being loaded again
+			submitTexture(texture);
+
+			fileLinker.endFileLinking(fileLink);
+		}
+	}
+
+	// TODO load hitmeshes
+	//AssetHandle<HitMesh> HitMeshLoader::load(std::filesystem::path filepath, uint32_t index) {
+	//	return load(filepath, index, UUID());
+	//}
+	//AssetHandle<HitMesh> HitMeshLoader::load(std::filesystem::path filepath, uint32_t index, UUID handle) {
+	//	auto* base = Base::getBase();
+	//	Assimp::Importer importer;
+	//	const aiScene* aScene = importer.ReadFile(filepath.string().c_str(), aiProcess_Triangulate);
+	//
+	//	ZP_WARN(aScene, ("Scene can't be loaded, check the filepath: " + filepath.string()).c_str());
+	//	if (!aScene)
+	//		return AssetHandle<HitMesh>(); // return null handle
+	//
+	//	auto hitMesh = load(aScene->mMeshes[index], handle);
+	//	return hitMesh;
+	//}
+	//
+	//AssetHandle<HitMesh> HitMeshLoader::load(aiMesh* aMesh, UUID handle) {
+	//	auto& assetHandler = Base::getBase()->m_assetHandler;
+	//
+	//	auto hitMesh = assetHandler->createAsset<HitMesh>(handle);
+	//
+	//	hitMesh->m_vertexCount = aMesh->mNumVertices;
+	//	hitMesh->m_vertices = new glm::vec3[hitMesh->m_vertexCount];
+	//	for (size_t i = 0; i < aMesh->mNumVertices; i++) {
+	//		hitMesh->m_vertices[i] = *reinterpret_cast<glm::vec3*>(&aMesh->mVertices[i]);
+	//	}
+	//
+	//	hitMesh->m_indexCount = aMesh->mNumFaces * 3;
+	//	hitMesh->m_indices = new uint32_t[hitMesh->m_indexCount];
+	//	for (size_t i = 0; i < aMesh->mNumFaces; i++) {
+	//		hitMesh->m_indices[i*3+0] = aMesh->mFaces[i].mIndices[0];
+	//		hitMesh->m_indices[i*3+1] = aMesh->mFaces[i].mIndices[1];
+	//		hitMesh->m_indices[i*3+2] = aMesh->mFaces[i].mIndices[2];
+	//	}
+	//
+	//	return hitMesh;
+	//}
 
 //	void loadCamera(Serializer& serializer, Actor actor) {
 //		glm::mat4 offset = serializer.readAttributeMat4("offset");

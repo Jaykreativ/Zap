@@ -345,6 +345,10 @@ namespace Zap {
 		return nullptr;
 	}
 
+	FileLinker& AssetHandler::getFileLinker() {
+		return m_fileLinker;
+	}
+
 	//void AssetHandler::registerTexture(Texture texture, std::filesystem::path filepath) {
 	//	m_texturePaths[texture.getHandle()].second = std::filesystem::path(); // empty path
 	//	m_texturePaths[texture.getHandle()].first = processPath(filepath);

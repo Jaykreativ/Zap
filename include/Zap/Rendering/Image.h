@@ -157,7 +157,7 @@ namespace Zap {
 
 		void cmdCopyFromBuffer(VkCommandBuffer cmd, vk::Buffer& src, VkImageLayout layout);
 
-		friend class Image2DLoader;
+		friend class Loader;
 	};
 
 	// RenderTargetImage : Image2D (in RenderTargets.h)

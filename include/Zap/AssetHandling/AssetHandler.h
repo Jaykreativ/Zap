@@ -3,6 +3,7 @@
 #include "Zap/UUID.h"
 #include "Zap/Events.h"
 #include "Zap/AssetHandling/Asset.h"
+#include "Zap/AssetHandling/FileLinker.h"
 #include "Zap/AssetHandling/AssetTypes/Mesh.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
 #include "Zap/AssetHandling/AssetTypes/Texture.h"
@@ -121,7 +122,7 @@ namespace Zap {
 	public:
 		template<class T, class... Types>
 		AssetHandle<T> generateAsset(Types&&... args) {
-			generateAssetUsingID<T, Types>(UUID(), args);
+			generateAssetUsingID<T, Types>(UUID(), std::forward<Types>(args)...);
 		}
 
 		template<class T>
@@ -139,6 +140,8 @@ namespace Zap {
 		std::filesystem::path m_alpath;
 		std::filesystem::path m_aldir;
 
+		FileLinker m_fileLinker;
+
 		std::unordered_map<UUID, std::unique_ptr<Mesh>> m_meshMap;
 		std::unordered_map<UUID, std::unique_ptr<Material>> m_materialMap;
 		std::unordered_map<UUID, std::unique_ptr<Texture>> m_textureMap;
@@ -153,6 +156,7 @@ namespace Zap {
 		template<class T>
 		T* getAsset(UUID handle);
 
+		FileLinker& getFileLinker();
 		// register assets for Asset Library
 
 		void registerTexture(Texture texture, std::filesystem::path filepath);
@@ -169,6 +173,7 @@ namespace Zap {
 
 		template<class T>
 		friend class AssetHandle;
+		friend class Loader;
 		friend class Base;
 		friend class RenderTask;
 	};

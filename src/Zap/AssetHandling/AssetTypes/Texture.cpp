@@ -4,7 +4,7 @@
 
 namespace Zap {
 	Texture::Texture(Image2D image)
-		: m_image(image)
+		: m_image(std::move(image))
 	{}
 	Texture::~Texture() {}
 

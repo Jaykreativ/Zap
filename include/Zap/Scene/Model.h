@@ -7,7 +7,6 @@
 
 namespace Zap {
 	struct Model {
-		std::string filepath = "";
 		std::vector<AssetHandle<Material>> materials;
 		std::vector<AssetHandle<Mesh>> meshes;
 		glm::vec3 boundMin = { 0, 0, 0 };
