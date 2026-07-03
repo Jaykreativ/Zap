@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/UUID.h"
+#include "Zap/AssetHandling/Asset.h"
 #include "Zap/Vertex.h"
 #include "VulkanFramework.h"
 

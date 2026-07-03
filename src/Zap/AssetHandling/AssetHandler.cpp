@@ -1,7 +1,7 @@
 #include "Zap/AssetHandling/AssetHandler.h"
 
 #include "Zap/Serializer.h"
-#include "Zap/AssetHandling/FileLoader.h"
+#include "Zap/AssetHandling/Loaders.h"
 
 #include <fstream>
 #include <filesystem>
@@ -9,16 +9,6 @@
 
 namespace Zap {
 	AssetHandler::AssetHandler() {}
-
-	AssetHandler::AssetHandler(std::filesystem::path path)
-		: m_alpath(path)
-	{
-		ZP_ASSERT(!path.empty(), "AssetHandler needs a non-empty path to an Asset Library file");
-		m_aldir = path;
-		m_aldir.remove_filename();
-		if (m_aldir.empty())
-			m_aldir = "./";
-	}
 
 	AssetHandler::~AssetHandler() {}
 
@@ -43,54 +33,7 @@ namespace Zap {
 		return false;
 	}
 
-	// begin type specialization
-	template<>
-	AssetIterator<Mesh> AssetHandler::begin() {
-		return AssetIterator<Mesh>(this, m_meshMap.begin());
-	}
-	template<>
-	AssetIterator<Material> AssetHandler::begin() {
-		return AssetIterator<Material>(this, m_materialMap.begin());
-	}
-	template<>
-	AssetIterator<Texture> AssetHandler::begin() {
-		return AssetIterator<Texture>(this, m_textureMap.begin());
-	}
-	template<>
-	AssetIterator<HitMesh> AssetHandler::begin() {
-		return AssetIterator<HitMesh>(this, m_hitmeshMap.begin());
-	}
-
-	// end type specialization
-	template<>
-	AssetIterator<Mesh> AssetHandler::end() {
-		return AssetIterator<Mesh>(this, m_meshMap.end());
-	}
-	template<>
-	AssetIterator<Material> AssetHandler::end() {
-		return AssetIterator<Material>(this, m_materialMap.end());
-	}
-	template<>
-	AssetIterator<Texture> AssetHandler::end() {
-		return AssetIterator<Texture>(this, m_textureMap.end());
-	}
-	template<>
-	AssetIterator<HitMesh> AssetHandler::end() {
-		return AssetIterator<HitMesh>(this, m_hitmeshMap.end());
-	}
-
 	/* Load / Save */
-
-	void AssetHandler::setAssetLibrary(std::filesystem::path filepath) {
-		m_alpath = filepath;
-		m_aldir = filepath;
-		m_aldir.remove_filename();
-	}
-
-	std::filesystem::path AssetHandler::getAssetLibrary() {
-		return m_alpath;
-	}
-
 	//void AssetHandler::loadFromFile() {
 	//	destroyAssets();
 	//
@@ -298,55 +241,25 @@ namespace Zap {
 		return m_eventHandler;
 	}
 
-	template<>
-	AssetHandle<Mesh> AssetHandler::createAsset(UUID handle) {
-		m_meshMap[handle] = std::make_unique<Mesh>();
-		return AssetHandle<Mesh>(handle, this);
-	}
-	template<>
-	AssetHandle<Material> AssetHandler::createAsset(UUID handle) {
-		m_materialMap[handle] = std::make_unique<Material>();
-		return AssetHandle<Material>(handle, this);
-	}
-	template<>
-	AssetHandle<Texture> AssetHandler::createAsset(UUID handle) {
-		m_textureMap[handle] = std::make_unique<Texture>();
-		Base::getBase()->registerTextureIndex(handle);
-		return AssetHandle<Texture>(handle, this);
-	}
-	template<>
-	AssetHandle<HitMesh> AssetHandler::createAsset(UUID handle) {
-		m_hitmeshMap[handle] = std::make_unique<HitMesh>();
-		return AssetHandle<HitMesh>(handle, this);
-	}
-
-	template<>
-	Mesh* AssetHandler::getAsset(UUID handle) {
-		if(m_meshMap.count(handle))
-			return m_meshMap.at(handle).get();
-		return nullptr;
-	}
-	template<>
-	Material* AssetHandler::getAsset(UUID handle) {
-		if(m_materialMap.count(handle))
-			return m_materialMap.at(handle).get();
-		return nullptr;
-	}
-	template<>
-	Texture* AssetHandler::getAsset(UUID handle) {
-		if(m_textureMap.count(handle))
-			return m_textureMap.at(handle).get();
-		return nullptr;
-	}
-	template<>
-	HitMesh* AssetHandler::getAsset(UUID handle) {
-		if(m_hitmeshMap.count(handle))
-			return m_hitmeshMap.at(handle).get();
-		return nullptr;
-	}
-
 	FileLinker& AssetHandler::getFileLinker() {
 		return m_fileLinker;
+	}
+
+	template<>
+	std::unordered_map<UUID, std::unique_ptr<Mesh>>& AssetHandler::getMap() {
+		return m_meshMap;
+	}
+	template<>
+	std::unordered_map<UUID, std::unique_ptr<Material>>& AssetHandler::getMap() {
+		return m_materialMap;
+	}
+	template<>
+	std::unordered_map<UUID, std::unique_ptr<Texture>>& AssetHandler::getMap() {
+		return m_textureMap;
+	}
+	template<>
+	std::unordered_map<UUID, std::unique_ptr<HitMesh>>& AssetHandler::getMap() {
+		return m_hitmeshMap;
 	}
 
 	//void AssetHandler::registerTexture(Texture texture, std::filesystem::path filepath) {
@@ -377,16 +290,16 @@ namespace Zap {
 	//	m_pathHitMeshMap[{path, index}] = hitMesh.getHandle();
 	//}
 
-	std::filesystem::path AssetHandler::processPath(std::filesystem::path path) {
-		if (path.is_relative())
-			return path.lexically_normal();
-		if (m_aldir.empty()) { // paths can't be processed without a valid AssetHandler
-			ZP_WARN(false, "Path being processed by invalid AssetHandler, assign Asset Library path for processing");
-			return path;
-		}
-		auto prox = std::filesystem::proximate(path, m_aldir);
-		return prox.lexically_normal();
-	}
+	//std::filesystem::path AssetHandler::processPath(std::filesystem::path path) {
+	//	if (path.is_relative())
+	//		return path.lexically_normal();
+	//	if (m_aldir.empty()) { // paths can't be processed without a valid AssetHandler
+	//		ZP_WARN(false, "Path being processed by invalid AssetHandler, assign Asset Library path for processing");
+	//		return path;
+	//	}
+	//	auto prox = std::filesystem::proximate(path, m_aldir);
+	//	return prox.lexically_normal();
+	//}
 
 	//void AssetHandler::addTexture(Texture texture) {
 	//	m_textures[texture.getHandle()] = TextureData{};

@@ -1,6 +1,6 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
-#include "Zap/AssetHandling/FileLoader.h"
+#include "Zap/AssetHandling/Loaders.h"
 #include "Zap/Physics/PhysicsComponent.h"
 
 #include "glm/gtc/quaternion.hpp"
@@ -52,10 +52,7 @@ namespace Zap {
 	Base::Base(std::string applicationName, std::filesystem::path assetLibraryPath)
 		: m_applicationName(applicationName)
 	{
-		if (assetLibraryPath != "")
-			m_assetHandler = std::make_unique<AssetHandler>(assetLibraryPath);
-		else
-			m_assetHandler = std::make_unique<AssetHandler>();
+		m_assetHandler = std::make_unique<AssetHandler>();
 	}
 
 	Base::~Base() {}
@@ -219,9 +216,9 @@ namespace Zap {
 		//}
 
 		// load default assets
-		TextureLoader texLoader;
-		glm::u8vec4 texCol = { 255, 0, 255, 255 };
-		texLoader.load(&texCol, 1, 1);
+		//TextureLoader texLoader;
+		//glm::u8vec4 texCol = { 255, 0, 255, 255 };
+		//texLoader.load(&texCol, 1, 1);
 	}
 
 	void Base::update() { // TODO implement base update

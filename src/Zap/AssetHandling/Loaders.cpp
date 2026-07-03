@@ -1,3 +1,7 @@
+#include "assimp/Importer.hpp"
+#include "assimp/scene.h"
+#include "assimp/postprocess.h"
+
 #include "Zap/AssetHandling/Loaders.h"
 
 #include "Zap/AssetHandling/FileLinker.h"
@@ -6,10 +10,6 @@
 #include "Zap/AssetHandling/AssetTypes/Texture.h"
 #include "Zap/AssetHandling/AssetTypes/HitMesh.h"
 #include "Zap/Rendering/stb_image.h"
-
-#include "assimp/Importer.hpp"
-#include "assimp/scene.h"
-#include "assimp/postprocess.h"
 
 #include <sstream>
 #include <fstream>
@@ -135,15 +135,16 @@ namespace Zap {
 		model.boundMax = glm::max(model.boundMax, boundMax);
 
 		auto mesh = m_assetHandler.generateAsset<Mesh>(transform, vertexBuffer, indexBuffer, boundMax, boundMin);
+		return mesh;
 	}
 
 	AssetHandle<Material> Loader::extractMaterial(const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path) {
 		// base material
-		aiColor4D aDiffuse; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_DIFFUSE, &aDiffuse);
+		aiColor4D aDiffuse = { 1, 1, 1, 1 }; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_DIFFUSE, &aDiffuse);
 		auto albedoColor = glm::vec4(aDiffuse.r, aDiffuse.g, aDiffuse.b, 1);
-		float metallic; aiGetMaterialFloat(aMaterial, AI_MATKEY_METALLIC_FACTOR, &metallic);
-		float roughness; aiGetMaterialFloat(aMaterial, AI_MATKEY_ROUGHNESS_FACTOR, &roughness);
-		aiColor4D aEmissive; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_EMISSIVE, &aEmissive);
+		float metallic = 0; aiGetMaterialFloat(aMaterial, AI_MATKEY_METALLIC_FACTOR, &metallic);
+		float roughness = 0.5; aiGetMaterialFloat(aMaterial, AI_MATKEY_ROUGHNESS_FACTOR, &roughness);
+		aiColor4D aEmissive = { 0, 0, 0, 0 }; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_EMISSIVE, &aEmissive);
 		auto emissive = glm::vec4(aEmissive.r, aEmissive.g, aEmissive.b, 0);
 		aiGetMaterialFloat(aMaterial, AI_MATKEY_EMISSIVE_INTENSITY, &emissive.w);
 
@@ -213,7 +214,6 @@ namespace Zap {
 			processNode(fileLink, node->mChildren[i], aScene, path, newTransform, model);
 		}
 	}
-
 
 	void Loader::assimpLoad(std::filesystem::path path) {
 		auto fileLinker = m_assetHandler.getFileLinker();

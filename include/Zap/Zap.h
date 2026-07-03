@@ -103,11 +103,6 @@ namespace Zap {
 		friend class PBRenderer;
 		friend class RaytracingRenderer;
 		friend class PathTracer;
-		friend class TextureLoader;
-		friend class MaterialLoader;
-		friend class MeshLoader;
-		friend class HitMeshLoader;
-		friend class ModelLoader;
 		friend class PhysicsComponent;
 		friend class RigidBodyComponent;
 		friend class RigidDynamic;

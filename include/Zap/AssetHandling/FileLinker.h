@@ -46,14 +46,14 @@ namespace Zap {
 
 		template<class ReconstructionDataType>
 		FileLink<ReconstructionDataType> beginFileLinking(std::filesystem::path path) {
-			static_assert(std::is_base_of_v<ReconstructionData, T>, "Type has to be child class of ReconstructionData | FileLinker::beginFileLinking");
+			static_assert(std::is_base_of_v<ReconstructionData, ReconstructionDataType>, "Type has to be child class of ReconstructionData | FileLinker::beginFileLinking");
 			return FileLink<ReconstructionDataType>(path);
 		}
 
 		template<class ReconstructionDataType>
 		void endFileLinking(FileLink<ReconstructionDataType>& fileLink) {
 			ZP_WARN(fileLink.m_isValid, "Trying to end the registry using an invalid FileLink | FileLinker::beginFileLinking");
-			ZP_ASSERT(!isRegistered(m_registryData.path), "path is already registered | FileLinker::endFileLinking");
+			ZP_ASSERT(!isRegistered(fileLink.m_path), "path is already registered | FileLinker::endFileLinking");
 			m_registeredPaths[fileLink.m_path] = fileLink.m_reconstructionData;
 			for (UUID handle : fileLink.m_assetHandles) {
 				ZP_ASSERT(!hasSource(handle), "asset already present in another file | FileLinker::endFileLinking");
@@ -84,5 +84,7 @@ namespace Zap {
 	private:
 		std::unordered_map<UUID, std::filesystem::path> m_idToPath;
 		std::unordered_map<std::filesystem::path, std::shared_ptr<ReconstructionData>> m_registeredPaths;
+
+		friend class AssetHandler;
 	};
 }

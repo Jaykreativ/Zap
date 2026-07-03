@@ -83,8 +83,6 @@ namespace Zap {
 	{
 	public:
 		AssetHandler();
-		// associates the asset handler with a zal asset library file
-		AssetHandler(std::filesystem::path path);
 		~AssetHandler();
 		AssetHandler& operator=(const AssetHandler&) = delete;
 		AssetHandler& operator=(AssetHandler&&) = default;
@@ -98,38 +96,30 @@ namespace Zap {
 
 	private:
 		template<class T, class... Types>
-		AssetHandle<T> generateAssetUsingID(UUID handle, Types&&... args);
-		template<class... Types>
-		AssetHandle<Mesh> generateAssetUsingID(UUID handle, Types&&... args) {
-			m_meshMap[handle] = std::make_unique<Mesh>(std::forward<Types>(args)...);
-			return AssetHandle<Mesh>(handle, this);
-		}
-		template<class... Types>
-		AssetHandle<Material> generateAssetUsingID(UUID handle, Types&&... args) {
-			m_materialMap[handle] = std::make_unique<Material>(std::forward<Types>(args)...);
-			return AssetHandle<Material>(handle, this);
-		}
-		template<class... Types>
-		AssetHandle<Texture> generateAssetUsingID(UUID handle, Types&&... args) {
-			m_textureMap[handle] = std::make_unique<Texture>(std::forward<Types>(args)...);
-			return AssetHandle<Texture>(handle, this);
-		}
-		template<class... Types>
-		AssetHandle<HitMesh> generateAssetUsingID(UUID handle, Types&&... args) {
-			m_hitmeshMap[handle] = std::make_unique<HitMesh>(std::forward<Types>(args)...);
-			return AssetHandle<HitMesh>(handle, this);
+		AssetHandle<T> generateAssetUsingID(UUID handle, Types&&... args) {
+			static_assert(std::is_base_of_v<Asset, T>, "Type has to be an Asset | AssetHandler::generateAssetUsingID");
+			getMap<T>()[handle] = std::unique_ptr<T>(new T(std::forward<Types>(args)...));
+			if constexpr (std::is_same_v<T, Texture>) { Base::getBase()->registerTextureIndex(handle); }// TODO find new solution for gpu texture indexing which allows dynamic registering (adding/removeing textures)
+			return AssetHandle<T>(handle, this);
 		}
 	public:
 		template<class T, class... Types>
 		AssetHandle<T> generateAsset(Types&&... args) {
-			generateAssetUsingID<T, Types>(UUID(), std::forward<Types>(args)...);
+			static_assert(std::is_base_of_v<Asset, T>, "Type has to be an Asset | AssetHandler::generateAsset");
+			return generateAssetUsingID<T, Types...>(UUID(), std::forward<Types>(args)...);
 		}
 
 		template<class T>
-		AssetIterator<T> begin();
+		AssetIterator<T> begin() {
+			static_assert(std::is_base_of_v<Asset, T>, "Type has to be an Asset | AssetHandler::begin");
+			return AssetIterator<T>(this, getMap<T>().begin());
+		}
 
 		template<class T>
-		AssetIterator<T> end();
+		AssetIterator<T> end() {
+			static_assert(std::is_base_of_v<Asset, T>, "Type has to be an Asset | AssetHandler::end");
+			return AssetIterator<T>(this, getMap<T>().end());
+		}
 
 		std::filesystem::path getAssetLibrary();
 
@@ -151,25 +141,17 @@ namespace Zap {
 		AssetHandlerEventHandler m_eventHandler;
 
 		template<class T>
-		AssetHandle<T> createAsset(UUID handle = UUID());
-
-		template<class T>
-		T* getAsset(UUID handle);
+		T* getAsset(UUID handle) {
+			static_assert(std::is_base_of_v<Asset, T>, "Type has to be an Asset | AssetHandler::getAsset");
+			if (getMap<T>().count(handle))
+				return getMap<T>().at(handle).get();
+			return nullptr;
+		}
 
 		FileLinker& getFileLinker();
-		// register assets for Asset Library
 
-		void registerTexture(Texture texture, std::filesystem::path filepath);
-		void registerTexture(Texture texture, std::filesystem::path modelpath, std::filesystem::path textureID);
-		void registerMaterial(Material material, std::filesystem::path modelpath, uint32_t index);
-		void registerMesh(Mesh mesh, std::filesystem::path modelpath, uint32_t index);
-		void registerHitMesh(HitMesh hitMesh, std::filesystem::path modelpath, uint32_t index);
-
-		std::filesystem::path processPath(std::filesystem::path path);
-
-		void addTexture(Texture texture);
-
-		void addLoadedTexture(Texture texture);
+		template<class T>
+		std::unordered_map<UUID, std::unique_ptr<T>>& getMap();
 
 		template<class T>
 		friend class AssetHandle;
