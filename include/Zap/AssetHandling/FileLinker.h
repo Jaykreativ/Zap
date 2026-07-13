@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/UUID.h"
+#include "Zap/AssetHandling/Asset.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -32,7 +33,9 @@ namespace Zap {
 				return m_reconstructionData;
 			}
 
-			void registerAsset(UUID handle) {
+			template<class T>
+			void registerAsset(AssetHandle<T> handle){
+				handle->makeLoaded();
 				m_assetHandles.push_back(handle);
 			}
 		private:

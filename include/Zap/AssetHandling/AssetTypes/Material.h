@@ -20,7 +20,7 @@ namespace Zap {
 	class Material : public Asset {
 	public:
 		Material(
-			glm::vec4            albedoColor,
+			glm::vec4            albedoColor = { 1, 1, 1, 1 },
 			float                metallic = 0,
 			float                roughness = 0.5,
 			glm::vec4            emissive = { 0, 0, 0, 0 },

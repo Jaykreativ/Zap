@@ -1,11 +1,11 @@
 #include "Zap/AssetHandling/Asset.h"
 
 namespace Zap {
-	bool Asset::isLoaded() {
-		return !m_filepath.empty();
+	bool Asset::isGenerated() {
+		return m_isGenerated;
 	}
 
-	void Asset::storePath(std::filesystem::path filepath) {
-		m_filepath = filepath;
+	void Asset::makeLoaded() {
+		m_isGenerated = false;
 	}
 }

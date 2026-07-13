@@ -13,13 +13,13 @@ namespace Zap {
 		Asset() {}
 		virtual ~Asset() {}
 
-		bool isLoaded();
-
-	protected:
-		void storePath(std::filesystem::path filepath);
-
+		bool isGenerated();
 	private:
-		std::filesystem::path m_filepath;
+		void makeLoaded();
+
+		bool m_isGenerated = true;
+
+		friend class FileLinker;
 	};
 
 	template<class T = Asset>

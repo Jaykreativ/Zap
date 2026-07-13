@@ -110,6 +110,16 @@ namespace Zap {
 		}
 
 		template<class T>
+		void deleteAsset(AssetHandle<T>& handle) {
+			static_assert(std::is_base_of_v<Asset, T>, "Type has to be an Asset | AssetHandler::deleteAsset");
+			ZP_WARN(handle->isGenerated(), "Trying to delete loaded asset | AssetHandler::deleteAsset")
+			if (handle->isGenerated()) {
+				getMap<T>().erase(handle);
+				handle.reset();
+			}
+		}
+
+		template<class T>
 		AssetIterator<T> begin() {
 			static_assert(std::is_base_of_v<Asset, T>, "Type has to be an Asset | AssetHandler::begin");
 			return AssetIterator<T>(this, getMap<T>().begin());
