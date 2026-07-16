@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zap/Zap.h"
+#include "Zap/Serializer.h"
 #include "Zap/Scene/Model.h"
 #include "Zap/AssetHandling/Asset.h"
 #include "Zap/AssetHandling/AssetHandler.h"
@@ -40,8 +41,8 @@ namespace Zap {
 		public:
 			Model model;
 		};
-		AssetHandle<Mesh> extractMesh(const aiMesh* aMesh, glm::mat4 transform, Model& model);
-		AssetHandle<Material> extractMaterial(const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path);
+		AssetHandle<Mesh> extractMesh(UUID handle, const aiMesh* aMesh, glm::mat4 transform, Model& model);
+		AssetHandle<Material> extractMaterial(UUID handle, const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path);
 		void processNode(FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiNode* node, const aiScene* aScene, std::filesystem::path path, glm::mat4& transform, Model& model);
 		void assimpLoad(std::filesystem::path path);
 		class StbImageReconstructionData : public ReconstructionData {
@@ -49,6 +50,9 @@ namespace Zap {
 			AssetHandle<Texture> texture;
 		};
 		void stbImageLoad(std::filesystem::path path);
+
+		// serialization access to ReconstructionData
+		friend class Serializer;
 	};
 
 	class ModelLoader : public Loader {

@@ -1,27 +1,55 @@
 #pragma once
 
+#define ZP_ASSET_METADATA_FILE_EXTENSION ".zamd"
+
 #include "Zap/UUID.h"
+#include "Zap/Serializer.h"
 #include "Zap/AssetHandling/Asset.h"
 
 #include <unordered_map>
 #include <unordered_set>
 #include <filesystem>
+#include <iostream>
+#include <fstream>
 
 namespace Zap {
-	class ReconstructionData {};
+	class ReconstructionData {
+		friend class FileLinker;
+	};
 
 	class FileLinker {
 		FileLinker();
 	public:
 		~FileLinker();
 
+		bool isLoaded(std::filesystem::path path);
+
+		template<class ReconstructionDataType>
+		std::shared_ptr<ReconstructionDataType> getReconstructionData(std::filesystem::path path) {
+			return std::reinterpret_pointer_cast<ReconstructionDataType>(m_registeredPaths.at(path));
+		}
+
 		template<class ReconstructionDataType>
 		class FileLink {
 			FileLink(std::filesystem::path path)
-				: m_path(path)
+				: m_path(path), m_isLoaded(false)
 			{
+				static_assert(std::is_base_of_v<ReconstructionData, ReconstructionDataType>, "Type has to be subclass to ReconstructionData | FileLinker::FileLink::FileLink");
 				m_reconstructionData = std::make_shared<ReconstructionDataType>();
+
+				std::ifstream file(m_path.string() + ZP_ASSET_METADATA_FILE_EXTENSION);
+				if (file.is_open()) { // check for existing metadata file (ReconstructionData file)
+					Serializer::readReadable(*m_reconstructionData, file);
+					file.close();
+					m_isRegistered = true;
+				}
+				else {
+					m_isRegistered = false;
+				}
 			}
+			FileLink(std::filesystem::path path, std::shared_ptr<ReconstructionDataType> reconstructionData)
+				: m_path(path), m_reconstructionData(reconstructionData), m_isLoaded(true)
+			{}
 		public:
 			~FileLink(){}
 
@@ -36,11 +64,31 @@ namespace Zap {
 			template<class T>
 			void registerAsset(AssetHandle<T> handle){
 				handle->makeLoaded();
-				m_assetHandles.push_back(handle);
 			}
+
+			bool isLoaded() { return m_isLoaded; }
+			bool isRegistered() { return m_isRegistered; }
+
+			bool hasSourceFileChanged(){
+				return true;
+			} // placeholder for future file sync systems
+
+			void finishLinking() {
+				if (isLoaded())
+					return;
+				if (isRegistered() && !hasSourceFileChanged())
+					return;
+				// write to metadata file (ReconstructionData file)
+				std::ofstream file(m_path.string() + ZP_ASSET_METADATA_FILE_EXTENSION);
+				if(file.good())
+					Serializer::writeReadable(*m_reconstructionData, file);
+				file.close();
+			}
+
 		private:
 			bool m_isValid = true;
-			std::vector<UUID> m_assetHandles;
+			bool m_isLoaded = false;
+			bool m_isRegistered = false;
 			std::shared_ptr<ReconstructionDataType> m_reconstructionData;
 			std::filesystem::path m_path;
 
@@ -50,17 +98,18 @@ namespace Zap {
 		template<class ReconstructionDataType>
 		FileLink<ReconstructionDataType> beginFileLinking(std::filesystem::path path) {
 			static_assert(std::is_base_of_v<ReconstructionData, ReconstructionDataType>, "Type has to be child class of ReconstructionData | FileLinker::beginFileLinking");
-			return FileLink<ReconstructionDataType>(path);
+			if(isLoaded(path))
+				return FileLink<ReconstructionDataType>(path, getReconstructionData<ReconstructionDataType>(path));
+			else
+				return FileLink<ReconstructionDataType>(path);
 		}
 
 		template<class ReconstructionDataType>
 		void endFileLinking(FileLink<ReconstructionDataType>& fileLink) {
 			ZP_WARN(fileLink.m_isValid, "Trying to end the registry using an invalid FileLink | FileLinker::beginFileLinking");
-			ZP_ASSERT(!isRegistered(fileLink.m_path), "path is already registered | FileLinker::endFileLinking");
-			m_registeredPaths[fileLink.m_path] = fileLink.m_reconstructionData;
-			for (UUID handle : fileLink.m_assetHandles) {
-				ZP_ASSERT(!hasSource(handle), "asset already present in another file | FileLinker::endFileLinking");
-				m_idToPath[handle] = fileLink.m_path;
+			fileLink.finishLinking();
+			if (!fileLink.isLoaded()) {
+				m_registeredPaths[fileLink.m_path] = fileLink.m_reconstructionData;
 			}
 			abortFileLinking(fileLink);
 		}
@@ -68,24 +117,11 @@ namespace Zap {
 		template<class ReconstructionDataType>
 		void abortFileLinking(FileLink<ReconstructionDataType>& fileLink) {
 			fileLink.m_isValid = false;
-			fileLink.m_assetHandles.clear();
 			fileLink.m_path.clear();
 			fileLink.m_reconstructionData.reset();
 		}
 
-		bool isRegistered(std::filesystem::path path);
-
-		template<class ReconstructionDataType>
-		std::shared_ptr<const ReconstructionDataType> getReconstructionData(std::filesystem::path path) {
-			return std::reinterpret_pointer_cast<ReconstructionDataType>(m_registeredPaths.at(path));
-		}
-
-		bool hasSource(UUID handle);
-
-		std::filesystem::path getSourcePath(UUID handle);
-
 	private:
-		std::unordered_map<UUID, std::filesystem::path> m_idToPath;
 		std::unordered_map<std::filesystem::path, std::shared_ptr<ReconstructionData>> m_registeredPaths;
 
 		friend class AssetHandler;

@@ -1,105 +1,94 @@
 #pragma once
 
-#include "Zap/Zap.h"
-#include "Zap/Scene/Actor.h"
+#include "Zap/AssetHandling/Asset.h"
 
-#include <fstream>
 #include <iostream>
-#include <filesystem>
+#include <vector>
 
 namespace Zap {
 	class Serializer
 	{
 	public:
-		Serializer();
-		~Serializer();
+		template<class T>
+		static void write(const T& val, std::ostream& stream);
+		template<class T>
+		static void read(T& val, std::istream& stream);
+		template<class T>
+		static void writeReadable(const T& val, std::ostream& stream);
+		template<class T>
+		static void readReadable(T& val, std::istream& stream);
 
-		bool beginSerialization(std::filesystem::path filePath) {
-			return beginSerialization(filePath.string().c_str());
+		// vector
+		template<class T>
+		static void write(const std::vector<T>& val, std::ostream& stream) {
+			write(val.size(), stream);
+			for (const T& element : val)
+				write(element, stream);
 		}
-		bool beginSerialization(const char* filePath);
-
-		void endSerialization();
-
-		bool beginDeserialization(std::filesystem::path filePath) {
-			return beginDeserialization(filePath.string().c_str());
+		template<class T>
+		static void read(std::vector<T>& val, std::istream& stream) {
+			size_t size;
+			read(size, stream);
+			val.resize(size);
+			for (T& element : val)
+				read(element, stream);
 		}
-		bool beginDeserialization(const char* filePath);
+		template<class T>
+		static void writeReadable(const std::vector<T>& val, std::ostream& stream) {
+			stream << "{ ";
+			size_t i = 0;
+			for (const T& element : val) {
+				writeReadable(element, stream);
+				i++;
+				if (i < val.size())
+					stream << ", ";
+			}
+			stream << " }";
+		}
+		template<class T>
+		static void readReadable(std::vector<T>& val, std::istream& stream) {
+			val.clear();
+			stream.ignore(0xffff, '{');
+			bool inBrackets = true;
+			int c = ',';
+			while (inBrackets) {
+				switch(c){
+				case '}':
+					inBrackets = false;
+					break;
+				case ',':
+					T element;
+					readReadable(element, stream);
+					val.push_back(std::move(element));
+					break;
+				}
+				c = stream.get();
+			}
+		}
 
-		void endDeserialization();
-
-		char getIgnore(std::istream& stream);
-
-		char peekIgnore(std::istream& stream);
-
-		void goToNextSymbol(std::istream& stream, char symbol);
-
-		bool beginElement(std::string name);
-
-		void endElement();
-
-		std::string readAttribute(std::string attribute, bool* success = nullptr);
-		
-		int readAttributei(std::string attribute, bool* success = nullptr);
-		
-		long readAttributel(std::string attribute, bool* success = nullptr);
-		unsigned long readAttributeul(std::string attribute, bool* success = nullptr);
-		
-		long long readAttributell(std::string attribute, bool* success = nullptr);
-		unsigned long long readAttributeull(std::string attribute, bool* success = nullptr);
-		
-		float readAttributef(std::string attribute, bool* success = nullptr);
-		double readAttributed(std::string attribute, bool* success = nullptr);
-		
-		glm::vec3 readAttributeVec3(std::string attribute, bool* success = nullptr);
-		glm::vec4 readAttributeVec4(std::string attribute, bool* success = nullptr);
-		
-		glm::mat4 readAttributeMat4(std::string attribute, bool* success = nullptr);
-		
-		UUID readAttributeUUID(std::string attribute, bool* success = nullptr);
-
-		void writeAttribute(std::string attribute, std::string        data);
-
-		void writeAttribute(std::string attribute, int                data);
-		void writeAttribute(std::string attribute, unsigned int       data);
-		
-		void writeAttribute(std::string attribute, long               data);
-		void writeAttribute(std::string attribute, unsigned long      data);
-		
-		void writeAttribute(std::string attribute, long long          data);
-		void writeAttribute(std::string attribute, unsigned long long data);
-		
-		void writeAttribute(std::string attribute, float              data);
-		void writeAttribute(std::string attribute, double              data);
-		
-		void writeAttribute(std::string attribute, glm::vec3          data);
-		void writeAttribute(std::string attribute, glm::vec4          data);
-
-		void writeAttribute(std::string attribute, glm::mat4          data);
-		
-		void writeAttribute(std::string attribute, UUID               data);
-
-		// Can be called while deserializing
-		// Looks for a matching element in current scope
-		bool existsElement(std::string element);
-
-		// Can be called while deserializing
-		bool existsAttribute(std::string attribute);
-
-	private:
-		bool m_isActive = false;
-		bool m_isInput = false;
-
-		struct Element {
-			std::unordered_map<std::string, Element> m_elements = {};
-			std::unordered_map<std::string, std::string> m_attributes = {};
-		};
-
-		Element m_rootElement = {};
-		std::vector<Element*> m_elementTree = {};
-		Element* m_focusedElement = &m_rootElement;
-
-		std::ofstream m_ofstream;
+		// AssetHandler
+		template<class T>
+		static void write(AssetHandle<T> val, std::ostream& stream) {
+			write(val.m_handle, stream);
+		}
+		template<class T>
+		static void read(AssetHandle<T>& val, std::istream& stream) {
+			UUID handle;
+			read(handle, stream);
+			val = AssetHandle<T>(handle, Base::getBase()->getAssetHandler());
+		}
+		template<class T>
+		static void writeReadable(AssetHandle<T> val, std::ostream& stream) {
+			stream << "AssetHandle: ";
+			writeReadable(val.m_handle, stream);
+		}
+		template<class T>
+		static void readReadable(AssetHandle<T>& val, std::istream& stream) {
+			stream.ignore(0xffff, ':');
+			UUID handle;
+			readReadable(handle, stream);
+			val = AssetHandle<T>(handle, Base::getBase()->getAssetHandler());
+		}
 	};
 }
 

@@ -67,5 +67,8 @@ namespace Zap {
 		AssetHandle(UUID handle, AssetHandler* pAssetHandler)
 			: m_handle(handle), m_pAssetHandler(pAssetHandler)
 		{}
+
+		// serialization access
+		friend class Serializer;
 	};
 }

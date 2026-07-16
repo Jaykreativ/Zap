@@ -78,7 +78,7 @@ namespace Zap {
 		return false;
 	}
 
-	AssetHandle<Mesh> Loader::extractMesh(const aiMesh* aMesh, glm::mat4 transform, Model& model) {
+	AssetHandle<Mesh> Loader::extractMesh(UUID handle, const aiMesh* aMesh, glm::mat4 transform, Model& model) {
 		vk::Buffer vertexStgBuffer = vk::Buffer(aMesh->mNumVertices * sizeof(Vertex), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 		vk::Buffer indexStgBuffer = vk::Buffer(aMesh->mNumFaces * 3 * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
@@ -134,11 +134,11 @@ namespace Zap {
 		model.boundMin = glm::min(model.boundMin, boundMin);
 		model.boundMax = glm::max(model.boundMax, boundMax);
 
-		auto mesh = m_assetHandler.generateAsset<Mesh>(transform, vertexBuffer, indexBuffer, boundMax, boundMin);
+		auto mesh = m_assetHandler.generateAssetUsingID<Mesh>(handle, transform, vertexBuffer, indexBuffer, boundMax, boundMin);
 		return mesh;
 	}
 
-	AssetHandle<Material> Loader::extractMaterial(const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path) {
+	AssetHandle<Material> Loader::extractMaterial(UUID handle, const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path) {
 		// base material
 		aiColor4D aDiffuse = { 1, 1, 1, 1 }; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_DIFFUSE, &aDiffuse);
 		auto albedoColor = glm::vec4(aDiffuse.r, aDiffuse.g, aDiffuse.b, 1);
@@ -192,7 +192,7 @@ namespace Zap {
 			roughness = 1;
 		}
 
-		auto material = m_assetHandler.generateAsset<Material>(albedoColor, metallic, roughness, emissive, albedoMap, metallicMap, roughnessMap);
+		auto material = m_assetHandler.generateAssetUsingID<Material>(handle, albedoColor, metallic, roughness, emissive, albedoMap, metallicMap, roughnessMap);
 		return material;
 	}
 
@@ -200,12 +200,18 @@ namespace Zap {
 		glm::mat4 newTransform = transform * AssimpUtils::mat4ToGlmMat4(node->mTransformation);
 		for (uint32_t i = 0; i < node->mNumMeshes; i++) {
 			// Mesh
-			auto mesh = extractMesh(aScene->mMeshes[node->mMeshes[i]], transform, model);
+			UUID meshHandle; // generate new id for unregistered assets
+			if(fileLink.isRegistered()) // reuse handle only for registered assets
+				meshHandle = fileLink->model.meshes[model.meshes.size()]; // get the handle of the next mesh in the list
+			auto mesh = extractMesh(meshHandle, aScene->mMeshes[node->mMeshes[i]], transform, model);
 			fileLink.registerAsset(mesh);
 			model.meshes.push_back(mesh);
 
 			// Material
-			auto material = extractMaterial(aScene->mMaterials[aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex], aScene, path);
+			UUID materialHandle;
+			if(fileLink.isRegistered())
+				materialHandle = fileLink->model.materials[model.materials.size()]; // get the handle of the next material in the list
+			auto material = extractMaterial(materialHandle, aScene->mMaterials[aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex], aScene, path);
 			fileLink.registerAsset(material);
 			model.materials.push_back(material);
 		}
@@ -217,13 +223,11 @@ namespace Zap {
 
 	void Loader::assimpLoad(std::filesystem::path path) {
 		auto fileLinker = m_assetHandler.getFileLinker();
-		if (fileLinker.isRegistered(path)) {
-			auto rec = fileLinker.getReconstructionData<AssimpReconstructionData>(path);
-			submitModel(rec->model);
+		auto fileLink = fileLinker.beginFileLinking<AssimpReconstructionData>(path);
+		if (fileLink.isLoaded()) {
+			submitModel(fileLink->model);
 		}
 		else {
-			auto fileLink = fileLinker.beginFileLinking<AssimpReconstructionData>(path);
-
 			Assimp::Importer importer;
 			const aiScene* aScene = importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes);
 
@@ -242,7 +246,7 @@ namespace Zap {
 		auto fileLinker = m_assetHandler.getFileLinker();
 
 		// check if file has already been loaded
-		if (fileLinker.isRegistered(path)) {
+		if (fileLinker.isLoaded(path)) {
 			auto rec = fileLinker.getReconstructionData<StbImageReconstructionData>(path);
 			submitTexture(rec->texture);
 		}
