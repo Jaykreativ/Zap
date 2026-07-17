@@ -99,8 +99,12 @@ namespace Zap {
 		AssetHandle<T> generateAssetUsingID(UUID handle, Types&&... args) {
 			static_assert(std::is_base_of_v<Asset, T>, "Type has to be an Asset | AssetHandler::generateAssetUsingID");
 			getMap<T>()[handle] = std::unique_ptr<T>(new T(std::forward<Types>(args)...));
-			if constexpr (std::is_same_v<T, Texture>) { Base::getBase()->registerTextureIndex(handle); }// TODO find new solution for gpu texture indexing which allows dynamic registering (adding/removeing textures)
-			return AssetHandle<T>(handle, this);
+			auto assetHandle = AssetHandle<T>(handle, this);
+			if constexpr (std::is_same_v<T, Texture>) { 
+				Base::getBase()->registerTextureIndex(handle); // TODO find new solution for gpu texture indexing which allows dynamic registering (adding/removing textures)
+				m_eventHandler.pushEvent(AssetHandlerEvent::TextureLoad(assetHandle));
+			}
+			return assetHandle;
 		}
 	public:
 		template<class T, class... Types>
