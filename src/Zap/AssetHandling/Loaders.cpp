@@ -78,6 +78,43 @@ namespace Zap {
 		return false;
 	}
 
+	AssetHandle<Texture> Loader::generateTextureFromData(UUID handle, int width, int height, int channels, void* data) {
+		Image2D image(
+			VK_FORMAT_R8G8B8A8_UNORM,
+			VkExtent2D{ (unsigned int)width, (unsigned int)height },
+			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
+		image.uploadData(width * height * 4, data);
+
+		return m_assetHandler.generateAssetUsingID<Texture>(handle, std::move(image));
+	}
+
+	AssetHandle<Texture> Loader::extractTexture(FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiString* aTexPath, const aiScene* aScene, std::filesystem::path path) {
+		auto embeddedTexture = aScene->GetEmbeddedTexture(aTexPath->C_Str());
+		if (embeddedTexture) {
+			ZP_ASSERT(!embeddedTexture->mHeight, "Raw texture loading not implemented Yet");// TODO implement raw texture loading
+			int width, height, channels;
+			stbi_set_flip_vertically_on_load(true);
+			auto data = stbi_load_from_memory((stbi_uc*)embeddedTexture->pcData, embeddedTexture->mWidth, &width, &height, &channels, 4);
+			ZP_ASSERT(data, ("Embedded texture not loaded correctly: " + path.string()).c_str());
+			UUID textureHandle;
+			if (fileLink.isRegistered())
+				textureHandle = fileLink->embeddedTextures[fileLink->embeddedTexturesIndex];
+			auto texture = generateTextureFromData(textureHandle, width, height, channels, data);
+			fileLink.registerAsset(texture);
+			if (fileLink->embeddedTextures.size() <= fileLink->embeddedTexturesIndex)
+				fileLink->embeddedTextures.push_back(texture); // remember handle of embeddedTexture
+			fileLink->embeddedTexturesIndex++; // prepare for next
+			return texture;
+		}
+		else {
+			TextureLoader loader;
+			loader.load(path.remove_filename() / aTexPath->C_Str());
+			return loader.result();
+		}
+	}
+
 	AssetHandle<Mesh> Loader::extractMesh(UUID handle, const aiMesh* aMesh, glm::mat4 transform, Model& model) {
 		vk::Buffer vertexStgBuffer = vk::Buffer(aMesh->mNumVertices * sizeof(Vertex), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 		vk::Buffer indexStgBuffer = vk::Buffer(aMesh->mNumFaces * 3 * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
@@ -138,7 +175,7 @@ namespace Zap {
 		return mesh;
 	}
 
-	AssetHandle<Material> Loader::extractMaterial(UUID handle, const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path) {
+	AssetHandle<Material> Loader::extractMaterial(UUID handle, FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path) {
 		// base material
 		aiColor4D aDiffuse = { 1, 1, 1, 1 }; aiGetMaterialColor(aMaterial, AI_MATKEY_COLOR_DIFFUSE, &aDiffuse);
 		auto albedoColor = glm::vec4(aDiffuse.r, aDiffuse.g, aDiffuse.b, 1);
@@ -154,41 +191,17 @@ namespace Zap {
 		AssetHandle<Texture> roughnessMap;
 		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE) > 0) {
 			aiString diffuseTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
-			auto embeddedTexture = aScene->GetEmbeddedTexture(diffuseTexturePath.C_Str());
-			if (embeddedTexture) {
-				ZP_WARN(false, "embedded textures are WIP");
-			}
-			else {
-				TextureLoader loader;
-				loader.load(path.remove_filename() / diffuseTexturePath.C_Str());
-				albedoMap = loader.result();
-			}
+			albedoMap = extractTexture(fileLink, &diffuseTexturePath, aScene, path);
 			albedoColor = glm::vec4(1, 1, 1, 1);
 		}
 		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_METALNESS) > 0) {
 			aiString metallicTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_METALNESS, 0, &metallicTexturePath);
-			auto embeddedTexture = aScene->GetEmbeddedTexture(metallicTexturePath.C_Str());
-			if (embeddedTexture) {
-				ZP_WARN(false, "embedded textures are WIP");
-			}
-			else {
-				TextureLoader loader;
-				loader.load(path.remove_filename() / metallicTexturePath.C_Str());
-				metallicMap = loader.result();
-			}
+			metallicMap = extractTexture(fileLink, &metallicTexturePath, aScene, path);
 			metallic = 1;
 		}
 		if (aiGetMaterialTextureCount(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
 			aiString roughnessTexturePath; aiGetMaterialTexture(aMaterial, aiTextureType_DIFFUSE_ROUGHNESS, 0, &roughnessTexturePath);
-			auto embeddedTexture = aScene->GetEmbeddedTexture(roughnessTexturePath.C_Str());
-			if (embeddedTexture) {
-				ZP_WARN(false, "embedded textures are WIP");
-			}
-			else {
-				TextureLoader loader;
-				loader.load(path.remove_filename() / roughnessTexturePath.C_Str());
-				roughnessMap = loader.result();
-			}
+			roughnessMap = extractTexture(fileLink, &roughnessTexturePath, aScene, path);
 			roughness = 1;
 		}
 
@@ -211,7 +224,7 @@ namespace Zap {
 			UUID materialHandle;
 			if(fileLink.isRegistered())
 				materialHandle = fileLink->model.materials[model.materials.size()]; // get the handle of the next material in the list
-			auto material = extractMaterial(materialHandle, aScene->mMaterials[aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex], aScene, path);
+			auto material = extractMaterial(materialHandle, fileLink, aScene->mMaterials[aScene->mMeshes[node->mMeshes[i]]->mMaterialIndex], aScene, path);
 			fileLink.registerAsset(material);
 			model.materials.push_back(material);
 		}
@@ -222,7 +235,7 @@ namespace Zap {
 	}
 
 	void Loader::assimpLoad(std::filesystem::path path) {
-		auto fileLinker = m_assetHandler.getFileLinker();
+		auto& fileLinker = m_assetHandler.getFileLinker();
 		auto fileLink = fileLinker.beginFileLinking<AssimpReconstructionData>(path);
 		if (fileLink.isLoaded()) {
 			submitModel(fileLink->model);
@@ -234,25 +247,23 @@ namespace Zap {
 			ZP_ASSERT(aScene, (std::string("Scene can't be loaded, check the filepath: ") + path.string()).c_str());
 
 			Model model;
+			fileLink->embeddedTexturesIndex = 0;
 			processNode(fileLink, aScene->mRootNode, aScene, path, glm::mat4(1), model);
 			submitModel(model);
 			fileLink->model = model;
-
-			fileLinker.endFileLinking(fileLink);
 		}
+		fileLinker.endFileLinking(fileLink);
 	}
 
 	void Loader::stbImageLoad(std::filesystem::path path) {
-		auto fileLinker = m_assetHandler.getFileLinker();
+		auto& fileLinker = m_assetHandler.getFileLinker();
+		auto fileLink = fileLinker.beginFileLinking<StbImageReconstructionData>(path);
 
 		// check if file has already been loaded
-		if (fileLinker.isLoaded(path)) {
-			auto rec = fileLinker.getReconstructionData<StbImageReconstructionData>(path);
-			submitTexture(rec->texture);
+		if (fileLink.isLoaded()) {
+			submitTexture(fileLink->texture);
 		}
 		else {
-			auto fileLink = fileLinker.beginFileLinking<StbImageReconstructionData>(path);
-
 			// fileload
 			int width, height, channels;
 			stbi_set_flip_vertically_on_load(true);
@@ -260,22 +271,15 @@ namespace Zap {
 			ZP_ASSERT(data, ("Image not loaded correctly: " + path.string()).c_str());
 
 			// upload
-			auto base = Base::getBase();
-			Image2D image(
-				VK_FORMAT_R8G8B8A8_UNORM,
-				VkExtent2D{ (unsigned int)width, (unsigned int)height },
-				VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-			);
-			image.uploadData(width * height * 4, data);
-
-			auto texture = m_assetHandler.generateAsset<Texture>(std::move(image));
+			UUID textureHandle;
+			if (fileLink.isRegistered())
+				textureHandle = fileLink->texture;
+			auto texture = generateTextureFromData(textureHandle, width, height, channels, data);
 			fileLink.registerAsset(texture);
-			fileLink->texture = texture; // save texture handle in case this file is being loaded again
 			submitTexture(texture);
-
-			fileLinker.endFileLinking(fileLink);
+			fileLink->texture = texture; // save texture handle in case this file is being loaded again
 		}
+		fileLinker.endFileLinking(fileLink);
 	}
 
 	// TODO load hitmeshes

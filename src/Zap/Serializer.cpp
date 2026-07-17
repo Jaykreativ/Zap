@@ -119,11 +119,13 @@ namespace Zap {
 		void Serializer::write(const Loader::AssimpReconstructionData& val, std::ostream& stream) {
 			write(val.model.materials, stream);
 			write(val.model.meshes, stream);
+			write(val.embeddedTextures, stream);
 		}
 		template<>
 		void Serializer::read(Loader::AssimpReconstructionData& val, std::istream& stream) {
 			read(val.model.materials, stream);
 			read(val.model.meshes, stream);
+			read(val.embeddedTextures, stream);
 		}
 		template<>
 		void Serializer::writeReadable(const Loader::AssimpReconstructionData& val, std::ostream& stream) {
@@ -131,6 +133,8 @@ namespace Zap {
 			writeReadable(val.model.materials, stream);
 			stream << "\nMeshes: ";
 			writeReadable(val.model.meshes, stream);
+			stream << "\nEmbedded Textures: ";
+			writeReadable(val.embeddedTextures, stream);
 		}
 		template<>
 		void Serializer::readReadable(Loader::AssimpReconstructionData& val, std::istream& stream) {
@@ -138,6 +142,8 @@ namespace Zap {
 			readReadable(val.model.materials, stream);
 			stream.ignore(0xffff, ':');
 			readReadable(val.model.meshes, stream);
+			stream.ignore(0xffff, ':');
+			readReadable(val.embeddedTextures, stream);
 		}
 
 		template<>

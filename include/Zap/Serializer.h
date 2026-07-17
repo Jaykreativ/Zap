@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <vector>
+#include <string>
 
 namespace Zap {
 	class Serializer
@@ -35,15 +36,15 @@ namespace Zap {
 		}
 		template<class T>
 		static void writeReadable(const std::vector<T>& val, std::ostream& stream) {
-			stream << "{ ";
+			stream << "{";
 			size_t i = 0;
 			for (const T& element : val) {
 				writeReadable(element, stream);
 				i++;
 				if (i < val.size())
-					stream << ", ";
+					stream << ",";
 			}
-			stream << " }";
+			stream << "}";
 		}
 		template<class T>
 		static void readReadable(std::vector<T>& val, std::istream& stream) {
@@ -56,11 +57,16 @@ namespace Zap {
 				case '}':
 					inBrackets = false;
 					break;
-				case ',':
+				case ',': {
+					if (stream.peek() == '}')
+						break;
 					T element;
 					readReadable(element, stream);
 					val.push_back(std::move(element));
 					break;
+				}
+				case std::char_traits<char>::eof():
+					return;
 				}
 				c = stream.get();
 			}

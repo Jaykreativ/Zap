@@ -9,6 +9,7 @@
 #include <string>
 #include <filesystem>
 
+class aiString;
 class aiNode;
 class aiScene;
 class aiMesh;
@@ -36,13 +37,20 @@ namespace Zap {
 	private:
 		AssetHandler& m_assetHandler;
 
+		// generic helpers
+		AssetHandle<Texture> generateTextureFromData(UUID handle, int width, int height, int channels, void* data);
+
 		// subloads
 		class AssimpReconstructionData : public ReconstructionData {
 		public:
 			Model model;
+			// used for unloaded assets only
+			size_t embeddedTexturesIndex;
+			std::vector<AssetHandle<Texture>> embeddedTextures;
 		};
+		AssetHandle<Texture> extractTexture(FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiString* aTexPath, const aiScene* aScene, std::filesystem::path path);
 		AssetHandle<Mesh> extractMesh(UUID handle, const aiMesh* aMesh, glm::mat4 transform, Model& model);
-		AssetHandle<Material> extractMaterial(UUID handle, const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path);
+		AssetHandle<Material> extractMaterial(UUID handle, FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path);
 		void processNode(FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiNode* node, const aiScene* aScene, std::filesystem::path path, glm::mat4& transform, Model& model);
 		void assimpLoad(std::filesystem::path path);
 		class StbImageReconstructionData : public ReconstructionData {

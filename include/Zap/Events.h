@@ -2,6 +2,9 @@
 
 #include "glm.hpp"
 
+#include "Zap/AssetHandling/Asset.h"
+#include "Zap/AssetHandling/AssetTypes/Texture.h"
+
 #include <vector>
 
 namespace Zap {
@@ -267,17 +270,16 @@ namespace Zap {
 		friend class Window;
 	};
 
-	class Texture;
 	namespace AssetHandlerEvent {
 		class AssetHandlerEvent : public Event {};
 
 		class TextureLoad : public AssetHandlerEvent {
 		public:
-			TextureLoad(Texture& texture)
+			TextureLoad(AssetHandle<Texture>& texture)
 				: texture(texture)
 			{}
 
-			Texture& texture;
+			AssetHandle<Texture>& texture;
 		};
 	}
 
