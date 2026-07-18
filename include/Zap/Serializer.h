@@ -54,9 +54,6 @@ namespace Zap {
 			int c = ',';
 			while (inBrackets) {
 				switch(c){
-				case '}':
-					inBrackets = false;
-					break;
 				case ',': {
 					if (stream.peek() == '}')
 						break;
@@ -65,6 +62,7 @@ namespace Zap {
 					val.push_back(std::move(element));
 					break;
 				}
+				case '}':
 				case std::char_traits<char>::eof():
 					return;
 				}

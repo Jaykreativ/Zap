@@ -189,11 +189,12 @@ namespace Zap {
 		cmp->materials[meshIndex] = material;
 	}
 
-	void Actor::cmpModel_addMesh(AssetHandle<Mesh> mesh, AssetHandle<Material> material) {
+	void Actor::cmpModel_addMesh(AssetHandle<Mesh> mesh, AssetHandle<Material> material, glm::mat4 transform) {
 		ZP_ASSERT(m_pScene, "Actor is not part of scene");
 		Model* cmp = &m_pScene->m_modelComponents.at(m_handle);
 		cmp->meshes.push_back(mesh);
 		cmp->materials.push_back(material);
+		cmp->transforms.push_back(transform);
 		m_pScene->m_meshInstanceCount++;
 	}
 

@@ -82,7 +82,7 @@ namespace Zap {
 
 		void cmpModel_setMaterial(uint32_t meshIndex, AssetHandle<Material> material);
 
-		void cmpModel_addMesh(AssetHandle<Mesh> mesh, AssetHandle<Material> material);
+		void cmpModel_addMesh(AssetHandle<Mesh> mesh, AssetHandle<Material> material, glm::mat4 transform);
 
 		void cmpModel_removeMesh(uint32_t meshIndex);
 

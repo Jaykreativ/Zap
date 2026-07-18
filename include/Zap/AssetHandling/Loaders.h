@@ -45,13 +45,15 @@ namespace Zap {
 		public:
 			Model model;
 			// used for unloaded assets only
-			size_t embeddedTexturesIndex;
-			std::vector<AssetHandle<Texture>> embeddedTextures;
+			std::vector<UUID> meshes;
+			std::vector<UUID> materials;
+			std::vector<UUID> embeddedTextures;
 		};
-		AssetHandle<Texture> extractTexture(FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiString* aTexPath, const aiScene* aScene, std::filesystem::path path);
-		AssetHandle<Mesh> extractMesh(UUID handle, const aiMesh* aMesh, glm::mat4 transform, Model& model);
-		AssetHandle<Material> extractMaterial(UUID handle, FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiMaterial* aMaterial, const aiScene* aScene, std::filesystem::path path);
-		void processNode(FileLinker::FileLink<AssimpReconstructionData>& fileLink, const aiNode* node, const aiScene* aScene, std::filesystem::path path, glm::mat4& transform, Model& model);
+		AssetHandle<Texture> extractEmbeddedTexture(UUID handle, const aiTexture* aTexture);
+		AssetHandle<Texture> extractTexture(const aiString* aTexPath, const aiScene* aScene, std::vector<AssetHandle<Texture>>& embeddedTextures, std::filesystem::path path);
+		AssetHandle<Mesh> extractMesh(UUID handle, const aiMesh* aMesh);
+		AssetHandle<Material> extractMaterial(UUID handle, const aiMaterial* aMaterial, const aiScene* aScene, std::vector<AssetHandle<Texture>>& embeddedTextures, std::filesystem::path path);
+		void processNode(const aiNode* node, const aiScene* aScene, std::vector<AssetHandle<Mesh>>& meshes, std::vector<AssetHandle<Material>>& materials, const glm::mat4& transform, Model& model);
 		void assimpLoad(std::filesystem::path path);
 		class StbImageReconstructionData : public ReconstructionData {
 		public:

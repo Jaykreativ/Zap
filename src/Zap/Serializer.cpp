@@ -2,6 +2,8 @@
 
 #include "Zap/AssetHandling/Loaders.h"
 
+#include "glm.hpp"
+
 #include <string>
 
 namespace Zap {
@@ -114,34 +116,211 @@ namespace Zap {
 			stream.ignore(1);
 		}
 
+		// glm vec
+		template<>
+		void Serializer::write(const glm::vec2& val, std::ostream& stream) {
+			write(val.x, stream);
+			write(val.y, stream);
+		}
+		template<>
+		void Serializer::read(glm::vec2& val, std::istream& stream) {
+			read(val.x, stream);
+			read(val.y, stream);
+		}
+		template<>
+		void Serializer::writeReadable(const glm::vec2& val, std::ostream& stream) {
+			stream << "vec";
+			writeReadable(std::vector({ val.x, val.y }), stream);
+		}
+		template<>
+		void Serializer::readReadable(glm::vec2& val, std::istream& stream) {
+			std::vector<float> vec;
+			readReadable(vec, stream);
+			val.x = vec[0];
+			val.y = vec[1];
+		}
+		template<>
+		void Serializer::write(const glm::vec3& val, std::ostream& stream) {
+			write(val.x, stream);
+			write(val.y, stream);
+			write(val.z, stream);
+		}
+		template<>
+		void Serializer::read(glm::vec3& val, std::istream& stream) {
+			read(val.x, stream);
+			read(val.y, stream);
+			read(val.z, stream);
+		}
+		template<>
+		void Serializer::writeReadable(const glm::vec3& val, std::ostream& stream) {
+			stream << "vec";
+			writeReadable(std::vector({ val.x, val.y, val.z }), stream);
+		}
+		template<>
+		void Serializer::readReadable(glm::vec3& val, std::istream& stream) {
+			std::vector<float> vec;
+			readReadable(vec, stream);
+			val.x = vec[0];
+			val.y = vec[1];
+			val.z = vec[2];
+		}
+		template<>
+		void Serializer::write(const glm::vec4& val, std::ostream& stream) {
+			write(val.x, stream);
+			write(val.y, stream);
+			write(val.z, stream);
+			write(val.w, stream);
+		}
+		template<>
+		void Serializer::read(glm::vec4& val, std::istream& stream) {
+			read(val.x, stream);
+			read(val.y, stream);
+			read(val.z, stream);
+			read(val.w, stream);
+		}
+		template<>
+		void Serializer::writeReadable(const glm::vec4& val, std::ostream& stream) {
+			stream << "vec";
+			writeReadable(std::vector({ val.x, val.y, val.z, val.w }), stream);
+		}
+		template<>
+		void Serializer::readReadable(glm::vec4& val, std::istream& stream) {
+			std::vector<float> vec;
+			readReadable(vec, stream);
+			val.x = vec[0];
+			val.y = vec[1];
+			val.z = vec[2];
+			val.w = vec[3];
+		}
+
+		// glm mat
+		template<>
+		void Serializer::write(const glm::mat2& val, std::ostream& stream) {
+			write(val[0], stream);
+			write(val[1], stream);
+		}
+		template<>
+		void Serializer::read(glm::mat2& val, std::istream& stream) {
+			read(val[0], stream);
+			read(val[1], stream);
+		}
+		template<>
+		void Serializer::writeReadable(const glm::mat2& val, std::ostream& stream) {
+			stream << "mat";
+			writeReadable(std::vector({ val[0], val[1] }), stream);
+		}
+		template<>
+		void Serializer::readReadable(glm::mat2& val, std::istream& stream) {
+			std::vector<glm::vec2> vec;
+			readReadable(vec, stream);
+			val[0] = vec[0];
+			val[1] = vec[1];
+		}
+		template<>
+		void Serializer::write(const glm::mat3& val, std::ostream& stream) {
+			write(val[0], stream);
+			write(val[1], stream);
+			write(val[2], stream);
+		}
+		template<>
+		void Serializer::read(glm::mat3& val, std::istream& stream) {
+			read(val[0], stream);
+			read(val[1], stream);
+			read(val[2], stream);
+		}
+		template<>
+		void Serializer::writeReadable(const glm::mat3& val, std::ostream& stream) {
+			stream << "mat";
+			writeReadable(std::vector({ val[0], val[1], val[2] }), stream);
+		}
+		template<>
+		void Serializer::readReadable(glm::mat3& val, std::istream& stream) {
+			std::vector<glm::vec3> vec;
+			readReadable(vec, stream);
+			val[0] = vec[0];
+			val[1] = vec[1];
+			val[2] = vec[2];
+		}
+		template<>
+		void Serializer::write(const glm::mat4& val, std::ostream& stream) {
+			write(val[0], stream);
+			write(val[1], stream);
+			write(val[2], stream);
+			write(val[3], stream);
+		}
+		template<>
+		void Serializer::read(glm::mat4& val, std::istream& stream) {
+			read(val[0], stream);
+			read(val[1], stream);
+			read(val[2], stream);
+			read(val[3], stream);
+		}
+		template<>
+		void Serializer::writeReadable(const glm::mat4& val, std::ostream& stream) {
+			stream << "mat";
+			writeReadable(std::vector({ val[0], val[1], val[2], val[3] }), stream);
+		}
+		template<>
+		void Serializer::readReadable(glm::mat4& val, std::istream& stream) {
+			std::vector<glm::vec4> vec;
+			readReadable(vec, stream);
+			val[0] = vec[0];
+			val[1] = vec[1];
+			val[2] = vec[2];
+			val[3] = vec[3];
+		}
+
+
 		// ReconstructionData
 		template<>
 		void Serializer::write(const Loader::AssimpReconstructionData& val, std::ostream& stream) {
 			write(val.model.materials, stream);
 			write(val.model.meshes, stream);
+			write(val.model.transforms, stream);
+			write(val.meshes, stream);
+			write(val.materials, stream);
 			write(val.embeddedTextures, stream);
 		}
 		template<>
 		void Serializer::read(Loader::AssimpReconstructionData& val, std::istream& stream) {
 			read(val.model.materials, stream);
 			read(val.model.meshes, stream);
+			read(val.model.transforms, stream);
+			read(val.meshes, stream);
+			read(val.materials, stream);
 			read(val.embeddedTextures, stream);
 		}
 		template<>
 		void Serializer::writeReadable(const Loader::AssimpReconstructionData& val, std::ostream& stream) {
-			stream << "Materials: ";
+			stream << "Model{";
+			stream << "\nMaterials: ";
 			writeReadable(val.model.materials, stream);
 			stream << "\nMeshes: ";
 			writeReadable(val.model.meshes, stream);
+			stream << "\nTransforms: ";
+			writeReadable(val.model.transforms, stream);
+			stream << "\n}";
+			stream << "\nMeshes: ";
+			writeReadable(val.meshes, stream);
+			stream << "\nMaterials: ";
+			writeReadable(val.materials, stream);
 			stream << "\nEmbedded Textures: ";
 			writeReadable(val.embeddedTextures, stream);
 		}
 		template<>
 		void Serializer::readReadable(Loader::AssimpReconstructionData& val, std::istream& stream) {
+			stream.ignore(0xffff, '{');
 			stream.ignore(0xffff, ':');
 			readReadable(val.model.materials, stream);
 			stream.ignore(0xffff, ':');
 			readReadable(val.model.meshes, stream);
+			stream.ignore(0xffff, ':');
+			readReadable(val.model.transforms, stream);
+			stream.ignore(0xffff, '}');
+			stream.ignore(0xffff, ':');
+			readReadable(val.meshes, stream);
+			stream.ignore(0xffff, ':');
+			readReadable(val.materials, stream);
 			stream.ignore(0xffff, ':');
 			readReadable(val.embeddedTextures, stream);
 		}

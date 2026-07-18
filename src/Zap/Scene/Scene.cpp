@@ -115,7 +115,7 @@ namespace Zap {
 					uint32_t j = 0;
 					for (auto mesh : modelPair.second.meshes) {
 						auto* base = Base::getBase();
-						perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * mesh->getTransform();
+						perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * modelPair.second.transforms[j];
 						perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
 						auto material = modelPair.second.materials[j];
 						MaterialGpuData gpuMaterial = {
@@ -138,7 +138,6 @@ namespace Zap {
 							gpuMaterial.emissiveMap = base->m_textureIndices.at(material->getEmissiveMap());
 						perMeshInstance[i].material = gpuMaterial;
 						j++; i++;
-
 					}
 				}
 			}

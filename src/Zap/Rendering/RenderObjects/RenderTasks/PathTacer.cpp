@@ -342,9 +342,10 @@ namespace Zap {
 		std::vector<vk::AccelerationStructureInstance> instanceVector;
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
+			uint32_t j = 0;
 			for (auto mesh : modelPair.second.meshes) {
 				auto* base = Base::getBase();
-				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * mesh->getTransform());
+				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * modelPair.second.transforms[j]);
 
 				// if mesh has no blas add new one
 				if (!m_blasMap.count(mesh)) {
@@ -359,7 +360,7 @@ namespace Zap {
 				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
 				instanceVector.back().setCustomIndex(i);
 				instanceVector.back().setMask(0xFF);
-				i++;
+				i++; j++;
 			}
 		}
 

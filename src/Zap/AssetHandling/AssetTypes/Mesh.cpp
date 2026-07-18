@@ -4,14 +4,12 @@
 
 namespace Zap {
 	Mesh::Mesh(
-		glm::mat4  transform,
 		vk::Buffer vertexBuffer,
 		vk::Buffer indexBuffer,
 		glm::vec3  boundMax,
 		glm::vec3  boundMin
 	)
 		:
-		m_transform(transform),
 		m_vertexBuffer(vertexBuffer),
 		m_indexBuffer(indexBuffer),
 		m_boundMax(boundMax),
@@ -42,10 +40,6 @@ namespace Zap {
 	}
 	const glm::vec3& Mesh::getBoundMax() const {
 		return m_boundMax;
-	}
-
-	const glm::mat4& Mesh::getTransform() const {
-		return m_transform;
 	}
 
 	const vk::Buffer& Mesh::getVertexBuffer() const {

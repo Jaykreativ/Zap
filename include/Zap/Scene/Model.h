@@ -6,9 +6,11 @@
 #include "Zap/AssetHandling/AssetTypes/Material.h"
 
 namespace Zap {
-	struct Model {
-		std::vector<AssetHandle<Material>> materials;
+	class Model {
+	public:
 		std::vector<AssetHandle<Mesh>> meshes;
+		std::vector<AssetHandle<Material>> materials;
+		std::vector<glm::mat4> transforms;
 		glm::vec3 boundMin = { 0, 0, 0 };
 		glm::vec3 boundMax = { 0, 0, 0 };
 	};
