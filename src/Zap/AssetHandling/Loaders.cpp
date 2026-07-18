@@ -21,7 +21,7 @@ namespace Zap {
 			// means not tested TODO test formats
 			".obj",
 			".glb",
-			//".gltf",
+			".gltf",
 			".png",
 			".jpeg",
 			".jpg"
@@ -38,6 +38,7 @@ namespace Zap {
 		return {
 			".obj",
 			".glb",
+			".gltf"
 		};
 	}
 	std::vector<std::string> TextureLoader::supportedFileExtensions() {
@@ -60,7 +61,8 @@ namespace Zap {
 		// choose subload
 		if (
 			extension == ".obj" ||
-			extension == ".glb")
+			extension == ".glb" ||
+			extension == ".gltf")
 			assimpLoad(path);
 		if (
 			extension == ".png" ||
