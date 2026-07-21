@@ -7,7 +7,6 @@
 #include "Zap/AssetHandling/AssetTypes/Mesh.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
 #include "Zap/AssetHandling/AssetTypes/Texture.h"
-#include "Zap/AssetHandling/AssetTypes/HitMesh.h"
 
 #include <set>
 #include <filesystem>
@@ -92,7 +91,6 @@ namespace Zap {
 		bool isMesh(UUID handle) const;
 		bool isMaterial(UUID handle) const;
 		bool isTexture(UUID handle) const;
-		bool isHitmesh(UUID handle) const;
 
 	private:
 		template<class T, class... Types>
@@ -149,7 +147,6 @@ namespace Zap {
 		std::unordered_map<UUID, std::unique_ptr<Mesh>> m_meshMap;
 		std::unordered_map<UUID, std::unique_ptr<Material>> m_materialMap;
 		std::unordered_map<UUID, std::unique_ptr<Texture>> m_textureMap;
-		std::unordered_map<UUID, std::unique_ptr<HitMesh>> m_hitmeshMap;
 
 		// Events
 		AssetHandlerEventHandler m_eventHandler;

@@ -4,12 +4,20 @@
 
 namespace Zap {
 	Mesh::Mesh(
+		size_t     pointCount,
+		glm::vec3* points,
+		size_t     indexCount,
+		uint32_t*  indices,
 		vk::Buffer vertexBuffer,
 		vk::Buffer indexBuffer,
 		glm::vec3  boundMax,
 		glm::vec3  boundMin
 	)
 		:
+		m_pointCount(pointCount),
+		m_points(points),
+		m_indexCount(indexCount),
+		m_indices(indices),
 		m_vertexBuffer(vertexBuffer),
 		m_indexBuffer(indexBuffer),
 		m_boundMax(boundMax),
@@ -17,23 +25,11 @@ namespace Zap {
 	{}
 
 	Mesh::~Mesh() {
+		delete[] m_points;
+		delete[] m_indices;
 		m_indexBuffer.destroy();
 		m_vertexBuffer.destroy();
 	}
-
-	//void Mesh::load(uint32_t vertexCount, Vertex* pVertices, uint32_t indexCount, uint32_t* pIndices) {
-	//	auto* base = Base::getBase();
-	//	MeshData* data = base->m_assetHandler.getMeshDataPtr(m_handle);
-	//	data->m_vertexBuffer = vk::Buffer(vertexCount * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	//	data->m_vertexBuffer.init(); 
-	//	data->m_vertexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	//	data->m_vertexBuffer.uploadData(data->m_vertexBuffer.getSize(), pVertices);
-	//	
-	//	data->m_indexBuffer = vk::Buffer(indexCount * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	//	data->m_indexBuffer.init(); 
-	//	data->m_indexBuffer.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	//	data->m_indexBuffer.uploadData(data->m_indexBuffer.getSize(), pIndices);
-	//}
 
 	const glm::vec3& Mesh::getBoundMin() const {
 		return m_boundMin;
@@ -49,4 +45,16 @@ namespace Zap {
 	const vk::Buffer& Mesh::getIndexBuffer() const {
 		return m_indexBuffer;
 	}
+
+	physx::PxConvexMeshDesc Mesh::getPxConvexMeshDesc() const {
+		auto* base = Base::getBase();
+		physx::PxConvexMeshDesc convexDesc;
+		convexDesc.points.count = m_pointCount;
+		convexDesc.points.stride = sizeof(glm::vec3);
+		convexDesc.points.data = m_points;
+		convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX;
+
+		return convexDesc;
+	}
+
 }

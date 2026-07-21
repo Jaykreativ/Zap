@@ -151,7 +151,7 @@ namespace Zap {
 
 	/* Convex Mesh */
 
-	ConvexMesh::ConvexMesh(AssetHandle<HitMesh> hitMesh)
+	ConvexMesh::ConvexMesh(AssetHandle<Mesh> hitMesh)
 		: m_hitMesh(hitMesh)
 	{
 		physx::PxTolerancesScale scale;
@@ -159,7 +159,7 @@ namespace Zap {
 		
 		physx::PxDefaultMemoryOutputStream buf;
 		physx::PxConvexMeshCookingResult::Enum result;
-		ZP_ASSERT(PxCookConvexMesh(params, hitMesh->getConvexDesc(), buf, &result), "Failed cooking the Convex Mesh");
+		ZP_ASSERT(PxCookConvexMesh(params, hitMesh->getPxConvexMeshDesc(), buf, &result), "Failed cooking the Convex Mesh");
 		physx::PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
 		m_convexMesh = Base::getBase()->m_pxPhysics->createConvexMesh(input);
 	}
@@ -205,7 +205,7 @@ namespace Zap {
 		return m_geometry.getType();
 	}
 
-	AssetHandle<HitMesh> ConvexMeshGeometry::getHitMesh() {
+	AssetHandle<Mesh> ConvexMeshGeometry::getHitMesh() {
 		return m_hitMesh;
 	}
 

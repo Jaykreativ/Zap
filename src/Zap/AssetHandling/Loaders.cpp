@@ -8,7 +8,6 @@
 #include "Zap/AssetHandling/AssetTypes/Mesh.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
 #include "Zap/AssetHandling/AssetTypes/Texture.h"
-#include "Zap/AssetHandling/AssetTypes/HitMesh.h"
 #include "Zap/Rendering/stb_image.h"
 
 #include <sstream>
@@ -123,13 +122,14 @@ namespace Zap {
 		vertexStgBuffer.init(); vertexStgBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		indexStgBuffer.init(); indexStgBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
+		glm::vec3* pPoints = new glm::vec3[aMesh->mNumVertices]; // store all vertex positions for cpu side use
 		{
 			void* rawData;
 			vertexStgBuffer.map(&rawData);
 			Vertex* data = (Vertex*)rawData;
 			for (uint32_t i = 0; i < aMesh->mNumVertices; i++) {
 				aiVector3D aPos = aMesh->mVertices[i];
-				data[i].pos = glm::vec3(aPos.x, aPos.y, aPos.z);
+				pPoints[i] = data[i].pos = glm::vec3(aPos.x, aPos.y, aPos.z);
 				if (aMesh->mTextureCoords[0])
 					data[i].texCoords = *((glm::vec2*)&aMesh->mTextureCoords[0][i]);
 				else
@@ -140,12 +140,15 @@ namespace Zap {
 			vertexStgBuffer.unmap();
 		}
 
+		uint32_t* pIndices = new uint32_t[aMesh->mNumFaces * 3]; // store copy in pIndices for cpu side use
 		{
 			void* rawData;
 			indexStgBuffer.map(&rawData);
 			uint32_t* data = (uint32_t*)rawData;
 			for (uint32_t i = 0; i < aMesh->mNumFaces; i++) {
-				memcpy(data + 3 * i, aMesh->mFaces[i].mIndices, 3 * sizeof(uint32_t));
+				pIndices[3 * i    ] = data[3 * i    ] = aMesh->mFaces[i].mIndices[0]; // faces are always triangulated
+				pIndices[3 * i + 1] = data[3 * i + 1] = aMesh->mFaces[i].mIndices[1];
+				pIndices[3 * i + 2] = data[3 * i + 2] = aMesh->mFaces[i].mIndices[2];
 			}
 			indexStgBuffer.unmap();
 		}
@@ -171,7 +174,7 @@ namespace Zap {
 		glm::vec3 boundMin = *((glm::vec3*)&aMesh->mAABB.mMin);
 		glm::vec3 boundMax = *((glm::vec3*)&aMesh->mAABB.mMax);
 
-		auto mesh = m_assetHandler.generateAssetUsingID<Mesh>(handle, vertexBuffer, indexBuffer, boundMax, boundMin);
+		auto mesh = m_assetHandler.generateAssetUsingID<Mesh>(handle, aMesh->mNumVertices, pPoints, aMesh->mNumFaces * 3, pIndices, vertexBuffer, indexBuffer, boundMax, boundMin);
 		return mesh;
 	}
 
