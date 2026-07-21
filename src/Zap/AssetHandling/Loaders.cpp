@@ -128,12 +128,14 @@ namespace Zap {
 			vertexStgBuffer.map(&rawData);
 			Vertex* data = (Vertex*)rawData;
 			for (uint32_t i = 0; i < aMesh->mNumVertices; i++) {
-				data[i].pos = *((glm::vec3*)&aMesh->mVertices[i]);
+				aiVector3D aPos = aMesh->mVertices[i];
+				data[i].pos = glm::vec3(aPos.x, aPos.y, aPos.z);
 				if (aMesh->mTextureCoords[0])
 					data[i].texCoords = *((glm::vec2*)&aMesh->mTextureCoords[0][i]);
 				else
 					data[i].texCoords = { 0, 0 };
-				data[i].normal = *((glm::vec3*)&aMesh->mNormals[i]);
+				aiVector3D aNormal = aMesh->mNormals[i];
+				data[i].normal = glm::vec3(aNormal.x, aNormal.y, aNormal.z);
 			}
 			vertexStgBuffer.unmap();
 		}
@@ -271,7 +273,13 @@ namespace Zap {
 
 			// extract the node tree structure
 			Model model;
-			processNode(aScene->mRootNode, aScene, meshes, materials, glm::mat4(1), model);
+			glm::mat4 coordinateSystemConversion = { // flip z axis to match left handed coordinate system
+				{ 1,  0,  0,  0},
+				{ 0,  1,  0,  0},
+				{ 0,  0, -1,  0},
+				{ 0,  0,  0,  1},
+			};
+			processNode(aScene->mRootNode, aScene, meshes, materials, coordinateSystemConversion, model);
 			submitModel(model);
 			fileLink->model = model;
 		}
