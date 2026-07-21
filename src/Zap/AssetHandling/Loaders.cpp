@@ -10,6 +10,8 @@
 #include "Zap/AssetHandling/AssetTypes/Texture.h"
 #include "Zap/Rendering/stb_image.h"
 
+#include "glm/gtc/matrix_transform.hpp"
+
 #include <sstream>
 #include <fstream>
 
@@ -129,13 +131,15 @@ namespace Zap {
 			Vertex* data = (Vertex*)rawData;
 			for (uint32_t i = 0; i < aMesh->mNumVertices; i++) {
 				aiVector3D aPos = aMesh->mVertices[i];
-				pPoints[i] = data[i].pos = glm::vec3(aPos.x, aPos.y, aPos.z);
-				if (aMesh->mTextureCoords[0])
-					data[i].texCoords = *((glm::vec2*)&aMesh->mTextureCoords[0][i]);
+				pPoints[i] = data[i].pos = glm::vec3(aPos.x, aPos.y, -aPos.z);
+				if (aMesh->mTextureCoords[0]) {
+					aiVector3D aTex = aMesh->mTextureCoords[0][i];
+					data[i].texCoords = glm::vec2(aTex.x, aTex.y);
+				}
 				else
 					data[i].texCoords = { 0, 0 };
 				aiVector3D aNormal = aMesh->mNormals[i];
-				data[i].normal = glm::vec3(aNormal.x, aNormal.y, aNormal.z);
+				data[i].normal = glm::vec3(aNormal.x, aNormal.y, -aNormal.z);
 			}
 			vertexStgBuffer.unmap();
 		}
@@ -213,7 +217,9 @@ namespace Zap {
 	}
 
 	void Loader::processNode(const aiNode* node, const aiScene* aScene, std::vector<AssetHandle<Mesh>>& meshes, std::vector<AssetHandle<Material>>& materials, const glm::mat4& transform, Model& model) {
+		glm::mat4 flipZ = glm::scale(glm::mat4(1), {1, 1, -1});
 		glm::mat4 newTransform = transform * AssimpUtils::mat4ToGlmMat4(node->mTransformation);
+		newTransform = flipZ * newTransform * flipZ; // adjust transforms to coordinate system change
 		for (uint32_t i = 0; i < node->mNumMeshes; i++) {
 			// Mesh
 			glm::vec3 boundMin = newTransform * glm::vec4(*((glm::vec3*)&aScene->mMeshes[node->mMeshes[i]]->mAABB.mMin), 1);
@@ -276,13 +282,7 @@ namespace Zap {
 
 			// extract the node tree structure
 			Model model;
-			glm::mat4 coordinateSystemConversion = { // flip z axis to match left handed coordinate system
-				{ 1,  0,  0,  0},
-				{ 0,  1,  0,  0},
-				{ 0,  0, -1,  0},
-				{ 0,  0,  0,  1},
-			};
-			processNode(aScene->mRootNode, aScene, meshes, materials, coordinateSystemConversion, model);
+			processNode(aScene->mRootNode, aScene, meshes, materials, glm::mat4(1), model);
 			submitModel(model);
 			fileLink->model = model;
 		}
