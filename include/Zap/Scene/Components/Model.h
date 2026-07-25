@@ -6,8 +6,7 @@
 #include "Zap/AssetHandling/AssetTypes/Material.h"
 
 namespace Zap {
-	class Model {
-	public:
+	struct Model {
 		std::vector<AssetHandle<Mesh>> meshes;
 		std::vector<AssetHandle<Material>> materials;
 		std::vector<glm::mat4> transforms;

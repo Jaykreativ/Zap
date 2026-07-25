@@ -63,7 +63,7 @@ namespace Zap {
 
 			template<class T>
 			void registerAsset(AssetHandle<T> handle){
-				handle->makeLoaded();
+				handle->makeLoaded(m_path);
 			}
 
 			bool isLoaded() { return m_isLoaded; }

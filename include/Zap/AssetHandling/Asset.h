@@ -14,10 +14,14 @@ namespace Zap {
 		virtual ~Asset() {}
 
 		bool isGenerated();
-	private:
-		void makeLoaded();
 
-		bool m_isGenerated = true;
+		bool hasSourcePath();
+
+		std::filesystem::path getSourcePath();
+	private:
+		void makeLoaded(std::filesystem::path path);
+
+		std::unique_ptr<std::filesystem::path> m_sourcePath = nullptr;
 
 		friend class FileLinker;
 	};
