@@ -9,6 +9,10 @@ file(GLOB Zap_Scene_SRC
 	"src/Zap/Scene/*.cpp"
 	"include/Zap/Scene/*.h"
 )
+file(GLOB Zap_Scene_Components_SRC
+	"src/Zap/Scene/Components/*.cpp"
+	"include/Zap/Scene/Components/*.h"
+)
 file(GLOB Zap_Rendering_SRC
 	"src/Zap/Rendering/*.cpp"
 	"include/Zap/Rendering/*.h"
@@ -53,6 +57,7 @@ file(GLOB_RECURSE Zap_All_SRC
 
 source_group("Source" FILES ${Zap_SRC})
 source_group("Source/Scene" FILES ${Zap_Scene_SRC})
+source_group("Source/Scene/Components" FILES ${Zap_Scene_Components_SRC})
 source_group("Source/Rendering" FILES ${Zap_Rendering_SRC})
 source_group("Source/Rendering/RenderObjects" FILES ${Zap_Rendering_RenderObjects_SRC})
 source_group("Source/Rendering/RenderObjects/RenderTasks" FILES ${Zap_Rendering_RenderObjects_RenderTasks_SRC})
