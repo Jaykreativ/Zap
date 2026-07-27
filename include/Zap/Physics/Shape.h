@@ -44,9 +44,9 @@ namespace Zap {
 		void setGeometry(const PhysicsGeometry& geometry);
 
 		// returns a copy of the geometry
-		std::unique_ptr<PhysicsGeometry> getGeometry();
+		std::unique_ptr<PhysicsGeometry> getGeometry() const;
 
-		bool isExclusive();
+		bool isExclusive() const;
 
 		/*
 		* Sets the local pose relative to the actors transform
@@ -58,18 +58,21 @@ namespace Zap {
 
 		void setLocalRotation(glm::quat quat);
 
-		glm::mat4 getLocalPose();
+		glm::mat4 getLocalPose() const;
 
-		glm::vec3 getLocalPosition();
+		glm::vec3 getLocalPosition() const;
 
-		glm::quat getLocalRotation();
+		glm::quat getLocalRotation() const;
 
-		PhysicsMaterial getMaterial();
+		PhysicsMaterial getMaterial() const;
 
 		physx::PxShape* getPxShape();
 
+		static std::vector<Shape> getPxRigidActorShapes(physx::PxRigidActor* pxActor);
+
 	private:
 		physx::PxShape* m_pxShape = nullptr;
+		AssetHandle<Mesh> m_hitMesh;
 
 		friend class Actor;
 		friend class PhysicsComponent;

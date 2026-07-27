@@ -1,5 +1,8 @@
 #include "Zap/Physics/Shape.h"
 
+#include "Zap/Scene/Actor.h"
+#include "Zap/Scene/Components/PhysicsComponents.h"
+
 #include "glm/gtc/quaternion.hpp"
 
 namespace Zap {
@@ -33,6 +36,8 @@ namespace Zap {
 	Shape::Shape(const PhysicsGeometry& geometry, PhysicsMaterial material, bool isExclusive, glm::mat4 offsetTransform, physx::PxShapeFlags shapeFlags) {
 		auto base = Base::getBase();
 
+		setGeometry(geometry);
+
 		m_pxShape = base->m_pxPhysics->createShape(geometry, &material.m_pxMaterial, 1, isExclusive, shapeFlags);
 		ZP_ASSERT(m_pxShape, "Failed to create pxShape");
 
@@ -56,10 +61,13 @@ namespace Zap {
 	}
 
 	void Shape::setGeometry(const PhysicsGeometry& geometry) {
-		m_pxShape->setGeometry(geometry);
+		if (geometry.getType() == eGEOMETRY_TYPE_CONVEX_MESH)
+			m_hitMesh = static_cast<const ConvexMeshGeometry&>(geometry).getHitMesh();
+		if(m_pxShape)
+			m_pxShape->setGeometry(geometry);
 	}
 
-	std::unique_ptr<PhysicsGeometry> Shape::getGeometry() {
+	std::unique_ptr<PhysicsGeometry> Shape::getGeometry() const {
 		const auto& geometry = m_pxShape->getGeometry();
 		switch (geometry.getType())
 		{
@@ -72,7 +80,7 @@ namespace Zap {
 		case physx::PxGeometryType::ePLANE:
 			return std::make_unique<PlaneGeometry>(static_cast<const physx::PxPlaneGeometry&>(m_pxShape->getGeometry()));
 		case physx::PxGeometryType::eCONVEXMESH:
-			return std::make_unique<ConvexMeshGeometry>(static_cast<const physx::PxConvexMeshGeometry&>(m_pxShape->getGeometry()));
+			return std::make_unique<ConvexMeshGeometry>(static_cast<const physx::PxConvexMeshGeometry&>(m_pxShape->getGeometry()), m_hitMesh);
 		default: {
 			ZP_WARN(false, "Shape::getGeometry unknown geometry type");
 			return nullptr;
@@ -80,7 +88,7 @@ namespace Zap {
 		}
 	}
 
-	bool Shape::isExclusive() {
+	bool Shape::isExclusive() const {
 		return m_pxShape->isExclusive();
 	}
 
@@ -100,22 +108,22 @@ namespace Zap {
 		m_pxShape->setLocalPose(pxTransform);
 	}
 
-	glm::mat4 Shape::getLocalPose() {
+	glm::mat4 Shape::getLocalPose() const {
 		auto pxTransform = m_pxShape->getLocalPose();
 		return PxUtils::transformToGlmMat4(pxTransform);
 	}
 
-	glm::vec3 Shape::getLocalPosition() {
+	glm::vec3 Shape::getLocalPosition() const {
 		auto pxTransform = m_pxShape->getLocalPose();
 		return PxUtils::vec3ToGlmVec3(pxTransform.p);
 	}
 
-	glm::quat Shape::getLocalRotation() {
+	glm::quat Shape::getLocalRotation() const {
 		auto pxTransform = m_pxShape->getLocalPose();
 		return PxUtils::quatToGlmQuat(pxTransform.q);
 	}
 
-	PhysicsMaterial Shape::getMaterial() {
+	PhysicsMaterial Shape::getMaterial() const {
 		size_t nbMaterials = m_pxShape->getNbMaterials();
 		ZP_ASSERT(nbMaterials > 0, "Shape has no Materials");
 		physx::PxMaterial* pxMaterial;
@@ -125,5 +133,19 @@ namespace Zap {
 
 	physx::PxShape* Shape::getPxShape() {
 		return m_pxShape;
+	}
+
+	std::vector<Shape> Shape::getPxRigidActorShapes(physx::PxRigidActor* pxActor) {
+		uint32_t nbShapes = pxActor->getNbShapes();
+		physx::PxShape** shapeBuffer = new physx::PxShape * [nbShapes];
+		pxActor->getShapes(shapeBuffer, nbShapes, 0);
+		std::vector<Shape> shapeVector = {};
+		shapeVector.resize(nbShapes);
+		for (uint32_t i = 0; i < nbShapes; i++) {
+			auto* pxShape = shapeBuffer[i];
+			Shape shape = Shape(pxShape);
+			shapeVector[i] = shape;
+		}
+		return shapeVector;
 	}
 }

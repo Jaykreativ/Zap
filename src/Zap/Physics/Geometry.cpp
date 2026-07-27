@@ -34,12 +34,11 @@ namespace Zap {
 		m_geometry.radius = radius;
 	}
 
-	float SphereGeometry::getRadius() {
+	float SphereGeometry::getRadius() const {
 		return m_geometry.radius;
 	}
 
 	/* Capsule */
-
 	CapsuleGeometry::CapsuleGeometry(float radius, float halfHeight)
 		: m_geometry(radius, halfHeight)
 	{}
@@ -75,16 +74,15 @@ namespace Zap {
 		m_geometry.halfHeight = halfHeight;
 	}
 
-	float CapsuleGeometry::getRadius() {
+	float CapsuleGeometry::getRadius() const {
 		return m_geometry.radius;
 	}
 
-	float CapsuleGeometry::getHalfHeight() {
+	float CapsuleGeometry::getHalfHeight() const {
 		return m_geometry.halfHeight;
 	}
 
 	/* Box */
-
 	BoxGeometry::BoxGeometry(glm::vec3 size) {
 		m_geometry = physx::PxBoxGeometry(size.x, size.y, size.z);
 	}
@@ -116,7 +114,7 @@ namespace Zap {
 		m_geometry.halfExtents = { halfExtents.x, halfExtents.y, halfExtents.z };
 	}
 
-	glm::vec3 BoxGeometry::getHalfExtents() {
+	glm::vec3 BoxGeometry::getHalfExtents() const {
 		return { m_geometry.halfExtents.x, m_geometry.halfExtents.y, m_geometry.halfExtents.z };
 	}
 
@@ -189,12 +187,12 @@ namespace Zap {
 		: m_geometry(convexMesh.getPxConvexMesh()), m_hitMesh(convexMesh.m_hitMesh)
 	{}
 
-	ConvexMeshGeometry::ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry)
-		: m_geometry(geometry)
+	ConvexMeshGeometry::ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry, AssetHandle<Mesh> hitMesh)
+		: m_geometry(geometry), m_hitMesh(hitMesh)
 	{}
 
 	ConvexMeshGeometry::ConvexMeshGeometry(ConvexMeshGeometry& geometry)
-		: m_geometry(geometry.m_geometry)
+		: m_geometry(geometry.m_geometry), m_hitMesh(geometry.m_hitMesh)
 	{}
 
 	PhysicsGeometryType ConvexMeshGeometry::getType() const {
@@ -205,7 +203,7 @@ namespace Zap {
 		return m_geometry.getType();
 	}
 
-	AssetHandle<Mesh> ConvexMeshGeometry::getHitMesh() {
+	AssetHandle<Mesh> ConvexMeshGeometry::getHitMesh() const {
 		return m_hitMesh;
 	}
 

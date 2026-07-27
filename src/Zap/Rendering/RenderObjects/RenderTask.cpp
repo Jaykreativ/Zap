@@ -3,7 +3,7 @@
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Model.h"
+#include "Zap/Scene/Components/Model.h"
 #include "Zap/AssetHandling/AssetTypes/Mesh.h"
 
 namespace Zap {

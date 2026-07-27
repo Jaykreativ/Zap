@@ -4,11 +4,11 @@
 #include "Zap/UUID.h"
 #include "Zap/Events.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Camera.h"
-#include "Zap/Scene/Light.h"
-#include "Zap/Scene/Model.h"
-#include "Zap/Physics/PhysicsComponent.h"
-#include "Zap/Scene/Transform.h"
+#include "Zap/Scene/Components/Camera.h"
+#include "Zap/Scene/Components/Light.h"
+#include "Zap/Scene/Components/Model.h"
+#include "Zap/Scene/Components/PhysicsComponents.h"
+#include "Zap/Scene/Components/Transform.h"
 
 #include "glm.hpp"
 
@@ -51,6 +51,8 @@ namespace Zap {
 		void simulate(float elapsedTime);
 
 		void update();
+
+		std::set<std::filesystem::path> getAssetPaths() const;
 
 		const physx::PxRenderBuffer* getPxRenderBuffer();
 

@@ -2,11 +2,11 @@
 #include "Zap/Events.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Model.h"
-#include "Zap/Physics/PhysicsComponent.h"
-#include "Zap/Scene/Light.h"
-#include "Zap/Scene/Camera.h"
-#include "Zap/Scene/Transform.h"
+#include "Zap/Scene/Components/Model.h"
+#include "Zap/Scene/Components/PhysicsComponents.h"
+#include "Zap/Scene/Components/Light.h"
+#include "Zap/Scene/Components/Camera.h"
+#include "Zap/Scene/Components/Transform.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
 
 #include "glm/gtc/matrix_transform.hpp"
@@ -349,19 +349,7 @@ namespace Zap {
 	}
 
 	std::vector<Shape> Actor::cmpRigidDynamic_getShapes() {
-		auto& cmp = getRigidDynamicCmp();
-		auto* pxActor = cmp.pxActor;
-		uint32_t nbShapes = pxActor->getNbShapes();
-		physx::PxShape** shapeBuffer = new physx::PxShape * [nbShapes];
-		pxActor->getShapes(shapeBuffer, nbShapes, 0);
-		std::vector<Shape> shapeVector = {};
-		shapeVector.resize(nbShapes);
-		for (uint32_t i = 0; i < nbShapes; i++) {
-			auto* pxShape = shapeBuffer[i];
-			Shape shape = Shape(pxShape);
-			shapeVector[i] = shape;
-		}
-		return shapeVector;
+		return Shape::getPxRigidActorShapes(getRigidDynamicCmp().pxActor);
 	}
 
 	void Actor::cmpRigidDynamic_setFlag(physx::PxActorFlag::Enum flag, bool value) { // TODO Make own enum
@@ -435,19 +423,7 @@ namespace Zap {
 	}
 
 	std::vector<Shape> Actor::cmpRigidStatic_getShapes() {
-		auto& cmp = getRigidStaticCmp();
-		auto* pxActor = cmp.pxActor;
-		uint32_t nbShapes = pxActor->getNbShapes();
-		physx::PxShape** shapeBuffer = new physx::PxShape*[nbShapes];
-		pxActor->getShapes(shapeBuffer, nbShapes, 0);
-		std::vector<Shape> shapeVector = {};
-		shapeVector.resize(nbShapes);
-		for (uint32_t i = 0; i < nbShapes; i++) {
-			auto* pxShape = shapeBuffer[i];
-			Shape shape = Shape(pxShape);
-			shapeVector[i] = shape;
-		}
-		return shapeVector;
+		return Shape::getPxRigidActorShapes(getRigidStaticCmp().pxActor);
 	}
 
 	void Actor::cmpRigidStatic_setFlag(physx::PxActorFlag::Enum flag, bool value) {

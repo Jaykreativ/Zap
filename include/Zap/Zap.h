@@ -97,6 +97,7 @@ namespace Zap {
 
 		void registerTextureIndex(UUID handle);
 
+		friend class Serializer;
 		friend class Scene;
 		friend class Actor;
 		friend class RenderTask;

@@ -35,7 +35,7 @@ namespace Zap {
 
 	class SphereGeometry : public PhysicsGeometry {
 	public:
-		SphereGeometry(float radius);
+		SphereGeometry(float radius = 1);
 		SphereGeometry(const physx::PxSphereGeometry& geometry);
 		SphereGeometry(SphereGeometry& geometry);
 
@@ -47,7 +47,7 @@ namespace Zap {
 
 		void setRadius(float radius);
 
-		float getRadius();
+		float getRadius() const;
 
 	private:
 		physx::PxSphereGeometry m_geometry;
@@ -55,7 +55,7 @@ namespace Zap {
 
 	class CapsuleGeometry : public PhysicsGeometry {
 	public:
-		CapsuleGeometry(float radius, float halfHeight);
+		CapsuleGeometry(float radius = 1, float halfHeight = 1);
 		CapsuleGeometry(const physx::PxCapsuleGeometry& geometry);
 		CapsuleGeometry(CapsuleGeometry& geometry);
 
@@ -69,9 +69,9 @@ namespace Zap {
 
 		void setHalfHeight(float halfHeight);
 
-		float getRadius();
+		float getRadius() const;
 
-		float getHalfHeight();
+		float getHalfHeight() const;
 
 	private:
 		physx::PxCapsuleGeometry m_geometry;
@@ -79,7 +79,7 @@ namespace Zap {
 
 	class BoxGeometry : public PhysicsGeometry {
 	public:
-		BoxGeometry(glm::vec3 size);
+		BoxGeometry(glm::vec3 size = {1, 1, 1});
 		BoxGeometry(const physx::PxBoxGeometry& geometry);
 		BoxGeometry(BoxGeometry& geometry);
 
@@ -91,7 +91,7 @@ namespace Zap {
 
 		void setHalfExtents(glm::vec3 halfExtents);
 
-		glm::vec3 getHalfExtents();
+		glm::vec3 getHalfExtents() const;
 
 	private:
 		physx::PxBoxGeometry m_geometry;
@@ -126,21 +126,22 @@ namespace Zap {
 
 	private:
 		AssetHandle<Mesh> m_hitMesh;
-		physx::PxConvexMesh* m_convexMesh;
+		physx::PxConvexMesh* m_convexMesh = nullptr;
 
 		friend class ConvexMeshGeometry;
 	};
 
 	class ConvexMeshGeometry : public PhysicsGeometry {
 	public:
+		ConvexMeshGeometry(){}
 		ConvexMeshGeometry(ConvexMesh& convexMesh);
-		ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry);
+		ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry, AssetHandle<Mesh> hitMesh);
 		ConvexMeshGeometry(ConvexMeshGeometry& geometry);
 
 		PhysicsGeometryType getType() const override;
 		physx::PxGeometryType::Enum getTypePx() const override;
 
-		AssetHandle<Mesh> getHitMesh();
+		AssetHandle<Mesh> getHitMesh() const;
 
 		physx::PxGeometry* getPxGeometry() override;
 		const physx::PxGeometry* getPxGeometry() const override;

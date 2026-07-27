@@ -8,7 +8,7 @@
 #include "Zap/Rendering/RenderObjects/RenderTask.h"
 #include "Zap/Rendering/RenderObjects/DescriptorSet.h"
 #include "Zap/Vertex.h"
-#include "Zap/Scene/Camera.h"
+#include "Zap/Scene/Components/Camera.h"
 
 #include "glm.hpp"
 

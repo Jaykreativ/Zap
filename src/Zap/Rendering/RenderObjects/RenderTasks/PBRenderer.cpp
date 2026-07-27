@@ -5,10 +5,10 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Transform.h"
-#include "Zap/Scene/Model.h"
-#include "Zap/Scene/Light.h"
-#include "Zap/Scene/Camera.h"
+#include "Zap/Scene/Components/Transform.h"
+#include "Zap/Scene/Components/Model.h"
+#include "Zap/Scene/Components/Light.h"
+#include "Zap/Scene/Components/Camera.h"
 
 #include <array>
 

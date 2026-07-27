@@ -2,7 +2,7 @@
 
 #include "Zap/Zap.h"
 #include "Zap/Serializer.h"
-#include "Zap/Scene/Model.h"
+#include "Zap/Scene/Components/Model.h"
 #include "Zap/AssetHandling/Asset.h"
 #include "Zap/AssetHandling/AssetHandler.h"
 

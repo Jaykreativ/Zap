@@ -1,9 +1,11 @@
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
+#include "Zap/Scene/Components/PhysicsComponents.h"
 #include "Zap/AssetHandling/AssetTypes/Mesh.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
-#include "Zap/Physics/PhysicsComponent.h"
 #include "Zap/Rendering/RenderObjects/RenderTasks/LineRenderTask.h"
+
+#include <set>
 
 namespace Zap {
 	Scene::Scene()
@@ -216,6 +218,20 @@ namespace Zap {
 			}
 			}
 		}
+	}
+
+	std::set<std::filesystem::path> Scene::getAssetPaths() const {
+		std::set<std::filesystem::path> paths;
+		for (auto& pair : m_modelComponents) {
+			auto& model = pair.second;
+			for (auto mesh : model.meshes)
+				if (mesh->hasSourcePath())
+					paths.insert(mesh->getSourcePath());
+			for (auto material : model.materials)
+				if (material->hasSourcePath())
+					paths.insert(material->getSourcePath());
+		}
+		return paths;
 	}
 
 	const physx::PxRenderBuffer* Scene::getPxRenderBuffer() {
