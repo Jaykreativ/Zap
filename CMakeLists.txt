@@ -75,6 +75,10 @@ add_library(Zap ${Zap_All_SRC})
 
 set_property(TARGET Zap PROPERTY CXX_STANDARD 17)
 
+if (MSVC)
+    target_compile_options(Zap PRIVATE "/MP")
+endif()
+
 #Search Vulkan
 find_package(Vulkan REQUIRED)
 IF (NOT Vulkan_FOUND)
