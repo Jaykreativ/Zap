@@ -111,7 +111,7 @@ namespace Zap {
 		// create blas instances, if blas is missing create new
 		uint32_t i = 0;
 		for (auto const& modelPair : m_pScene->m_modelComponents) {
-			glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform);
+			glm::mat4 transform = glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform);
 			for (auto mesh : modelPair.second.meshes) {
 				// if mesh has no blas add new one
 				if (!m_blasMap.count(mesh)) {
@@ -123,7 +123,7 @@ namespace Zap {
 				}
 
 				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(mesh)));
-				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
+				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)&transform));
 				instanceVector.back().setCustomIndex(i);
 				i++;
 			}
@@ -133,8 +133,8 @@ namespace Zap {
 		// create lightBlas instances
 		for (auto const& lightPair : m_pScene->m_lightComponents) {
 			instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasMap.at(lightPair.first)));
-			auto* transform = &glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
-			instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
+			auto transform = glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
+			instanceVector.back().setTransform(*((VkTransformMatrixKHR*)&transform));
 			instanceVector.back().setCustomIndex(i);
 			instanceVector.back().setMask(0x0F);
 			i++;
@@ -345,7 +345,7 @@ namespace Zap {
 			uint32_t j = 0;
 			for (auto mesh : modelPair.second.meshes) {
 				auto* base = Base::getBase();
-				glm::mat4* transform = &glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * modelPair.second.transforms[j]);
+				glm::mat4 transform = glm::transpose(m_pScene->m_transformComponents.at(modelPair.first).transform * modelPair.second.transforms[j]);
 
 				// if mesh has no blas add new one
 				if (!m_blasMap.count(mesh)) {
@@ -357,7 +357,7 @@ namespace Zap {
 				}
 
 				instanceVector.push_back(vk::AccelerationStructureInstance(m_blasMap.at(mesh)));
-				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
+				instanceVector.back().setTransform(*((VkTransformMatrixKHR*)&transform));
 				instanceVector.back().setCustomIndex(i);
 				instanceVector.back().setMask(0xFF);
 				i++; j++;
@@ -368,8 +368,8 @@ namespace Zap {
 		i = 0;
 		for (auto const& lightPair : m_pScene->m_lightComponents) {
 			instanceVector.push_back(vk::AccelerationStructureInstance(m_lightBlasMap.at(lightPair.first)));
-			auto* transform = &glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
-			instanceVector.back().setTransform(*((VkTransformMatrixKHR*)transform));
+			auto transform = glm::transpose(m_pScene->m_transformComponents.at(lightPair.first).transform);
+			instanceVector.back().setTransform(*((VkTransformMatrixKHR*)&transform));
 			instanceVector.back().setCustomIndex(i);
 			instanceVector.back().setMask(0x0F);
 			i++;
@@ -404,11 +404,15 @@ namespace Zap {
 		};
 		vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline.getVkPipelineLayout(), 0, boundSets.size(), boundSets.data(), 0, nullptr);
 
+		auto rayGenRegion = m_rtPipeline.getRayGenRegion();
+		auto missRegion = m_rtPipeline.getMissRegion();
+		auto hitRegion = m_rtPipeline.getHitRegion();
+		auto callRegion = m_rtPipeline.getCallRegion();
 		vkCmdTraceRaysKHR(*cmd,
-			&m_rtPipeline.getRayGenRegion(),
-			&m_rtPipeline.getMissRegion(),
-			&m_rtPipeline.getHitRegion(),
-			&m_rtPipeline.getCallRegion(),
+			&rayGenRegion,
+			&missRegion,
+			&hitRegion,
+			&callRegion,
 			m_target->getExtent().width, m_target->getExtent().height, 1
 		);
 

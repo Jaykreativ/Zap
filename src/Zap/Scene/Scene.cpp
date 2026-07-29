@@ -220,6 +220,26 @@ namespace Zap {
 		}
 	}
 
+	std::vector<Actor> Scene::scanActors() {
+		std::set<UUID> ids;
+		for (auto& [id, cmp] : m_cameraComponents)
+			ids.insert(id);
+		for (auto& [id, cmp] : m_lightComponents)
+			ids.insert(id);
+		for (auto& [id, cmp] : m_modelComponents)
+			ids.insert(id);
+		for (auto& [id, cmp] : m_rigidDynamicComponents)
+			ids.insert(id);
+		for (auto& [id, cmp] : m_rigidStaticComponents)
+			ids.insert(id);
+		for (auto& [id, cmp] : m_transformComponents)
+			ids.insert(id);
+		std::vector<Actor> actors;
+		for (auto id : ids)
+			actors.push_back(Actor(id, this));
+		return actors;
+	}
+
 	std::set<std::filesystem::path> Scene::getAssetPaths() const {
 		std::set<std::filesystem::path> paths;
 		for (auto& pair : m_modelComponents) {

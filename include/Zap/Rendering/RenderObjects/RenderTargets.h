@@ -17,8 +17,8 @@ namespace Zap {
 
 		bool isValid();
 
-		VkImageLayout getInitialLayout();
-		VkImageLayout getFinalLayout();
+		VkImageLayout getInitialLayout() const;
+		VkImageLayout getFinalLayout() const;
 
 		virtual VkExtent3D getExtent() = 0;
 
@@ -62,6 +62,9 @@ namespace Zap {
 		}
 
 		T* operator->() {
+			return get();
+		}
+		const T* operator->() const {
 			return get();
 		}
 

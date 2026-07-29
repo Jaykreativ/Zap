@@ -202,7 +202,7 @@ namespace Zap {
 		/* Camera */
 
 		//internally used method
-		Camera& Actor::getCameraCmp();
+		Camera& getCameraCmp();
 
 		void addCamera(Camera camera);
 

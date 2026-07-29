@@ -1029,6 +1029,7 @@ namespace Zap {
 		writePxScene(scene.m_pxScene, stream);
 		write(scene.m_cameraComponents, stream);
 		write(scene.m_lightComponents, stream);
+		write(scene.m_meshInstanceCount, stream);
 		write(scene.m_modelComponents, stream);
 		write(scene.m_rigidDynamicComponents, stream);
 		write(scene.m_rigidStaticComponents, stream);
@@ -1049,6 +1050,7 @@ namespace Zap {
 		readPxScene(scene.m_pxScene, stream);
 		read(scene.m_cameraComponents, stream);
 		read(scene.m_lightComponents, stream);
+		read(scene.m_meshInstanceCount, stream);
 		read(scene.m_modelComponents, stream);
 		read(scene.m_rigidDynamicComponents, stream);
 		read(scene.m_rigidStaticComponents, stream);
@@ -1072,6 +1074,8 @@ namespace Zap {
 		writeReadable(scene.m_cameraComponents, stream);
 		stream << "\n-- Light Components --\n";
 		writeReadable(scene.m_lightComponents, stream);
+		stream << "\nmeshInstanceCount: ";
+		writeReadable(scene.m_meshInstanceCount, stream);
 		stream << "\n-- Model Components --\n";
 		writeReadable(scene.m_modelComponents, stream);
 		stream << "\n-- RigidDynamic Components --\n";
@@ -1105,6 +1109,8 @@ namespace Zap {
 		stream.ignore(0xffff, '-');
 		stream.ignore(0xffff, '\n');
 		readReadable(scene.m_lightComponents, stream);
+		stream.ignore(0xffff, ':');
+		readReadable(scene.m_meshInstanceCount, stream);
 		stream.ignore(0xffff, '-');
 		stream.ignore(0xffff, '\n');
 		readReadable(scene.m_modelComponents, stream);

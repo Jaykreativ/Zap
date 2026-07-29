@@ -253,8 +253,10 @@ namespace Zap {
 
 		vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 
-		vkCmdSetViewport(*cmd, 0, 1, &getViewport());
-		vkCmdSetScissor(*cmd, 0, 1, &getScissor());
+		auto viewport = getViewport();
+		vkCmdSetViewport(*cmd, 0, 1, &viewport);
+		auto scissor = getScissor();
+		vkCmdSetScissor(*cmd, 0, 1, &scissor);
 
 		VkDescriptorSet boundSets[] = { m_descriptorSet };
 		vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipelineLayout(), 0, 1, boundSets, 0, nullptr);

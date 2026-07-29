@@ -199,7 +199,7 @@ namespace Zap {
 		}
 	}
 
-	void LayoutTransitionHelper::next(TaskLayoutTransitions& transitions) {
+	void LayoutTransitionHelper::next(const TaskLayoutTransitions& transitions) {
 		for (auto& pair : transitions.m_layouts) {
 			if (m_transitionMap.count(pair.target.m_handle)) {
 				m_transitionMap.at(pair.target.m_handle).next();
@@ -215,7 +215,7 @@ namespace Zap {
 		}
 	}
 
-	void LayoutTransitionHelper::addTransitions(TaskLayoutTransitions& transitions) {
+	void LayoutTransitionHelper::addTransitions(const TaskLayoutTransitions& transitions) {
 		for (auto& taskLayout : transitions.m_layouts) {
 			auto& handle = taskLayout.target.m_handle;
 			if (m_transitionMap.count(handle)) {

@@ -277,10 +277,12 @@ namespace Zap {
 			glmt[1] = glm::normalize(glmt[1]);
 			glmt[2] = glm::normalize(glmt[2]);
 
-			auto pos = *((physx::PxVec3*)&glm::vec3(glmt[3]));
-			auto quat = *((physx::PxQuat*)&glm::quat_cast(glm::mat3(glmt)));
-
-			return physx::PxTransform(pos, quat);
+			auto pos = glm::vec3(glmt[3]);
+			auto quat = glm::quat_cast(glm::mat3(glmt));
+			physx::PxVec3 pxPos(pos.x, pos.y, pos.z);
+			physx::PxQuat pxQuat(quat.x, quat.y, quat.z, quat.w);
+			
+			return physx::PxTransform(pxPos, pxQuat);
 		}
 
 		physx::PxVec2 glmVec2toVec2(glm::vec2 vec) {

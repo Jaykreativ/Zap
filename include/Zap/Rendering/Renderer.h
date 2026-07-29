@@ -65,12 +65,12 @@ namespace Zap {
 
 		void reset();
 
-		void next(TaskLayoutTransitions& transitions);
+		void next(const TaskLayoutTransitions& transitions);
 
 		void recInitialTransitions(vk::CommandBuffer& cmd);
 
 		// replaces the newLayouts with the ones from the added transitions and stores them in the oldLayouts
-		void addTransitions(TaskLayoutTransitions& transitions);
+		void addTransitions(const TaskLayoutTransitions& transitions);
 
 		void addFinalTransitions();
 

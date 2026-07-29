@@ -19,11 +19,11 @@ namespace Zap {
 		return true;
 	}
 
-	VkImageLayout RenderTarget::getInitialLayout() {
+	VkImageLayout RenderTarget::getInitialLayout() const {
 		return VK_IMAGE_LAYOUT_GENERAL;
 	}
 
-	VkImageLayout RenderTarget::getFinalLayout() {
+	VkImageLayout RenderTarget::getFinalLayout() const {
 		return VK_IMAGE_LAYOUT_GENERAL;
 	}
 

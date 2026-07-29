@@ -52,6 +52,8 @@ namespace Zap {
 
 		void update();
 
+		std::vector<Actor> scanActors();
+
 		std::set<std::filesystem::path> getAssetPaths() const;
 
 		const physx::PxRenderBuffer* getPxRenderBuffer();
