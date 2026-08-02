@@ -234,6 +234,8 @@ namespace Zap {
 		static void readScene(Scene& scene, std::filesystem::path sceneFilePath, std::istream& stream);
 		static void writeSceneReadable(const Scene& scene, std::filesystem::path sceneFilePath, std::ostream& stream);
 		static void readSceneReadable(Scene& scene, std::filesystem::path sceneFilePath, std::istream& stream);
+		static void readSceneID(UUID& id, std::istream& stream);
+		static void readSceneIDReadable(UUID& id, std::istream& stream);
 	};
 }
 

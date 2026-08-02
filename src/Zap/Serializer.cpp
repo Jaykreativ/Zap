@@ -1020,6 +1020,8 @@ namespace Zap {
 
 	// Scene
 	void Serializer::writeScene(const Scene& scene, std::filesystem::path sceneFilePath, std::ostream& stream) {
+		write(scene.m_handle, stream);
+
 		auto pathSet = scene.getAssetPaths();
 		write(pathSet.size(), stream);
 		for (auto it = pathSet.begin(); it != pathSet.end(); it++) // write all asset paths for loading before the scene
@@ -1037,6 +1039,8 @@ namespace Zap {
 		endLinking();
 	}
 	void Serializer::readScene(Scene& scene, std::filesystem::path sceneFilePath, std::istream& stream) {
+		readSceneID(scene.m_handle, stream);
+
 		Loader loader;
 		size_t numPaths;
 		read(numPaths, stream);
@@ -1058,8 +1062,11 @@ namespace Zap {
 		endLinking();
 	}
 	void Serializer::writeSceneReadable(const Scene& scene, std::filesystem::path sceneFilePath, std::ostream& stream) {
+		stream << "Scene: ";
+		writeReadable(scene.m_handle, stream);
+		
 		auto pathSet = scene.getAssetPaths();
-		stream << "-- Asset Paths --\nsize: ";
+		stream << "\n-- Asset Paths --\nsize: ";
 		writeReadable(pathSet.size(), stream);
 		stream << "\n";
 		for (auto it = pathSet.begin(); it != pathSet.end(); it++) { // write all asset paths for loading before the scene
@@ -1087,6 +1094,8 @@ namespace Zap {
 		endLinking();
 	}
 	void Serializer::readSceneReadable(Scene& scene, std::filesystem::path sceneFilePath, std::istream& stream) {
+		readSceneIDReadable(scene.m_handle, stream);
+
 		Loader loader;
 		size_t numPaths;
 		stream.ignore(0xffff, ':');
@@ -1124,5 +1133,12 @@ namespace Zap {
 		stream.ignore(0xffff, '\n');
 		readReadable(scene.m_transformComponents, stream);
 		endLinking();
+	}
+	void Serializer::readSceneID(UUID& id, std::istream& stream){
+		read(id, stream);
+	}
+	void Serializer::readSceneIDReadable(UUID& id, std::istream& stream) {
+		stream.ignore(0xffff, ':');
+		readReadable(id, stream);
 	}
 }
