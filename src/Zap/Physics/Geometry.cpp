@@ -148,9 +148,13 @@ namespace Zap {
 	}
 
 	/* Convex Mesh */
+	std::unordered_map<physx::PxConvexMesh*, AssetHandle<Mesh>> ConvexMesh::hitMeshMap = {};
+
+	ConvexMesh::ConvexMesh(physx::PxConvexMesh* convexMesh)
+		: m_convexMesh(convexMesh)
+	{}
 
 	ConvexMesh::ConvexMesh(AssetHandle<Mesh> hitMesh)
-		: m_hitMesh(hitMesh)
 	{
 		physx::PxTolerancesScale scale;
 		physx::PxCookingParams params(scale);
@@ -160,6 +164,7 @@ namespace Zap {
 		ZP_ASSERT(PxCookConvexMesh(params, hitMesh->getPxConvexMeshDesc(), buf, &result), "Failed cooking the Convex Mesh");
 		physx::PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
 		m_convexMesh = Base::getBase()->m_pxPhysics->createConvexMesh(input);
+		hitMeshMap[m_convexMesh] = hitMesh;
 	}
 
 	ConvexMesh::ConvexMesh(physx::PxConvexMeshDesc convexDesc) {
@@ -176,7 +181,12 @@ namespace Zap {
 	ConvexMesh::~ConvexMesh() {}
 
 	void ConvexMesh::release() {
+		hitMeshMap.erase(m_convexMesh);
 		m_convexMesh->release();
+	}
+
+	AssetHandle<Mesh> ConvexMesh::getHitMesh() {
+		return hitMeshMap.at(m_convexMesh);
 	}
 
 	physx::PxConvexMesh* ConvexMesh::getPxConvexMesh() {
@@ -184,15 +194,15 @@ namespace Zap {
 	}
 
 	ConvexMeshGeometry::ConvexMeshGeometry(ConvexMesh& convexMesh)
-		: m_geometry(convexMesh.getPxConvexMesh()), m_hitMesh(convexMesh.m_hitMesh)
+		: m_geometry(convexMesh.getPxConvexMesh())
 	{}
 
-	ConvexMeshGeometry::ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry, AssetHandle<Mesh> hitMesh)
-		: m_geometry(geometry), m_hitMesh(hitMesh)
+	ConvexMeshGeometry::ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry)
+		: m_geometry(geometry)
 	{}
 
 	ConvexMeshGeometry::ConvexMeshGeometry(ConvexMeshGeometry& geometry)
-		: m_geometry(geometry.m_geometry), m_hitMesh(geometry.m_hitMesh)
+		: m_geometry(geometry.m_geometry)
 	{}
 
 	PhysicsGeometryType ConvexMeshGeometry::getType() const {
@@ -204,7 +214,11 @@ namespace Zap {
 	}
 
 	AssetHandle<Mesh> ConvexMeshGeometry::getHitMesh() const {
-		return m_hitMesh;
+		return getConvexMesh().getHitMesh();
+	}
+
+	ConvexMesh ConvexMeshGeometry::getConvexMesh() const {
+		return m_geometry.convexMesh;
 	}
 
 	physx::PxGeometry* ConvexMeshGeometry::getPxGeometry() {

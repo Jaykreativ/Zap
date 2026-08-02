@@ -117,15 +117,19 @@ namespace Zap {
 	class ConvexMesh {
 	public:
 		ConvexMesh(AssetHandle<Mesh> hitMesh);
+		ConvexMesh(physx::PxConvexMesh* convexMesh);
 		ConvexMesh(physx::PxConvexMeshDesc convexDesc);
 		~ConvexMesh();
 
 		void release();
 
+		AssetHandle<Mesh> getHitMesh();
+
 		physx::PxConvexMesh* getPxConvexMesh();
+		const physx::PxConvexMesh* getPxConvexMesh() const;
 
 	private:
-		AssetHandle<Mesh> m_hitMesh;
+		static std::unordered_map<physx::PxConvexMesh*, AssetHandle<Mesh>> hitMeshMap;
 		physx::PxConvexMesh* m_convexMesh = nullptr;
 
 		friend class ConvexMeshGeometry;
@@ -135,19 +139,19 @@ namespace Zap {
 	public:
 		ConvexMeshGeometry(){}
 		ConvexMeshGeometry(ConvexMesh& convexMesh);
-		ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry, AssetHandle<Mesh> hitMesh);
+		ConvexMeshGeometry(const physx::PxConvexMeshGeometry& geometry);
 		ConvexMeshGeometry(ConvexMeshGeometry& geometry);
 
 		PhysicsGeometryType getType() const override;
 		physx::PxGeometryType::Enum getTypePx() const override;
 
 		AssetHandle<Mesh> getHitMesh() const;
+		ConvexMesh getConvexMesh() const;
 
 		physx::PxGeometry* getPxGeometry() override;
 		const physx::PxGeometry* getPxGeometry() const override;
 
 	private:
-		AssetHandle<Mesh> m_hitMesh;
 		physx::PxConvexMeshGeometry m_geometry;
 	};
 }

@@ -120,25 +120,30 @@ namespace Zap {
 						perMeshInstance[i].transform = m_transformComponents.at(modelPair.first).transform * modelPair.second.transforms[j];
 						perMeshInstance[i].normalTransform = glm::transpose(glm::inverse(perMeshInstance[i].transform));
 						auto material = modelPair.second.materials[j];
-						MaterialGpuData gpuMaterial = {
-							material->getAlbedo(),
-							0xFFFFFFFF,
-							material->getMetallic(),
-							0xFFFFFFFF,
-							material->getRoughness(),
-							0xFFFFFFFF,
-							glm::vec4(material->getEmissive(), material->getEmissiveValue()),
-							0xFFFFFFFF,
-						};
-						if (material->hasAlbedoMap() && base->m_textureIndices.count(material->getAlbedoMap()))
-							gpuMaterial.albedoMap = base->m_textureIndices.at(material->getAlbedoMap());
-						if (material->hasMetallicMap() && base->m_textureIndices.count(material->getMetallicMap()))
-							gpuMaterial.metallicMap = base->m_textureIndices.at(material->getMetallicMap());
-						if (material->hasRoughnessMap() && base->m_textureIndices.count(material->getRoughnessMap()))
-							gpuMaterial.roughnessMap = base->m_textureIndices.at(material->getRoughnessMap());
-						if (material->hasEmissiveMap() && base->m_textureIndices.count(material->getEmissiveMap()))
-							gpuMaterial.emissiveMap = base->m_textureIndices.at(material->getEmissiveMap());
-						perMeshInstance[i].material = gpuMaterial;
+						if (material) {
+							MaterialGpuData gpuMaterial = {
+								material->getAlbedo(),
+								0xFFFFFFFF,
+								material->getMetallic(),
+								0xFFFFFFFF,
+								material->getRoughness(),
+								0xFFFFFFFF,
+								glm::vec4(material->getEmissive(), material->getEmissiveValue()),
+								0xFFFFFFFF,
+							};
+							if (material->hasAlbedoMap() && base->m_textureIndices.count(material->getAlbedoMap()))
+								gpuMaterial.albedoMap = base->m_textureIndices.at(material->getAlbedoMap());
+							if (material->hasMetallicMap() && base->m_textureIndices.count(material->getMetallicMap()))
+								gpuMaterial.metallicMap = base->m_textureIndices.at(material->getMetallicMap());
+							if (material->hasRoughnessMap() && base->m_textureIndices.count(material->getRoughnessMap()))
+								gpuMaterial.roughnessMap = base->m_textureIndices.at(material->getRoughnessMap());
+							if (material->hasEmissiveMap() && base->m_textureIndices.count(material->getEmissiveMap()))
+								gpuMaterial.emissiveMap = base->m_textureIndices.at(material->getEmissiveMap());
+							perMeshInstance[i].material = gpuMaterial;
+						}
+						else
+							perMeshInstance[i].material = MaterialGpuData();
+
 						j++; i++;
 					}
 				}

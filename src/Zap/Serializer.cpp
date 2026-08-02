@@ -614,29 +614,29 @@ namespace Zap {
 
 	template<>
 	void Serializer::write(const ConvexMeshGeometry& val, std::ostream& stream) {
-		//write(val.getHitMesh(), stream);
+		write(val.getHitMesh(), stream);
 	}
 	template<>
 	void Serializer::read(ConvexMeshGeometry& val, std::istream& stream) {
-		//AssetHandle<Mesh> mesh;
-		//read(mesh, stream);
-		//ConvexMesh convexMesh(mesh);
-		//val = ConvexMeshGeometry(convexMesh);
+		AssetHandle<Mesh> mesh;
+		read(mesh, stream);
+		ConvexMesh convexMesh(mesh);
+		val = ConvexMeshGeometry(convexMesh);
 	}
 	template<>
 	void Serializer::writeReadable(const ConvexMeshGeometry& val, std::ostream& stream) {
-		//stream << "{hitMesh: ";
-		//writeReadable(val.getHitMesh(), stream);
-		//stream << "}";
+		stream << "{hitMesh: ";
+		writeReadable(val.getHitMesh(), stream);
+		stream << "}";
 	}
 	template<>
 	void Serializer::readReadable(ConvexMeshGeometry& val, std::istream& stream) {
-		//AssetHandle<Mesh> mesh;
-		//stream.ignore(0xffff, ':');
-		//readReadable(mesh, stream);
-		//ConvexMesh convexMesh(mesh);
-		//val = ConvexMeshGeometry(convexMesh);
-		//stream.ignore(0xffff, '}');
+		AssetHandle<Mesh> mesh;
+		stream.ignore(0xffff, ':');
+		readReadable(mesh, stream);
+		ConvexMesh convexMesh(mesh);
+		val = ConvexMeshGeometry(convexMesh);
+		stream.ignore(0xffff, '}');
 	}
 
 	// Physics Material
@@ -808,7 +808,7 @@ namespace Zap {
 			makeShapeReadable<PlaneGeometry>(val, material, localPose, stream);
 			break;
 		case eGEOMETRY_TYPE_CONVEX_MESH:
-			//makeShapeReadable<ConvexMeshGeometry>(val, material, localPose, stream);
+			makeShapeReadable<ConvexMeshGeometry>(val, material, localPose, stream);
 			break;
 		default:
 			break;

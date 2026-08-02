@@ -61,8 +61,6 @@ namespace Zap {
 	}
 
 	void Shape::setGeometry(const PhysicsGeometry& geometry) {
-		if (geometry.getType() == eGEOMETRY_TYPE_CONVEX_MESH)
-			m_hitMesh = static_cast<const ConvexMeshGeometry&>(geometry).getHitMesh();
 		if(m_pxShape)
 			m_pxShape->setGeometry(geometry);
 	}
@@ -80,7 +78,7 @@ namespace Zap {
 		case physx::PxGeometryType::ePLANE:
 			return std::make_unique<PlaneGeometry>(static_cast<const physx::PxPlaneGeometry&>(m_pxShape->getGeometry()));
 		case physx::PxGeometryType::eCONVEXMESH:
-			return std::make_unique<ConvexMeshGeometry>(static_cast<const physx::PxConvexMeshGeometry&>(m_pxShape->getGeometry()), m_hitMesh);
+			return std::make_unique<ConvexMeshGeometry>(static_cast<const physx::PxConvexMeshGeometry&>(m_pxShape->getGeometry()));
 		default: {
 			ZP_WARN(false, "Shape::getGeometry unknown geometry type");
 			return nullptr;

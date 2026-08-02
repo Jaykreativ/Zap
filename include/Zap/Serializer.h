@@ -183,25 +183,44 @@ namespace Zap {
 		// AssetHandle
 		template<class T>
 		static void write(AssetHandle<T> val, std::ostream& stream) {
-			write(val.m_handle, stream);
+			bool gen = val->isGenerated();
+			write(gen, stream);
+			if(!gen)
+				write(val.m_handle, stream);
 		}
 		template<class T>
 		static void read(AssetHandle<T>& val, std::istream& stream) {
-			UUID handle;
-			read(handle, stream);
-			val = AssetHandle<T>(handle, Base::getBase()->getAssetHandler());
+			bool gen;
+			read(gen, stream);
+			if (!gen) {
+				UUID handle;
+				read(handle, stream);
+				val = AssetHandle<T>(handle, Base::getBase()->getAssetHandler());
+			}
+			else
+				val = AssetHandle<T>(); // TODO implement default assets accessible through the assetHandler
 		}
 		template<class T>
 		static void writeReadable(AssetHandle<T> val, std::ostream& stream) {
 			stream << "AssetHandle: ";
-			writeReadable(val.m_handle, stream);
+			bool gen = val->isGenerated();
+			if (gen)
+				stream << "{generated}";
+			else
+				writeReadable(val.m_handle, stream);
 		}
 		template<class T>
 		static void readReadable(AssetHandle<T>& val, std::istream& stream) {
 			stream.ignore(0xffff, ':');
-			UUID handle;
-			readReadable(handle, stream);
-			val = AssetHandle<T>(handle, Base::getBase()->getAssetHandler());
+			stream.get();
+			bool gen = stream.peek() == '{';
+			if (!gen) {
+				UUID handle;
+				readReadable(handle, stream);
+				val = AssetHandle<T>(handle, Base::getBase()->getAssetHandler());
+			}
+			else
+				val = AssetHandle<T>();
 		}
 
 		// physx

@@ -33,6 +33,10 @@ namespace Zap {
 		// Only works when a scene ptr was supplied in the constructor
 		std::unordered_map<UUID, Model>::iterator endSceneModels();
 
+		// Only works when a scene ptr was supplied in the constructor
+		// checks whether the currently rendered scene contains the given actor
+		bool isSameScene(Actor actor);
+
 		// returns a ptr to the engines global vulkan registery object
 		vk::Registery* getRegistery();
 

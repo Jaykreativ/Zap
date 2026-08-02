@@ -72,7 +72,6 @@ namespace Zap {
 
 	private:
 		physx::PxShape* m_pxShape = nullptr;
-		AssetHandle<Mesh> m_hitMesh;
 
 		friend class Actor;
 		friend class PhysicsComponent;

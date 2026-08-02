@@ -25,6 +25,10 @@ namespace Zap {
 		return m_pScene->m_modelComponents.end();
 	}
 
+	bool RenderTask::isSameScene(Actor actor) {
+		return m_pScene == actor.getScene();
+	}
+
 	vk::Registery* RenderTask::getRegistery() {
 		return &Base::getBase()->m_registery;
 	}
