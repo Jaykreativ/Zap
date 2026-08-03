@@ -1,7 +1,7 @@
 #include "Zap/Physics/Shape.h"
 
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Components/PhysicsComponents.h"
+#include "Zap/Scene/Components.h"
 
 #include "glm/gtc/quaternion.hpp"
 

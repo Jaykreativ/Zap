@@ -3,10 +3,7 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Components/Transform.h"
-#include "Zap/Scene/Components/Model.h"
-#include "Zap/Scene/Components/Light.h"
-#include "Zap/Scene/Components/Camera.h"
+#include "Zap/Scene/Components.h"
 
 #include <array>
 

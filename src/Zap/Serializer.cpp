@@ -2,7 +2,7 @@
 
 #include "Zap/AssetHandling/Loaders.h"
 #include "Zap/Scene/Scene.h"
-#include "Zap/Scene/Components/PhysicsComponents.h"
+#include "Zap/Scene/Components.h"
 #include "Zap/Physics/Geometry.h"
 #include "Zap/Physics/Shape.h"
 
@@ -177,7 +177,7 @@ namespace Zap {
 		}
 	template<>
 	void Serializer::readReadable(std::string& val, std::istream& stream) {
-			stream.ignore(1);
+			stream.ignore(0xffff, '\"');
 			while (stream.peek() != '\"') {
 				char c;
 				read(c, stream);
@@ -415,6 +415,25 @@ namespace Zap {
 		}
 
 	// Scene Components
+	template<>
+	void Serializer::write(const Name& val, std::ostream& stream) {
+		write(val.name, stream);
+	}
+	template<>
+	void Serializer::read(Name& val, std::istream& stream) {
+		read(val.name, stream);
+	}
+	template<>
+	void Serializer::writeReadable(const Name& val, std::ostream& stream) {
+		stream << "name: ";
+		writeReadable(val.name, stream);
+	}
+	template<>
+	void Serializer::readReadable(Name& val, std::istream& stream) {
+		stream.ignore(0xffff, ':');
+		readReadable(val.name, stream);
+	}
+
 	template<>
 	void Serializer::write(const Camera& val, std::ostream& stream) {
 		write(val.lookAtCenter, stream);
@@ -1029,6 +1048,7 @@ namespace Zap {
 
 		beginLinking();
 		writePxScene(scene.m_pxScene, stream);
+		write(scene.m_nameComponents, stream);
 		write(scene.m_cameraComponents, stream);
 		write(scene.m_lightComponents, stream);
 		write(scene.m_meshInstanceCount, stream);
@@ -1052,6 +1072,7 @@ namespace Zap {
 
 		beginLinking();
 		readPxScene(scene.m_pxScene, stream);
+		read(scene.m_nameComponents, stream);
 		read(scene.m_cameraComponents, stream);
 		read(scene.m_lightComponents, stream);
 		read(scene.m_meshInstanceCount, stream);
@@ -1077,6 +1098,8 @@ namespace Zap {
 		beginLinking();
 		stream << "\n-- PxScene --\n";
 		writePxSceneReadable(scene.m_pxScene, stream);
+		stream << "\n-- Name Components --\n";
+		writeReadable(scene.m_nameComponents, stream);
 		stream << "\n-- Camera Components --\n";
 		writeReadable(scene.m_cameraComponents, stream);
 		stream << "\n-- Light Components --\n";
@@ -1112,6 +1135,9 @@ namespace Zap {
 		stream.ignore(0xffff, '-');
 		stream.ignore(0xffff, '\n');
 		readPxSceneReadable(scene.m_pxScene, stream);
+		stream.ignore(0xffff, '-');
+		stream.ignore(0xffff, '\n');
+		readReadable(scene.m_nameComponents, stream);
 		stream.ignore(0xffff, '-');
 		stream.ignore(0xffff, '\n');
 		readReadable(scene.m_cameraComponents, stream);

@@ -2,15 +2,13 @@
 #include "Zap/Events.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Components/Model.h"
-#include "Zap/Scene/Components/PhysicsComponents.h"
-#include "Zap/Scene/Components/Light.h"
-#include "Zap/Scene/Components/Camera.h"
-#include "Zap/Scene/Components/Transform.h"
+#include "Zap/Scene/Components.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
 
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
+
+#include <sstream>
 
 namespace Zap {
 	Actor::Actor(){}
@@ -50,6 +48,48 @@ namespace Zap {
 		return true;
 	}
 
+	/* Name */
+
+	Name& Actor::getNameCmp() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		return m_pScene->m_nameComponents.at(m_handle);
+	}
+
+	void Actor::addName(std::string name) {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		ZP_ASSERT(!m_pScene->m_nameComponents.count(m_handle), "Actor can't have multiple transforms");
+		m_pScene->m_nameComponents[m_handle] = name;
+	}
+
+	void Actor::destroyName() {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		m_pScene->m_nameComponents.erase(m_handle);
+	}
+
+	bool Actor::hasName() const {
+		ZP_ASSERT(m_pScene, "Actor is not part of scene");
+		return m_pScene->m_nameComponents.count(m_handle);
+	}
+
+	std::string Actor::name() {
+		if (hasName())
+			return getNameCmp().name;
+		else {
+			std::stringstream stream;
+			stream << "Actor_" << std::hex << getHandle();
+			return stream.str();
+		}
+	}
+
+	void Actor::rename(std::string name) {
+		if (!hasName())
+			addName(name);
+		else {
+			auto& cmp = getNameCmp();
+			cmp.name = name;
+		}
+	}
+	
 	/* Transform */
 
 	Transform& Actor::getTransformCmp() {

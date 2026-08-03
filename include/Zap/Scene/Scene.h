@@ -4,11 +4,7 @@
 #include "Zap/UUID.h"
 #include "Zap/Events.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Components/Camera.h"
-#include "Zap/Scene/Components/Light.h"
-#include "Zap/Scene/Components/Model.h"
-#include "Zap/Scene/Components/PhysicsComponents.h"
-#include "Zap/Scene/Components/Transform.h"
+#include "Zap/Scene/Components.h"
 
 #include "glm.hpp"
 
@@ -24,11 +20,14 @@ namespace Zap {
 	class Scene
 	{
 	public:
-		Scene();
-		Scene(UUID handle);
+		Scene(std::string name = "", UUID handle = UUID());
 		~Scene();
 
 		bool operator ==(const Scene& act) { return m_handle == act.m_handle; }
+
+		std::string name() const;
+
+		void rename(std::string name);
 
 		UUID getHandle();
 
@@ -69,6 +68,7 @@ namespace Zap {
 	private:
 #endif
 		UUID m_handle;
+		std::string m_name;
 
 		physx::PxScene* m_pxScene = nullptr;
 
@@ -76,12 +76,13 @@ namespace Zap {
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 	public:
 #endif
+		std::unordered_map<UUID, Name>            m_nameComponents;
+		std::unordered_map<UUID, Transform>       m_transformComponents;
 		std::unordered_map<UUID, Camera>          m_cameraComponents;// TODO rework access system
 		std::unordered_map<UUID, Light>           m_lightComponents;
 		std::unordered_map<UUID, Model>           m_modelComponents;
 		std::unordered_map<UUID, RigidDynamic>    m_rigidDynamicComponents;
 		std::unordered_map<UUID, RigidStatic>     m_rigidStaticComponents;
-		std::unordered_map<UUID, Transform>       m_transformComponents;
 #ifdef ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 #ifndef ZP_ALL_PUBLIC
 	private:

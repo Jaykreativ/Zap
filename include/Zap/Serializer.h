@@ -203,8 +203,9 @@ namespace Zap {
 		template<class T>
 		static void writeReadable(AssetHandle<T> val, std::ostream& stream) {
 			stream << "AssetHandle: ";
-			bool gen = val->isGenerated();
-			if (gen)
+			if (!val)
+				stream << "{invalid}";
+			else if (val->isGenerated())
 				stream << "{generated}";
 			else
 				writeReadable(val.m_handle, stream);
@@ -219,8 +220,10 @@ namespace Zap {
 				readReadable(handle, stream);
 				val = AssetHandle<T>(handle, Base::getBase()->getAssetHandler());
 			}
-			else
+			else {
 				val = AssetHandle<T>();
+				stream.ignore(0xffff, '}');
+			}
 		}
 
 		// physx

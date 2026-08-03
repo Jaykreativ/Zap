@@ -1,6 +1,5 @@
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Components/PhysicsComponents.h"
 #include "Zap/AssetHandling/AssetTypes/Mesh.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
 #include "Zap/Rendering/RenderObjects/RenderTasks/LineRenderTask.h"
@@ -8,14 +7,19 @@
 #include <set>
 
 namespace Zap {
-	Scene::Scene()
-		: m_handle()
-	{}
-	Scene::Scene(UUID handle)
-		: m_handle(handle)
+	Scene::Scene(std::string name, UUID handle)
+		: m_name(name), m_handle(handle)
 	{}
 
 	Scene::~Scene() {}
+
+	std::string Scene::name() const {
+		return m_name;
+	}
+
+	void Scene::rename(std::string name) {
+		m_name = name;
+	}
 
 	UUID Scene::getHandle() {
 		return m_handle;
@@ -166,6 +170,7 @@ namespace Zap {
 		for (auto const& x : m_rigidStaticComponents) x.second.pxActor->release();
 		m_rigidStaticComponents.clear();
 		m_transformComponents.clear();
+		m_nameComponents.clear();
 	}
 
 	void Scene::attachActor(Actor& actor) {
@@ -250,10 +255,10 @@ namespace Zap {
 		for (auto& pair : m_modelComponents) {
 			auto& model = pair.second;
 			for (auto mesh : model.meshes)
-				if (mesh->hasSourcePath())
+				if (mesh && mesh->hasSourcePath())
 					paths.insert(mesh->getSourcePath());
 			for (auto material : model.materials)
-				if (material->hasSourcePath())
+				if (material && material->hasSourcePath())
 					paths.insert(material->getSourcePath());
 		}
 		return paths;

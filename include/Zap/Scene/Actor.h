@@ -6,6 +6,7 @@
 
 namespace Zap {
 	class Scene;
+	class Name;
 	class Transform;
 	class Model;
 	class Material;
@@ -32,6 +33,20 @@ namespace Zap {
 		Scene* getScene();
 
 		bool isValid();
+
+		/* Name */
+
+		Name& getNameCmp();
+
+		void addName(std::string name);
+
+		void destroyName();
+
+		bool hasName() const;
+
+		std::string name();
+
+		void rename(std::string name);
 
 		/* Transform */
 
