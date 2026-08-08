@@ -26,7 +26,7 @@ namespace Zap {
 	}
 
 	bool RenderTask::isSameScene(Actor actor) {
-		return m_pScene == actor.getScene();
+		return m_pScene->isAttachedActor(actor);
 	}
 
 	vk::Registery* RenderTask::getRegistery() {

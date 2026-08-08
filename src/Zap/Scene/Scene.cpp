@@ -104,7 +104,7 @@ namespace Zap {
 						perMeshInstance[i].vertexBufferAddress = mesh->getVertexBuffer().getVkDeviceAddress();
 						perMeshInstance[i].indexBufferAddress = mesh->getIndexBuffer().getVkDeviceAddress();
 
-						m_meshInstanceIndices[mesh+modelPair.first] = i;
+						m_meshInstanceIndices[(UUID)mesh+modelPair.first] = i;
 						i++;
 					}
 				}
@@ -171,6 +171,10 @@ namespace Zap {
 		m_rigidStaticComponents.clear();
 		m_transformComponents.clear();
 		m_nameComponents.clear();
+	}
+
+	bool Scene::isAttachedActor(Actor actor) {
+		return actor.m_pScene == this;
 	}
 
 	void Scene::attachActor(Actor& actor) {

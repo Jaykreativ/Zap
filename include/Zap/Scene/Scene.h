@@ -37,6 +37,8 @@ namespace Zap {
 
 		void destroy();
 
+		bool isAttachedActor(Actor actor);
+
 		void attachActor(Actor& actor);
 
 		struct RaycastOutput {
