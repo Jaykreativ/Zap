@@ -49,6 +49,8 @@ namespace Zap {
 		};
 		bool raycast(glm::vec3 origin, glm::vec3 unitDir, uint32_t maxDistance, RaycastOutput* out, physx::PxQueryFilterCallback* filterCallback = nullptr); // cleanup query filter
 
+		void updatePxPoses();
+
 		void simulate(float elapsedTime);
 
 		void update();

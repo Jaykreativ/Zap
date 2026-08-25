@@ -210,6 +210,17 @@ namespace Zap {
 		return true;
 	}
 
+	void Scene::updatePxPoses() {
+		for (auto& [id, cmp] : m_rigidDynamicComponents) {
+			auto& transform = m_transformComponents.at(id).transform;
+			cmp.pxActor->setGlobalPose(PxUtils::glmMat4ToTransform(transform));
+		}
+		for (auto& [id, cmp] : m_rigidStaticComponents) {
+			auto& transform = m_transformComponents.at(id).transform;
+			cmp.pxActor->setGlobalPose(PxUtils::glmMat4ToTransform(transform));
+		}
+	}
+
 	void Scene::simulate(float elapsedTime) {
 		if (elapsedTime <= 0) return;
 		auto base = Base::getBase();
@@ -218,17 +229,16 @@ namespace Zap {
 		m_pxScene->fetchResults(true);
 		uint32_t numActors = 0;
 		auto actors = m_pxScene->getActiveActors(numActors);
-		for (uint32_t i = 0; i < numActors; i++) {
+		for (uint32_t i = 0; i < numActors; i++) { // update ECS transforms
 			auto pxActor = actors[i];
 			switch (pxActor->getType()) {
 			case physx::PxActorType::eRIGID_DYNAMIC: {
-				RigidDynamic* cmp = &m_rigidDynamicComponents.at((uint64_t)pxActor->userData);
-				glm::mat4* transform = &m_transformComponents.at((uint64_t)pxActor->userData).transform;
+				glm::mat4& transform = m_transformComponents.at((uint64_t)pxActor->userData).transform;
 				glm::mat4 mat = PxUtils::transformToGlmMat4(((physx::PxRigidDynamic*)pxActor)->getGlobalPose());
-				mat[0] = mat[0] * glm::length((*transform)[0]);
-				mat[1] = mat[1] * glm::length((*transform)[1]);
-				mat[2] = mat[2] * glm::length((*transform)[2]);
-				*transform = mat;
+				mat[0] = mat[0] * glm::length(transform[0]);
+				mat[1] = mat[1] * glm::length(transform[1]);
+				mat[2] = mat[2] * glm::length(transform[2]);
+				transform = mat;
 			}
 			}
 		}
